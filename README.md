@@ -82,7 +82,6 @@ new_bucket.files.upload('/path/to/file.txt')
 # Or a file handle
 with open('/path/to/another/file.png') as file:
     another_bucket.files.upload(file)
-# You can also use the 
 ```
 
 ### Download a file

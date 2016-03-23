@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name='metadisk',
-    version='0.1.2',
+    version='0.1.3',
     description='A Python SDK for the Storj Metadisk API',
     keywords='metadisk, api, client, sdk, python',
     url='https://github.com/hwkns/metadisk-python-sdk',

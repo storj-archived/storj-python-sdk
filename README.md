@@ -4,6 +4,13 @@ metadisk-python-sdk
 A Python SDK for the Storj Metadisk API
 
 
+Requirements
+------------
+
+- Python 2.7 or Python 3.3+
+- Dependencies: `ecdsa`, `pytz`, and `requests`
+
+
 Installation
 ------------
 

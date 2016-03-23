@@ -5,6 +5,7 @@ import json
 from binascii import b2a_hex
 from base64 import b64encode
 from hashlib import sha256
+from json.decoder import JSONDecodeError
 from urllib.parse import urljoin, urlencode
 
 import requests
@@ -89,9 +90,13 @@ class MetadiskClient:
         kwargs['url'] = urljoin(self.api_url, path)
 
         response = requests.request(**kwargs)
-        response_json = response.json()
-        if 'error' in response_json:
-            raise MetadiskApiError(response_json['error'])
+        try:
+            response_json = response.json()
+        except JSONDecodeError:
+            pass
+        else:
+            if 'error' in response_json:
+                raise MetadiskApiError(response_json['error'])
 
         response.raise_for_status()
         return response

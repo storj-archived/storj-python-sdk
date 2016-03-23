@@ -4,14 +4,10 @@
 from setuptools import setup
 
 
-with open('README.md') as readme:
-    long_description = readme.read()
-
 setup(
     name='metadisk',
-    version='0.1.1',
+    version='0.1.2',
     description='A Python SDK for the Storj Metadisk API',
-    long_description=long_description,
     keywords='metadisk, api, client, sdk, python',
     url='https://github.com/hwkns/metadisk-python-sdk',
     author='Daniel Hawkins',

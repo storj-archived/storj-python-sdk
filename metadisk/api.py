@@ -1,12 +1,24 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 
 import os
 import json
 from binascii import b2a_hex
 from base64 import b64encode
 from hashlib import sha256
-from json.decoder import JSONDecodeError
-from urllib.parse import urljoin, urlencode
+
+try:
+    from json.decoder import JSONDecodeError
+except ImportError:
+    # Python 2
+    JSONDecodeError = ValueError
+
+try:
+    from urllib.parse import urljoin, urlencode
+except ImportError:
+    # Python 2
+    from urllib import urlencode
+    from urlparse import urljoin
 
 import requests
 from ecdsa import SigningKey
@@ -89,7 +101,10 @@ class MetadiskClient:
         assert(path.startswith('/'))
         kwargs['url'] = urljoin(self.api_url, path)
 
+        # Send the request
         response = requests.request(**kwargs)
+
+        # Raise any errors as exceptions
         try:
             response_json = response.json()
         except JSONDecodeError:
@@ -99,6 +114,7 @@ class MetadiskClient:
                 raise MetadiskApiError(response_json['error'])
 
         response.raise_for_status()
+
         return response
 
     def register_user(self, email, password):

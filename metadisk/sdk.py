@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 
 import io
 from datetime import datetime
@@ -17,8 +18,9 @@ class Bucket:
             self.status = json_payload['status']
             self.user = json_payload['user']
             self.created_at = json_payload['created']
-            self.storage = json_payload['storage']
-            self.transfer = json_payload['transfer']
+            # https://github.com/Storj/metadisk-api/issues/45
+            # self.storage = json_payload['storage']
+            # self.transfer = json_payload['transfer']
             self.authorized_public_keys = json_payload['pubkeys']
         except KeyError as e:
             raise MetadiskApiError(
@@ -45,11 +47,7 @@ class BucketManager:
     @staticmethod
     def all():
         buckets_json = api_client.get_buckets()
-        try:
-            return [Bucket(payload) for payload in buckets_json]
-        except:
-            print(buckets_json)
-            raise
+        return [Bucket(payload) for payload in buckets_json]
 
     @staticmethod
     def get(bucket_id):

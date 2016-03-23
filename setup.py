@@ -9,7 +9,7 @@ with open('README.md') as readme:
 
 setup(
     name='metadisk',
-    version='0.1.0',
+    version='0.1.1',
     description='A Python SDK for the Storj Metadisk API',
     long_description=long_description,
     keywords='metadisk, api, client, sdk, python',

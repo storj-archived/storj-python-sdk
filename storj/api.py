@@ -2,10 +2,12 @@
 from __future__ import unicode_literals
 
 import os
+import time
 import json
 from binascii import b2a_hex
 from base64 import b64encode
 from hashlib import sha256
+from io import BytesIO
 
 try:
     from json.decoder import JSONDecodeError
@@ -21,11 +23,10 @@ except ImportError:
     from urlparse import urljoin
 
 import requests
+from requests import Request
 from ecdsa import SigningKey
 from ecdsa.util import sigencode_der
-
-
-JSON = 'application/json; charset=utf-8'
+from ws4py.client.threadedclient import WebSocketClient
 
 
 def ecdsa_to_hex(ecdsa_key):
@@ -39,7 +40,7 @@ class MetadiskApiError(Exception):
 class MetadiskClient:
 
     def __init__(self):
-        self.api_url = 'https://api.metadisk.org/'
+        self.api_url = 'https://api.storj.io/'
         self.session = requests.Session()
         self.email = None
         self.password = None
@@ -70,10 +71,13 @@ class MetadiskClient:
         method = request_kwargs.get('method', 'GET')
 
         if method in ('GET', 'DELETE'):
-            data = request_kwargs.get('params', {})
-            data = urlencode(data)
+            request_kwargs.setdefault('params', {})
+            request_kwargs['params']['__nonce'] = int(time.time())
+            data = urlencode(request_kwargs['params'])
         else:
-            data = request_kwargs.get('data', '{}')
+            request_kwargs.setdefault('json', {})
+            request_kwargs['json']['__nonce'] = int(time.time())
+            data = json.dumps(request_kwargs['json'])
 
         contract = '\n'.join((method, request_kwargs['path'], data)).encode('utf-8')
         signature_bytes = self.private_key.sign(contract, sigencode=sigencode_der, hashfunc=sha256)
@@ -86,7 +90,7 @@ class MetadiskClient:
             }
         )
 
-    def _request(self, **kwargs):
+    def prepare_request(self, **kwargs):
 
         kwargs.setdefault('headers', {})
 
@@ -101,8 +105,13 @@ class MetadiskClient:
         assert(path.startswith('/'))
         kwargs['url'] = urljoin(self.api_url, path)
 
-        # Send the request
-        response = requests.request(**kwargs)
+        return Request(**kwargs).prepare()
+
+    def request(self, **kwargs):
+
+        # Prepare and send the request
+        request = self.prepare_request(**kwargs)
+        response = self.session.send(request)
 
         # Raise any errors as exceptions
         try:
@@ -124,13 +133,10 @@ class MetadiskClient:
             'password': password
         }
 
-        response = self._request(
+        response = self.request(
             method='POST',
             path='/users',
-            data=json.dumps(data),
-            headers={
-                'content-type': JSON,
-            },
+            json=data,
         )
 
         assert(response.status_code == 200)
@@ -143,36 +149,30 @@ class MetadiskClient:
             'key': public_key,
         }
 
-        response = self._request(
+        response = self.request(
             method='POST',
             path='/keys',
-            data=json.dumps(data),
-            headers={
-                'content-type': JSON,
-            },
+            json=data,
         )
 
         return response.json()
 
     def get_keys(self):
-        response = self._request(method='GET', path='/keys')
+        response = self.request(method='GET', path='/keys')
         return response.json()
 
     def delete_key(self, key):
-        response = self._request(method='DELETE', path='/keys/' + key)
+        response = self.request(method='DELETE', path='/keys/' + key)
         assert(response.status_code == 200)
 
     def create_token(self, bucket_id, operation):
         data = {
             'operation': operation,
         }
-        response = self._request(
+        response = self.request(
             method='POST',
-            path='/buckets/' + bucket_id + '/tokens',
-            data=json.dumps(data),
-            headers={
-                'content-type': JSON,
-            },
+            path='/buckets/{id}/tokens'.format(id=bucket_id),
+            json=data,
         )
         return response.json()
 
@@ -189,9 +189,9 @@ class MetadiskClient:
 
         push_token = self.create_token(bucket_id, operation='PUSH')
 
-        response = self._request(
+        response = self.request(
             method='PUT',
-            path='/buckets/' + bucket_id + '/files',
+            path='/buckets/{id}/files'.format(id=bucket_id),
             files={
                 'data': file,
             },
@@ -204,30 +204,52 @@ class MetadiskClient:
         assert(response.status_code == 200)
 
     def get_files(self, bucket_id):
-        response = self._request(method='GET', path='/buckets/' + bucket_id + '/files')
+        response = self.request(
+            method='GET',
+            path='/buckets/{id}/files'.format(id=bucket_id),
+        )
         return response.json()
 
     def get_file_pointers(self, bucket_id, file_hash):
+
         pull_token = self.create_token(bucket_id, operation='PULL')
-        response = self._request(
+        response = self.request(
             method='GET',
-            path='/buckets/' + str(bucket_id) + '/files/' + file_hash,
+            path='/buckets/{id}/files/{hash}'.format(id=bucket_id, hash=file_hash),
             headers={
                 'x-token': pull_token['token'],
             }
         )
         return response.json()
 
+    def download_file(self, bucket_id, file_hash):
+
+        pointers = self.get_file_pointers(bucket_id=bucket_id, file_hash=file_hash)
+
+        file_contents = BytesIO()
+        for pointer in pointers:
+            ws = FileRetrieverWebSocketClient(pointer=pointer, file_contents=file_contents)
+            ws.connect()
+            ws.run_forever()
+
+        return file_contents
+
     def get_buckets(self):
-        response = self._request(method='GET', path='/buckets')
+        response = self.request(method='GET', path='/buckets')
         return response.json()
 
     def get_bucket(self, bucket_id):
-        response = self._request(method='GET', path='/buckets/' + bucket_id)
+        response = self.request(
+            method='GET',
+            path='/buckets/{id}'.format(id=bucket_id),
+        )
         return response.json()
 
     def delete_bucket(self, bucket_id):
-        response = self._request(method='DELETE', path='/buckets/' + bucket_id)
+        response = self.request(
+            method='DELETE',
+            path='/buckets/{id}'.format(id=bucket_id),
+        )
         assert(response.status_code == 200)
 
     def create_bucket(self, bucket_name, storage_limit=None, transfer_limit=None):
@@ -242,13 +264,10 @@ class MetadiskClient:
         if transfer_limit:
             data['transfer'] = transfer_limit
 
-        response = self._request(
+        response = self.request(
             method='POST',
             path='/buckets',
-            data=json.dumps(data),
-            headers={
-                'content-type': JSON,
-            },
+            json=data,
         )
 
         return response.json()
@@ -259,13 +278,33 @@ class MetadiskClient:
             'pubkeys': keys,
         }
 
-        response = self._request(
+        response = self.request(
             method='PATCH',
-            path='/buckets/' + bucket_id,
-            data=json.dumps(data),
+            path='/buckets/{id}'.format(id=bucket_id),
+            json=data,
         )
 
         assert(response.status_code == 200)
 
 
 api_client = MetadiskClient()
+
+
+class FileRetrieverWebSocketClient(WebSocketClient):
+
+    def __init__(self, pointer, file_contents):
+        assert isinstance(pointer, dict)
+        channel = pointer.pop('channel')
+        self.json = pointer
+        self.file_contents = file_contents
+        super(FileRetrieverWebSocketClient, self).__init__(channel)
+
+    def opened(self):
+        self.send(json.dumps(self.json))
+
+    def closed(self, code, reason=None):
+        print("Closed websocket", code, reason)
+
+    def received_message(self, m):
+        if m.is_binary:
+            self.file_contents.write(m.data)

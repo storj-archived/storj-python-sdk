@@ -1,4 +1,4 @@
-metadisk-python-sdk
+storj-python-sdk
 ===================
 
 A Python SDK for the Storj Metadisk API
@@ -8,13 +8,13 @@ Requirements
 ------------
 
 - Python 2.7 or Python 3.3+
-- Dependencies: `ecdsa`, `pytz`, and `requests`
+- Dependencies: `ecdsa`, `pytz`, `requests`, and `ws4py`
 
 
 Installation
 ------------
 
-`pip install metadisk`
+`pip install storj`
 
 
 Usage
@@ -23,50 +23,50 @@ Usage
 ### Create a user account
 
 ```python
-import metadisk
-metadisk.register_new_user(email='someone@email.com', password='a better password than this')
+import storj
+storj.register_new_user(email='someone@email.com', password='a better password than this')
 # Check email for confirmation link
 ```
 
 ### Generate a key pair and start using it for authentication
 
 ```python
-import metadisk
-(private_key, public_key) = metadisk.generate_new_key_pair()
-metadisk.authenticate(email='someone@email.com', password='a better password than this')
-metadisk.public_keys.add(public_key)
-metadisk.authenticate(ecdsa_private_key=private_key)
+import storj
+(private_key, public_key) = storj.generate_new_key_pair()
+storj.authenticate(email='someone@email.com', password='a better password than this')
+storj.public_keys.add(public_key)
+storj.authenticate(ecdsa_private_key=private_key)
 ```
 
 ### Manage your public keys
 
 ```python
-import metadisk
+import storj
 # Get all registered public keys
-key_list = metadisk.public_keys.all()
+key_list = storj.public_keys.all()
 # Add a key
-metadisk.public_keys.add(public_key)
+storj.public_keys.add(public_key)
 # Remove one key
-metadisk.public_keys.remove(public_key)
+storj.public_keys.remove(public_key)
 # Remove all keys
-metadisk.public_keys.clear()
+storj.public_keys.clear()
 ```
 
 ### Manage your buckets
 
 ```python
-import metadisk
+import storj
 # Get all buckets
-bucket_list = metadisk.buckets.all()
+bucket_list = storj.buckets.all()
 # Get a single bucket
-existing_bucket = metadisk.buckets.get(id='56ef0d4656bf7b950faace7a')
+existing_bucket = storj.buckets.get(id='56ef0d4656bf7b950faace7a')
 # Create a new bucket
-new_bucket = metadisk.buckets.create(name='my first bucket')
-another_bucket = metadisk.buckets.create(name='another bucket', storage_limit=300, transfer_limit=100)
+new_bucket = storj.buckets.create(name='my first bucket')
+another_bucket = storj.buckets.create(name='another bucket', storage_limit=300, transfer_limit=100)
 # Delete a bucket
 new_bucket.delete()
 # Delete a bucket without fetching it
-metadisk.buckets.delete(bucket_id='56ef0d4656bf7b950faace7a')
+storj.buckets.delete(bucket_id='56ef0d4656bf7b950faace7a')
 ```
 
 ### Get file metadata for files in a bucket
@@ -93,7 +93,11 @@ with open('/path/to/another/file.png') as file:
 
 ### Download a file
 
-Not yet implemented.  Waiting for a finalized transfer protocol.
+```python
+files = existing_bucket.files.all()
+txt_file = files[0]
+txt_file_contents = txt_file.download()
+```
 
 ### Delete a file
 
@@ -112,9 +116,9 @@ existing_bucket.authorized_public_keys.remove(public_key)
 existing_bucket.authorized_public_keys.clear()
 ```
 
-### Use your own metadisk API service
+### Use your own storj API service
 
 ```python
-import metadisk
-metadisk.api_client.base_url = 'https://myserver.org'
+import storj
+storj.api_client.base_url = 'https://myserver.org'
 ```

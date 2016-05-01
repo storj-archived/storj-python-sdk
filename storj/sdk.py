@@ -18,9 +18,8 @@ class Bucket:
             self.status = json_payload['status']
             self.user = json_payload['user']
             self.created_at = json_payload['created']
-            # https://github.com/Storj/metadisk-api/issues/45
-            # self.storage = json_payload['storage']
-            # self.transfer = json_payload['transfer']
+            self.storage = json_payload['storage']
+            self.transfer = json_payload['transfer']
             self.authorized_public_keys = json_payload['pubkeys']
         except KeyError as e:
             raise MetadiskApiError(
@@ -169,6 +168,9 @@ class File:
 
     def __repr__(self):
         return '{name} ({size} {content_type})'.format(name=self.name, size=self.size, content_type=self.content_type)
+
+    def download(self):
+        return api_client.download_file(bucket_id=self.bucket_id, file_hash=self.hash)
 
     def delete(self):
         bucket_files = FileManager(bucket_id=self.bucket_id)

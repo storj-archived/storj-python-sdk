@@ -128,6 +128,8 @@ class MetadiskClient:
 
     def register_user(self, email, password):
 
+        password = sha256(password).hexdigest()
+        
         data = {
             'email': email,
             'password': password

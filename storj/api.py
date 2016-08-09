@@ -51,7 +51,7 @@ class MetadiskClient:
     def authenticate(self, email=None, password=None, ecdsa_private_key=None):
         if email and password:
             self.email = email
-            self.password = password
+            self.password = sha256(password).hexdigest()
         if isinstance(ecdsa_private_key, SigningKey):
             self.private_key = ecdsa_private_key
             self.public_key = self.private_key.get_verifying_key()

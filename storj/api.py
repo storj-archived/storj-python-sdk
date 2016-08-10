@@ -288,6 +288,45 @@ class MetadiskClient:
 
         assert(response.status_code == 200)
 
+    def create_frame(self):
+
+        data = {}
+
+        response = self.request(
+            method ='POST',
+            path='/frames',
+            json=data,
+        )
+
+        assert(response.status_code == 200)
+
+        return response.json()
+
+    def get_frames(self):
+        data = {}
+
+        response = self.request(
+            method = 'GET',
+            path='/frames',
+            json=data,
+        )
+
+        assert(response.status_code == 200)
+
+        return response.json()
+
+    def delete_frame(self, frame_id):
+        data = {
+            'frame_id': frame_id,
+        }
+
+        response = self.request(
+            method='DELETE',
+            path='/frames/{id}'.format(id=frame_id),
+            json=data,
+        )
+
+        print response
 
 api_client = MetadiskClient()
 

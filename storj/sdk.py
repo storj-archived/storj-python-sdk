@@ -186,17 +186,17 @@ class FileManager:
         files_json = api_client.get_files(bucket_id=self.bucket_id)
         return [File(payload) for payload in files_json]
 
-    def _upload(self, file):
-        api_client.upload_file(bucket_id=self.bucket_id, file=file)
+    def _upload(self, file, frame):
+        api_client.upload_file(bucket_id=self.bucket_id, file=file, frame=frame)
 
-    def upload(self, file):
+    def upload(self, file, frame):
 
         # Support path strings as well as file-like objects
         if isinstance(file, str):
             with io.open(file, mode='rb') as file:
-                self._upload(file)
+                self._upload(file, frame)
         else:
-            self._upload(file)
+            self._upload(file, frame)
 
     def download(self, file_id):
         raise NotImplementedError

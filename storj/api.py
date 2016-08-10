@@ -178,7 +178,7 @@ class MetadiskClient:
         )
         return response.json()
 
-    def upload_file(self, bucket_id, file):
+    def upload_file(self, bucket_id, file, frame):
 
         def get_size(file_like_object):
             old_position = file_like_object.tell()
@@ -192,10 +192,12 @@ class MetadiskClient:
         push_token = self.create_token(bucket_id, operation='PUSH')
 
         response = self.request(
-            method='PUT',
+            method='POST',
             path='/buckets/{id}/files'.format(id=bucket_id),
             files={
-                'data': file,
+                'frame': frame,
+                'mimetype': "text", #TODO: Change this after testing
+                'filename': "test.txt"
             },
             headers={
                 'x-token': push_token['token'],
@@ -302,7 +304,22 @@ class MetadiskClient:
 
         return response.json()
 
-    def get_frames(self):
+    def get_frame(self, frame_id):
+        data = {
+            'frame_id': frame_id,
+        }
+
+        response = self.request(
+        method='GET',
+        path='/frames/{id}'.format(id=frame_id),
+        json=data,
+        )
+
+        assert(response.status_code == 200)
+
+        return response.json()
+
+    def get_all_frames(self):
         data = {}
 
         response = self.request(
@@ -326,7 +343,34 @@ class MetadiskClient:
             json=data,
         )
 
+        assert(response.status_code == 204)
+
+    def create_shard(self, frame_id):
+        data = {
+            'index': '0'
+        }
+
+        response = self.request(
+            method='PUT',
+            path='/frames/{id}'.format(id=frame_id),
+            #json=data,
+        )
+
         print response
+
+    def list_contacts(self):
+        data = {
+        }
+
+        response = self.request(
+            method='GET',
+            path='/contacts',
+            json=data,
+        )
+
+        print response.json()
+
+
 
 api_client = MetadiskClient()
 

@@ -129,7 +129,7 @@ class MetadiskClient:
     def register_user(self, email, password):
 
         password = sha256(password).hexdigest()
-        
+
         data = {
             'email': email,
             'password': password
@@ -148,7 +148,7 @@ class MetadiskClient:
     def register_ecdsa_key(self, public_key):
 
         data = {
-            'key': public_key,
+            'key': ecdsa_to_hex(public_key),
         }
 
         response = self.request(

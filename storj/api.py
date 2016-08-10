@@ -30,7 +30,7 @@ from ws4py.client.threadedclient import WebSocketClient
 
 
 def ecdsa_to_hex(ecdsa_key):
-    return '04' + b2a_hex(ecdsa_key.to_string()).decode('ascii')
+    return '04' + b2a_hex(ecdsa_key).decode('ascii')
 
 
 class MetadiskApiError(Exception):

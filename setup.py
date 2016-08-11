@@ -1,26 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from setuptools import setup
+
+from setuptools import setup, find_packages
+
+
+exec(open('storj/version.py').read())  # load __version__
 
 
 setup(
     name='storj',
-    version='0.1.4',
     description='A Python SDK for the Storj API',
+    long_description=open("README.rst").read(),
     keywords='storj, bridge, metadisk, api, client, sdk, python',
-    url='https://github.com/hwkns/storj-python-sdk',
+    url='http://storj.io',
     author='Daniel Hawkins',
     author_email='hwkns@alum.mit.edu',
     license='MIT',
-    packages=['storj'],
+    version=__version__,  # NOQA
+    test_suite="tests",
     dependency_links=[],
-    install_requires=[
-        'ecdsa>=0.13',
-        'pytz>=2016.2',
-        'requests>=2.7.0',
-        'ws4py>=0.3.4',
-    ],
+    # package_data={'storj': ['data/*.json']},
+    # include_package_data=True,
+    install_requires=open("requirements.txt").readlines(),
+    tests_require=open("requirements_tests.txt").readlines(),
+    packages=find_packages(),
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',

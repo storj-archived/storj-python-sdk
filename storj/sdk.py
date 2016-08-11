@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import io
+import io, hashlib
 from datetime import datetime
 
 from pytz import utc
+from hashlib import sha256
 
 from .api import api_client, ecdsa_to_hex, MetadiskApiError
 
@@ -203,3 +204,81 @@ class FileManager:
 
     def delete(self, file_id):
         raise NotImplementedError
+
+class ShardManager:
+
+    def __init__(self, filepath, shard_size):
+        self.shards = []
+        self.challenges = 8
+        self.shard_index = 0
+        self.index = 0
+        self.shard_size = shard_size
+        self.filepath = filepath
+
+        file = open(filepath, "rb")
+
+
+        while(True):
+            chunk = file.read(shard_size)
+            if not chunk:
+                break
+            tmpfile = open("C:/test/shard"+str(self.index)+".shard", "wb")
+            tmpfile.write(chunk)
+            tmpfile.close()
+
+            shard = Shard()
+            shard.setSize(shard_size)
+            ripemd = hashlib.new('ripemd160')
+            sha = sha256(chunk) #calculate sha256 of chunk
+            ripemd.update(sha.digest()) #gets ripemd160 of that^
+
+            shard.setHash(ripemd.hexdigest()) 
+            shard.setIndex(self.index + 1)
+            self.index += 1
+            self.shards.append(shard)
+
+class Shard:
+
+    def __init__(self):
+        self.id = None
+        self.tree = []
+        self.challenges = []
+        self.path = None
+        self.hash = None
+        self.size = None
+        self.index = None
+
+    def all(self):
+        s = ("Shard{" +
+        "index=" + str(self.index) +
+        ", hash=" + str(self.hash) +
+        ", size=" + str(self.size) +
+        ", tree={" )
+        for branch in self.tree:
+            s += branch + ", "
+        s += "}, challenges={"
+        for chall in self.challenges:
+            s += chall + ", "
+
+        return s + "}"
+
+    def setPath(self, path):
+        self.path = path
+
+    def set_id(self, id):
+        self.id = id
+
+    def setIndex(self, index):
+        self.index = index
+
+    def setHash(self, hash):
+        self.hash = hash
+
+    def setSize(self, size):
+        self.size = size
+
+    def setTree(self, tree):
+        self.tree = tree
+
+    def setChallenges(self, challenges):
+        self.challenges = challenges

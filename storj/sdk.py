@@ -23,13 +23,15 @@ class Bucket:
             self.authorized_public_keys = json_payload['pubkeys']
         except KeyError as e:
             raise MetadiskApiError(
-                'Field "{field}" not present in JSON payload'.format(field=e.args[0])
-            )
+                'Field "{field}" not present in JSON payload'.format(
+                    field=e.args[0]))
 
         self.files = FileManager(bucket_id=self.id)
-        self.authorized_public_keys = BucketKeyManager(bucket=self, authorized_public_keys=self.authorized_public_keys)
+        self.authorized_public_keys = BucketKeyManager(
+            bucket=self, authorized_public_keys=self.authorized_public_keys)
         self.tokens = TokenManager(bucket_id=self.id)
-        self.created_at = datetime.strptime(self.created_at, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
+        self.created_at = datetime.strptime(
+            self.created_at, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
 
     def __str__(self):
         return self.name
@@ -82,7 +84,9 @@ class BucketKeyManager:
             key = ecdsa_to_hex(key)
 
         self._authorized_public_keys.append(key)
-        api_client.set_bucket_pubkeys(bucket_id=self.bucket.id, keys=self._authorized_public_keys)
+        api_client.set_bucket_pubkeys(
+            bucket_id=self.bucket.id,
+            keys=self._authorized_public_keys)
 
     def remove(self, key):
 
@@ -90,7 +94,9 @@ class BucketKeyManager:
             key = ecdsa_to_hex(key)
 
         self._authorized_public_keys.remove(key)
-        api_client.set_bucket_pubkeys(bucket_id=self.bucket.id, keys=self._authorized_public_keys)
+        api_client.set_bucket_pubkeys(
+            bucket_id=self.bucket.id,
+            keys=self._authorized_public_keys)
 
     def clear(self):
         self._authorized_public_keys = []
@@ -133,13 +139,15 @@ class Token:
         self.bucket_id = json_payload['bucket']
         self.operation = json_payload['operation']
         self.expires_at = json_payload['expires']
-        self.expires_at = datetime.strptime(self.expires_at, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
+        self.expires_at = datetime.strptime(
+            self.expires_at, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
 
     def __str__(self):
         return self.id
 
     def __repr__(self):
-        return '{operation} token: {id}'.format(operation=self.operation, id=self.id)
+        return '{operation} token: {id}'.format(
+            operation=self.operation, id=self.id)
 
 
 class TokenManager:
@@ -150,7 +158,8 @@ class TokenManager:
     def create(self, operation):
         operation = operation.upper()
         assert(operation in ['PUSH', 'PULL'])
-        token_json = api_client.create_token(bucket_id=self.bucket_id, operation=operation)
+        token_json = api_client.create_token(
+            bucket_id=self.bucket_id, operation=operation)
         return Token(token_json)
 
 
@@ -167,10 +176,12 @@ class File:
         return self.name
 
     def __repr__(self):
-        return '{name} ({size} {content_type})'.format(name=self.name, size=self.size, content_type=self.content_type)
+        return '{name} ({size} {content_type})'.format(
+            name=self.name, size=self.size, content_type=self.content_type)
 
     def download(self):
-        return api_client.download_file(bucket_id=self.bucket_id, file_hash=self.hash)
+        return api_client.download_file(
+            bucket_id=self.bucket_id, file_hash=self.hash)
 
     def delete(self):
         bucket_files = FileManager(bucket_id=self.bucket_id)

@@ -373,7 +373,7 @@ class MetadiskClient:
 
     def create_shard(self, frame_id):
         data = {
-            'index': '0'
+            'index': '0',
         }
 
         response = self.request(

@@ -4,6 +4,7 @@ from hashlib import sha256
 
 from ecdsa import SigningKey, SECP256k1
 
+from .version import __version__
 from .api import api_client
 from .sdk import BucketManager, UserKeyManager
 

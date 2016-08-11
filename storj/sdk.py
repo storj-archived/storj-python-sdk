@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import io, hashlib
+import io, hashlib, random, string, binascii
 from datetime import datetime
 
 from pytz import utc
@@ -228,7 +228,6 @@ class ShardManager:
 
         file = open(filepath, "rb")
 
-
         while(True):
             chunk = file.read(shard_size)
             if not chunk:
@@ -239,14 +238,33 @@ class ShardManager:
 
             shard = Shard()
             shard.setSize(shard_size)
-            ripemd = hashlib.new('ripemd160')
-            sha = sha256(chunk) #calculate sha256 of chunk
-            ripemd.update(sha.digest()) #gets ripemd160 of that^
-
-            shard.setHash(ripemd.hexdigest()) 
+            shard.setHash(self.rmd160sha256(chunk))
+            self.addChallenges(shard, chunk, 12) #12 for now, adds challenges to shard
             shard.setIndex(self.index + 1)
             self.index += 1
             self.shards.append(shard)
+
+
+    def addChallenges(self, shard, shardData, numberOfChallenges): #numberOfChallenges == 12 for now
+        for i in range(12):
+            challenge = self.getRandomChallengeString()
+
+            data2hash = binascii.hexlify(challenge + shardData)
+
+            tree = self.rmd160sha256(self.rmd160sha256(data2hash))
+
+            shard.addChallenge(challenge)
+            shard.addTree(tree)
+
+    def getRandomChallengeString(self):
+            return "".join(random.choice(string.ascii_letters) for i in range(32))
+
+    def rmd160sha256(self, string):
+        ripemd160 = hashlib.new('ripemd160')
+        sha = sha256(string) #calculate sha256 of chunk
+        ripemd160.update(sha.digest()) #gets ripemd160 of that^
+        return ripemd160.hexdigest()
+
 
 class Shard:
 
@@ -293,3 +311,9 @@ class Shard:
 
     def setChallenges(self, challenges):
         self.challenges = challenges
+
+    def addChallenge(self, challenge):
+        self.challenges.append(challenge)
+
+    def addTree(self, tree):
+        self.tree.append(tree)

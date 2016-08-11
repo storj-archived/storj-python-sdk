@@ -123,7 +123,7 @@ class MetadiskClient:
         else:
             if 'error' in response_json:
                 raise MetadiskApiError(response_json['error'])
-
+                
         response.raise_for_status()
 
         return response
@@ -302,7 +302,13 @@ class MetadiskClient:
 
     def create_frame(self):
 
-        data = {}
+        data = {
+        #    'index': shard.index,
+        #    'hash': shard.hash,
+        #    'size': shard.size,
+        #    'tree': shard.tree,
+        #    'challenges': shard.challenges,
+        }
 
         response = self.request(
             method='POST',
@@ -368,7 +374,22 @@ class MetadiskClient:
 
         print response.json()
 
+    def add_shard_to_frame(self, shard, frame_id):
+        data = {
+            'hash': shard.hash,
+            'size': shard.size,
+            'index': shard.index,
+            'challenges': shard.challenges,
+            'tree': shard.tree,
+        }
 
+        response = self.request(
+            method="PUT",
+            path='/frames/{id}'.format(id=frame_id),
+            json=data,
+        )
+
+        print response
 
 api_client = MetadiskClient()
 

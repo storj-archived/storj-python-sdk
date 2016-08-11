@@ -172,6 +172,7 @@ class File:
         self.content_type = json_payload['mimetype']
         self.name = json_payload['filename']
         self.size = json_payload['size']
+        self.shardManager = ShardManager()
 
     def __str__(self):
         return self.name
@@ -240,7 +241,7 @@ class ShardManager:
             shard.setSize(shard_size)
             shard.setHash(self.rmd160sha256(chunk))
             self.addChallenges(shard, chunk, 12) #12 for now, adds challenges to shard
-            shard.setIndex(self.index + 1)
+            shard.setIndex(self.index)
             self.index += 1
             self.shards.append(shard)
 
@@ -249,7 +250,7 @@ class ShardManager:
         for i in range(12):
             challenge = self.getRandomChallengeString()
 
-            data2hash = binascii.hexlify(challenge + shardData)
+            data2hash = binascii.hexlify(str(challenge + shardData))
 
             tree = self.rmd160sha256(self.rmd160sha256(data2hash))
 
@@ -261,10 +262,17 @@ class ShardManager:
 
     def rmd160sha256(self, string):
         ripemd160 = hashlib.new('ripemd160')
-        sha = sha256(string) #calculate sha256 of chunk
-        ripemd160.update(sha.digest()) #gets ripemd160 of that^
-        return ripemd160.hexdigest()
 
+        sha = sha256(string).hexdigest() #calculate sha256 of chunk
+        ripemd160.update(sha)
+        return ripemd160.hexdigest() #gets ripemd160 of that^
+
+    def getHexBytes(self, string):
+        out = []
+        for char in string:
+            out.append(hex(ord(char)))
+
+        return out
 
 class Shard:
 

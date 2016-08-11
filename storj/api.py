@@ -371,19 +371,6 @@ class MetadiskClient:
 
         assert(response.status_code == 204)
 
-    def create_shard(self, frame_id):
-        data = {
-            'index': '0',
-        }
-
-        response = self.request(
-            method='PUT',
-            path='/frames/{id}'.format(id=frame_id),
-            #json=data,
-        )
-
-        print response
-
     def list_contacts(self):
         data = {
         }

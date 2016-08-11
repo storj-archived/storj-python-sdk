@@ -20,7 +20,7 @@ storj-python-sdk
 .. _LicenseLink: https://raw.githubusercontent.com/Storj/storj-python-sdk
 
 
-A Python SDK for the Storj Metadisk API
+A Python SDK for the Storj API.
 
 
 ============

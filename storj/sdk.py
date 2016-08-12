@@ -239,7 +239,7 @@ class ShardManager:
 
             shard = Shard()
             shard.setSize(shard_size)
-            shard.setHash(self.hash160(chunk))
+            shard.setHash(self.rmd160sha256(chunk))
             self.addChallenges(shard, chunk, 12) #12 for now, adds challenges to shard
             shard.setIndex(self.index)
             self.index += 1
@@ -250,21 +250,29 @@ class ShardManager:
         for i in range(12):
             challenge = self.getRandomChallengeString()
 
-            data2hash = binascii.hexlify(str(challenge + shardData)) #concat and hex-encode data
+            data2hash = binascii.hexlify(str(challenge + shardData))
 
-            tree = binascii.hexlify(self.hash160(self.hash160(data2hash))) #double hash160 the data
+            tree = self.rmd160sha256(self.rmd160sha256(data2hash))
 
             shard.addChallenge(challenge)
             shard.addTree(tree)
 
     def getRandomChallengeString(self):
-        return "".join(random.choice(string.ascii_letters) for i in range(32))
+            return "".join(random.choice(string.ascii_letters) for i in range(32))
 
-    def hash160(self, data):
-        return self.ripemd160(hashlib.sha256(data).hexdigest())
+    def rmd160sha256(self, string):
+        ripemd160 = hashlib.new('ripemd160')
 
-    def ripemd160(self, data):
-        return hashlib.new("ripemd160", data).hexdigest()
+        sha = sha256(string).hexdigest() #calculate sha256 of chunk
+        ripemd160.update(sha)
+        return ripemd160.hexdigest() #gets ripemd160 of that^
+
+    def getHexBytes(self, string):
+        out = []
+        for char in string:
+            out.append(hex(ord(char)))
+
+        return out
 
 class Shard:
 

@@ -123,7 +123,7 @@ class MetadiskClient:
         else:
             if 'error' in response_json:
                 raise MetadiskApiError(response_json['error'])
-                
+
         response.raise_for_status()
 
         return response
@@ -398,10 +398,10 @@ class FileRetrieverWebSocketClient(WebSocketClient):
 
     def __init__(self, pointer, file_contents):
         assert isinstance(pointer, dict)
-        channel = pointer.pop('channel')
+        URI = "ws://" + pointer.get('farmer')['address'] + ":" + str(pointer.get('farmer')['port'])
         self.json = pointer
         self.file_contents = file_contents
-        super(FileRetrieverWebSocketClient, self).__init__(channel)
+        super(FileRetrieverWebSocketClient, self).__init__(URI)
 
     def opened(self):
         self.send(json.dumps(self.json))

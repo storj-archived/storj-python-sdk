@@ -8,6 +8,7 @@ from binascii import b2a_hex
 from base64 import b64encode
 from hashlib import sha256
 from io import BytesIO
+import storj
 
 try:
     from json.decoder import JSONDecodeError
@@ -25,6 +26,7 @@ except ImportError:
 import requests
 from requests import Request
 from ecdsa import SigningKey
+from ecdsa import VerifyingKey
 from ecdsa.util import sigencode_der
 from ws4py.client.threadedclient import WebSocketClient
 
@@ -91,6 +93,37 @@ class MetadiskClient:
                 'x-pubkey': ecdsa_to_hex(self.public_key),
             }
         )
+
+    def generate_new_key_pair(self):
+        print("This will replace your public and private keys in 3 seconds...")
+        time.sleep(3)
+        (self.private_key, self.public_key) = storj.generate_new_key_pair()
+
+        s = raw_input("Export keys to file for later use? [Y/N]")
+        if("Y" in s.upper()):
+            self.export_keys()
+
+        self.register_ecdsa_key(self.public_key)
+
+    def export_keys(self):
+        print("Writing your public key to file...")
+        with open('public.pem', 'wb') as keyfile:
+            keyfile.write(self.public_key.to_pem())
+
+        print("Writing private key to file... Keep this secret!")
+        with open('private.pem', 'wb') as keyfile:
+            keyfile.write(self.private_key.to_pem())
+
+        print("Wrote keyfiles to dir: " + os.getcwd())
+
+    def import_keys(self, private_keyfile_path, public_keyfile_path):
+        with open(public_keyfile_path, 'r') as f:
+            self.public_key = VerifyingKey.from_pem(f.read())
+
+        with open(private_keyfile_path, 'r') as f:
+            self.private_key = SigningKey.from_pem(f.read())
+
+        self.register_ecdsa_key(self.public_key)
 
     def prepare_request(self, **kwargs):
 
@@ -168,6 +201,15 @@ class MetadiskClient:
     def delete_key(self, key):
         response = self.request(method='DELETE', path='/keys/' + key)
         assert(response.status_code == 200)
+
+    def dump_keys(self):
+        if(self.private_key is not None and self.public_key is not None):
+            print("Local Private Key: " + self.private_key +
+                  "Local Public Key:" + self.public_key)
+        if(self.get_keys() is not []):
+            print("Public keys for this account: " + str([key['id'] for key in self.get_keys()]))
+        else:
+            print("No keys associated with this account.")
 
     def create_token(self, bucket_id, operation):
         data = {

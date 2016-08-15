@@ -261,7 +261,7 @@ class ShardManager:
         return "".join(random.choice(string.ascii_letters) for i in range(32))
 
     def hash160(self, data):
-        return self.ripemd160(hashlib.sha256(data).hexdigest())
+        return binascii.hexlify(self.ripemd160(hashlib.sha256(data).hexdigest())) #hex encode returned str
 
     def ripemd160(self, data):
         return hashlib.new("ripemd160", data).hexdigest()

@@ -38,12 +38,15 @@ def ecdsa_to_hex(ecdsa_key):
     Return hexadecimal string representation of the ECDSA key.
 
     Args:
-        ecdsa_key: ECDSA key.
+        ecdsa_key (bytes): ECDSA key.
+
+    Raises:
+        TypeError: if the ECDSA key is not an array of bytes.
 
     Returns:
         str: hexadecimal string representation of the ECDSA key.
     """
-    return '04' + b2a_hex(ecdsa_key).decode('ascii')
+    return '04%s' % b2a_hex(ecdsa_key).decode('ascii')
 
 
 class MetadiskApiError(Exception):

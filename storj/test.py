@@ -1,4 +1,3 @@
-import storj, api, sdk,
 from storj import MediadiskClient
 
 mcd = MediadiskClient()

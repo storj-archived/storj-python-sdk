@@ -256,7 +256,7 @@ class MetadiskClient:
             path='/buckets/{id}/files'.format(id=bucket_id),
             files={
                 'frame': frame,
-                'mimetype': "text", #TODO: Change this after testing
+                'mimetype': "text",  # TODO: Change this after testing
                 'filename': "test.txt"
             },
             headers={
@@ -361,11 +361,11 @@ class MetadiskClient:
     def create_frame(self):
 
         data = {
-        #    'index': shard.index,
-        #    'hash': shard.hash,
-        #    'size': shard.size,
-        #    'tree': shard.tree,
-        #    'challenges': shard.challenges,
+            # 'index': shard.index,
+            # 'hash': shard.hash,
+            # 'size': shard.size,
+            # 'tree': shard.tree,
+            # 'challenges': shard.challenges,
         }
 
         response = self.request(
@@ -384,9 +384,9 @@ class MetadiskClient:
         }
 
         response = self.request(
-        method='GET',
-        path='/frames/{id}'.format(id=frame_id),
-        json=data,
+            method='GET',
+            path='/frames/{id}'.format(id=frame_id),
+            json=data,
         )
 
         assert(response.status_code == 200)

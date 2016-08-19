@@ -414,7 +414,7 @@ class MetadiskClient:
             json=data,
         )
 
-        print response.json()
+        return response.json()
 
     def add_shard_to_frame(self, shard, frame_id):
         data = {
@@ -431,7 +431,7 @@ class MetadiskClient:
             json=data,
         )
 
-        print response
+        return response
 
 api_client = MetadiskClient()
 

@@ -360,13 +360,7 @@ class MetadiskClient:
 
     def create_frame(self):
 
-        data = {
-            # 'index': shard.index,
-            # 'hash': shard.hash,
-            # 'size': shard.size,
-            # 'tree': shard.tree,
-            # 'challenges': shard.challenges,
-        }
+        data = {}
 
         response = self.request(
             method='POST',

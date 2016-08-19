@@ -8,8 +8,9 @@ import hashlib
 import io
 import random
 import string
-
+from Crypto.Cipher import AES
 from datetime import datetime
+import base64
 
 from pytz import utc
 from hashlib import sha256
@@ -219,7 +220,7 @@ class FileManager:
             self._upload(file, frame)
 
     def download(self, file_id):
-        raise NotImplementedError
+        api_client.download_file(self, bucket_id, file_hash)
 
     def delete(self, file_id):
         raise NotImplementedError
@@ -247,7 +248,7 @@ class ShardManager:
 
             shard = Shard()
             shard.setSize(shard_size)
-            shard.setHash(self.hash160(chunk))
+            shard.setHash(hash160(chunk))
             self.addChallenges(shard, chunk)
             shard.setIndex(self.index)
             self.index += 1
@@ -257,22 +258,22 @@ class ShardManager:
         for i in xrange(numberOfChallenges):
             challenge = self.getRandomChallengeString()
 
-            data2hash = binascii.hexlify(str(challenge + shardData))  # concat and hex-encode data
+            data2hash = binascii.hexlify('%s%s' % (challenge, shardData))  # concat and hex-encode data
 
-            tree = binascii.hexlify(self.hash160(self.hash160(data2hash)))  # double hash160 the data
+            tree = hash160(hash160(data2hash))  # double hash160 the data
 
             shard.addChallenge(challenge)
             shard.addTree(tree)
 
-    def getRandomChallengeString(self):
-        return ''.join(random.choice(string.ascii_letters) for _ in xrange(32))
+            def getRandomChallengeString(self):
+                    return ''.join(random.choice(string.ascii_letters) for _ in xrange(32))
 
-    def hash160(self, data):
-        """hex encode returned str"""
-        return binascii.hexlify(self.ripemd160(hashlib.sha256(data).hexdigest()))
+def hash160(data):
+    """hex encode returned str"""
+    return binascii.hexlify(self.ripemd160(hashlib.sha256(data).digest()))
 
-    def ripemd160(self, data):
-        return hashlib.new('ripemd160', data).hexdigest()
+def ripemd160(data):
+    return hashlib.new('ripemd160', data).digest()
 
 
 class Shard:
@@ -319,3 +320,53 @@ class Shard:
 
     def addTree(self, tree):
         self.tree.append(tree)
+
+
+BS = 16
+pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
+unpad = lambda s : s[:-ord(s[len(s)-1:])]
+
+class Keyring:
+
+
+    def __init__(self):
+        self.password = None
+        self.salt = None
+
+    def generate(self):
+        user_pass = raw_input("Enter your keyring password: ")
+        password = hex(random.getrandbits(512*8))[2:-1]
+        salt = hex(random.getrandbits(32*8))[2:-1]
+
+        pbkdf2 = hashlib.pbkdf2_hmac('sha512', password, salt, 25000, 512)
+
+        key = hashlib.new('sha256', pbkdf2).hexdigest()
+        IV = salt[:16]
+        self.export_keyring(password, salt, user_pass)
+        self.password = password
+        self.salt = salt
+
+
+    def export_keyring(self, password, salt, user_pass):
+        plain = pad("{\"pass\" : \"%s\", \n\"salt\" : \"%s\"\n}" % (password, salt))
+        IV = hex(random.getrandbits(8*8))[2:-1]
+        print IV
+        aes = AES.new(pad(user_pass), AES.MODE_CBC, IV)
+
+        with open("key.b64", "wb") as f:
+            f.write(base64.b64encode(IV + aes.encrypt(plain)))
+
+    def import_keyring(self, filepath):
+        with open(filepath, "rb") as f:
+            keyb64 = f.read()
+
+        user_pass = raw_input("Enter your keyring password: ")
+
+        key_enc = base64.b64decode(keyb64)
+        IV = key_enc[:16]
+        key = AES.new(pad(user_pass), AES.MODE_CBC, IV)
+
+        creds = eval(key.decrypt(key_enc[16:])[:-4]) # returns the salt and password as a dict
+        self.password = creds['pass']
+        self.salt = creds['salt']
+        return creds

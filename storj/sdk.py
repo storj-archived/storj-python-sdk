@@ -2,16 +2,13 @@
 
 from __future__ import unicode_literals
 
-<<<<<<< HEAD
-import io, hashlib, random, string, binascii
-=======
+
 import binascii
 import hashlib
 import io
 import random
 import string
 
->>>>>>> 6de8d0c4b5bbaa736be0912ff7315f4c5d646327
 from datetime import datetime
 
 from pytz import utc
@@ -227,10 +224,6 @@ class FileManager:
     def delete(self, file_id):
         raise NotImplementedError
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 6de8d0c4b5bbaa736be0912ff7315f4c5d646327
 class ShardManager:
 
     def __init__(self, filepath, shard_size):
@@ -254,25 +247,11 @@ class ShardManager:
             shard = Shard()
             shard.setSize(shard_size)
             shard.setHash(self.hash160(chunk))
-<<<<<<< HEAD
             self.addChallenges(shard, chunk, 12) #12 for now, adds challenges to shard
-=======
-            self.addChallenges(shard, chunk)
->>>>>>> 6de8d0c4b5bbaa736be0912ff7315f4c5d646327
             shard.setIndex(self.index)
             self.index += 1
             self.shards.append(shard)
 
-<<<<<<< HEAD
-
-    def addChallenges(self, shard, shardData, numberOfChallenges): #numberOfChallenges == 12 for now
-        for i in range(12):
-            challenge = self.getRandomChallengeString()
-
-            data2hash = binascii.hexlify(str(challenge + shardData)) #concat and hex-encode data
-
-            tree = binascii.hexlify(self.hash160(self.hash160(data2hash))) #double hash160 the data
-=======
     def addChallenges(self, shard, shardData, numberOfChallenges=12):
         for i in xrange(numberOfChallenges):
             challenge = self.getRandomChallengeString()
@@ -280,21 +259,11 @@ class ShardManager:
             data2hash = binascii.hexlify(str(challenge + shardData))  # concat and hex-encode data
 
             tree = binascii.hexlify(self.hash160(self.hash160(data2hash)))  # double hash160 the data
->>>>>>> 6de8d0c4b5bbaa736be0912ff7315f4c5d646327
 
             shard.addChallenge(challenge)
             shard.addTree(tree)
 
     def getRandomChallengeString(self):
-<<<<<<< HEAD
-        return "".join(random.choice(string.ascii_letters) for i in range(32))
-
-    def hash160(self, data):
-        return binascii.hexlify(self.ripemd160(hashlib.sha256(data).hexdigest())) #hex encode returned str
-
-    def ripemd160(self, data):
-        return hashlib.new("ripemd160", data).hexdigest()
-=======
         return ''.join(random.choice(string.ascii_letters) for _ in xrange(32))
 
     def hash160(self, data):
@@ -303,8 +272,6 @@ class ShardManager:
 
     def ripemd160(self, data):
         return hashlib.new('ripemd160', data).hexdigest()
-
->>>>>>> 6de8d0c4b5bbaa736be0912ff7315f4c5d646327
 
 class Shard:
 
@@ -318,26 +285,11 @@ class Shard:
         self.index = None
 
     def all(self):
-<<<<<<< HEAD
-        s = ("Shard{" +
-        "index=" + str(self.index) +
-        ", hash=" + str(self.hash) +
-        ", size=" + str(self.size) +
-        ", tree={" )
-        for branch in self.tree:
-            s += branch + ", "
-        s += "}, challenges={"
-        for chall in self.challenges:
-            s += chall + ", "
-
-        return s + "}"
-=======
         return 'Shard{index=%s, hash=%s, size=%s, tree={%s}, challenges={%s}' % (
             self.index, self.hash, self.size,
             ', '.join(self.tree),
             ', '.join(self.challenges)
         )
->>>>>>> 6de8d0c4b5bbaa736be0912ff7315f4c5d646327
 
     def setPath(self, path):
         self.path = path

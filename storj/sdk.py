@@ -224,6 +224,7 @@ class FileManager:
     def delete(self, file_id):
         raise NotImplementedError
 
+
 class ShardManager:
 
     def __init__(self, filepath, shard_size):
@@ -247,7 +248,7 @@ class ShardManager:
             shard = Shard()
             shard.setSize(shard_size)
             shard.setHash(self.hash160(chunk))
-            self.addChallenges(shard, chunk, 12) #12 for now, adds challenges to shard
+            self.addChallenges(shard, chunk)
             shard.setIndex(self.index)
             self.index += 1
             self.shards.append(shard)
@@ -272,6 +273,7 @@ class ShardManager:
 
     def ripemd160(self, data):
         return hashlib.new('ripemd160', data).hexdigest()
+
 
 class Shard:
 

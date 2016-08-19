@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import pip.download
+
+from pip.req import parse_requirements
+
 
 from setuptools import setup, find_packages
 
@@ -10,21 +14,28 @@ exec(open('storj/version.py').read())  # load __version__
 
 setup(
     name='storj',
+    version=__version__,  # NOQA
     description='A Python SDK for the Storj API',
-    long_description=open("README.rst").read(),
-    keywords='storj, bridge, metadisk, api, client, sdk, python',
+    long_description=open('README.rst').read(),
     url='http://storj.io',
     author='Daniel Hawkins',
     author_email='hwkns@alum.mit.edu',
     license='MIT',
-    version=__version__,  # NOQA
-    test_suite="tests",
     dependency_links=[],
     # package_data={'storj': ['data/*.json']},
     # include_package_data=True,
-    install_requires=open("requirements.txt").readlines(),
-    tests_require=open("requirements_tests.txt").readlines(),
-    packages=find_packages(),
+    packages=find_packages(
+        exclude=('*.tests', '*.tests.*', 'tests.*', 'tests')
+    ),
+    install_requires=[
+        str(pkg.req) for pkg in parse_requirements(
+            'requirements.txt', session=pip.download.PipSession())
+    ],
+    test_suite='tests',
+    tests_require=[
+        str(pkg.req) for pkg in parse_requirements(
+            'requirements_tests.txt', session=pip.download.PipSession())
+    ],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -41,4 +52,7 @@ setup(
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Internet :: WWW/HTTP',
     ],
+    keywords=','.join([
+        'storj', 'bridge', 'metadisk', 'api', 'client', 'sdk', 'python'
+    ]),
 )

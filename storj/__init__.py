@@ -22,7 +22,7 @@ def generate_new_key_pair():
     Generate a new key pair.
 
     Returns:
-        tuple(:py:class:`ecdsa.keys.SigningKey`, `ecdsa.keys.VerifyingKey`):
+        tuple(:py:class:`ecdsa.keys.SigningKey`, :py:class:`ecdsa.keys.VerifyingKey`):
         key pair (private, public).
     """
 

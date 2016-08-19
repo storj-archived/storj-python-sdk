@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+"""Storj API module."""
+
 from __future__ import unicode_literals
 
 import os
 import time
 import json
+
 from binascii import b2a_hex
 from base64 import b64encode
 from hashlib import sha256
@@ -24,6 +27,7 @@ except ImportError:
     from urlparse import urljoin
 
 import requests
+
 from requests import Request
 from ecdsa import SigningKey
 from ecdsa import VerifyingKey
@@ -32,7 +36,19 @@ from ws4py.client.threadedclient import WebSocketClient
 
 
 def ecdsa_to_hex(ecdsa_key):
-    return '04' + b2a_hex(ecdsa_key).decode('ascii')
+    """
+    Return hexadecimal string representation of the ECDSA key.
+
+    Args:
+        ecdsa_key (bytes): ECDSA key.
+
+    Raises:
+        TypeError: if the ECDSA key is not an array of bytes.
+
+    Returns:
+        str: hexadecimal string representation of the ECDSA key.
+    """
+    return '04%s' % b2a_hex(ecdsa_key).decode('ascii')
 
 
 class MetadiskApiError(Exception):
@@ -240,7 +256,7 @@ class MetadiskClient:
             path='/buckets/{id}/files'.format(id=bucket_id),
             files={
                 'frame': frame,
-                'mimetype': "text", #TODO: Change this after testing
+                'mimetype': "text",  # TODO: Change this after testing
                 'filename': "test.txt"
             },
             headers={
@@ -345,11 +361,11 @@ class MetadiskClient:
     def create_frame(self):
 
         data = {
-        #    'index': shard.index,
-        #    'hash': shard.hash,
-        #    'size': shard.size,
-        #    'tree': shard.tree,
-        #    'challenges': shard.challenges,
+            # 'index': shard.index,
+            # 'hash': shard.hash,
+            # 'size': shard.size,
+            # 'tree': shard.tree,
+            # 'challenges': shard.challenges,
         }
 
         response = self.request(
@@ -368,9 +384,9 @@ class MetadiskClient:
         }
 
         response = self.request(
-        method='GET',
-        path='/frames/{id}'.format(id=frame_id),
-        json=data,
+            method='GET',
+            path='/frames/{id}'.format(id=frame_id),
+            json=data,
         )
 
         assert(response.status_code == 200)
@@ -401,7 +417,6 @@ class MetadiskClient:
             json=data,
         )
 
-        print(response)
         assert(response.status_code == 204)
 
     def list_contacts(self):
@@ -414,7 +429,7 @@ class MetadiskClient:
             json=data,
         )
 
-        return response.json()
+        print response.json()
 
     def add_shard_to_frame(self, shard, frame_id):
         data = {
@@ -431,7 +446,7 @@ class MetadiskClient:
             json=data,
         )
 
-        return response
+        print response
 
 api_client = MetadiskClient()
 

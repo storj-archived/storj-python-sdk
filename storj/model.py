@@ -86,7 +86,7 @@ class Token(Object):
 class File(Object):
     """
     Attributes:
-        bucket ():
+        bucket (): bucket unique identifier.
         hash ():
         mimetype ():
         filename ():
@@ -95,7 +95,7 @@ class File(Object):
     """
 
     def __init__(self, bucket=None, hash=None, mimetype=None, filename=None, size=None):
-        self.bucket = bucket
+        self.bucket = Bucket(id=bucket)
         self.hash = hash
         self.mimetype = mimetype
         self.filename = filename

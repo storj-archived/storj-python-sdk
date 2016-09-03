@@ -17,6 +17,7 @@ from io import BytesIO
 from urllib import urlencode
 from urlparse import urljoin
 
+from . import model
 from .api import ecdsa_to_hex, JSONDecodeError
 from .exception import MetadiskApiError
 from .web_socket import Client
@@ -109,6 +110,34 @@ class Client(object):
 
         self.register_ecdsa_key(self.public_key)
 
+    def get_bucket(self, bucket_id):
+        """Returns buckets.
+
+        Args:
+            bucket_id (str): bucket unique identifier.
+
+        Returns:
+            (:py:class:`model.Bucket`): bucket.
+        """
+        response = self.request(
+            method='GET',
+            path='/buckets/{id}'.format(id=bucket_id),
+        )
+        return model.Bucket(**response)
+
+    def get_buckets(self):
+        """Returns buckets.
+
+        Returns:
+            (array[:py:class:`model.Bucket`]): buckets.
+        """
+        self.logger.debug('get_buckets()')
+
+        response = self.request(method='GET', path='/buckets')
+
+        for element in response:
+            yield model.Bucket(**element)
+
     def export_keys(self):
         print("Writing your public key to file...")
         with open('public.pem', 'wb') as keyfile:
@@ -147,23 +176,28 @@ class Client(object):
         return requests.Request(**kwargs).prepare()
 
     def request(self, **kwargs):
+        """Perform HTTP request.
 
-        # Prepare and send the request
-        request = self.prepare_request(**kwargs)
-        response = self.session.send(request)
+        Args:
+            kwargs (dict): keyword arguments.
+        """
+
+        response = self.session.send(self.prepare_request(**kwargs))
 
         # Raise any errors as exceptions
         try:
+            response.raise_for_status()
             response_json = response.json()
-        except JSONDecodeError:
-            pass
-        else:
+            self.logger.debug('response json %s', response_json)
+
             if 'error' in response_json:
                 raise MetadiskApiError(response_json['error'])
 
-        response.raise_for_status()
+            return response_json
 
-        return response
+        except JSONDecodeError as e:
+            self.logger.error('request %s', e)
+            raise e
 
     def register_user(self, email, password):
 
@@ -290,17 +324,6 @@ class Client(object):
 
         return file_contents
 
-    def get_buckets(self):
-        response = self.request(method='GET', path='/buckets')
-        return response.json()
-
-    def get_bucket(self, bucket_id):
-        response = self.request(
-            method='GET',
-            path='/buckets/{id}'.format(id=bucket_id),
-        )
-        return response.json()
-
     def delete_bucket(self, bucket_id):
         response = self.request(
             method='DELETE',
@@ -330,7 +353,8 @@ class Client(object):
             json=data,
         )
 
-        return response.json()
+        for element in response.json():
+            yield model.Bucket(**element)
 
     def set_bucket_pubkeys(self, bucket_id, keys):
 

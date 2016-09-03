@@ -1,14 +1,14 @@
 import json
 
 
-class FileRetrieverWebSocketClient(WebSocketClient):
+class Client(WebSocketClient):
 
     def __init__(self, pointer, file_contents):
         assert isinstance(pointer, dict)
         URI = "ws://" + pointer.get('farmer')['address'] + ":" + str(pointer.get('farmer')['port'])
         self.json = pointer
         self.file_contents = file_contents
-        super(FileRetrieverWebSocketClient, self).__init__(URI)
+        super(Client, self).__init__(URI)
 
     def opened(self):
         self.send(json.dumps(self.json))

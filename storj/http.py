@@ -15,7 +15,7 @@ from urllib import urlencode
 from urlparse import urljoin
 
 from .api import ecdsa_to_hex, JSONDecodeError, MetadiskApiError
-from storj.web_socket import FileRetrieverWebSocketClient
+from storj.web_socket import Client
 
 
 class Client:
@@ -258,7 +258,7 @@ class Client:
 
         file_contents = BytesIO()
         for pointer in pointers:
-            ws = FileRetrieverWebSocketClient(
+            ws = Client(
                 pointer=pointer, file_contents=file_contents)
             ws.connect()
             ws.run_forever()

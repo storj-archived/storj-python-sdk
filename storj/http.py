@@ -14,7 +14,8 @@ from io import BytesIO
 from urllib import urlencode
 from urlparse import urljoin
 
-from .api import ecdsa_to_hex, JSONDecodeError, MetadiskApiError, FileRetrieverWebSocketClient
+from .api import ecdsa_to_hex, JSONDecodeError, MetadiskApiError
+from storj.web_socket import FileRetrieverWebSocketClient
 
 
 class Client:

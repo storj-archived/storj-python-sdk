@@ -31,9 +31,3 @@ def ecdsa_to_hex(ecdsa_key):
         str: hexadecimal string representation of the ECDSA key.
     """
     return '04%s' % b2a_hex(ecdsa_key).decode('ascii')
-
-
-class MetadiskApiError(Exception):
-    pass
-
-

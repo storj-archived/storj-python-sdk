@@ -115,8 +115,8 @@ class MetadiskClient:
         time.sleep(3)
         (self.private_key, self.public_key) = storj.generate_new_key_pair()
 
-        s = raw_input("Export keys to file for later use? [Y/N]")
-        if("Y" in s.upper()):
+        s = raw_input('Export keys to file for later use? [Y/N]')
+        if('Y' in s.upper()):
             self.export_keys()
 
         self.register_ecdsa_key(self.public_key)
@@ -423,7 +423,7 @@ class MetadiskClient:
             json=data,
         )
 
-        print response.json()
+        return response.json()
 
     def add_shard_to_frame(self, shard, frame_id):
         data = {
@@ -440,7 +440,7 @@ class MetadiskClient:
             json=data,
         )
 
-        print response
+        return response
 
 api_client = MetadiskClient()
 
@@ -458,7 +458,7 @@ class FileRetrieverWebSocketClient(WebSocketClient):
         self.send(json.dumps(self.json))
 
     def closed(self, code, reason=None):
-        print("Closed websocket", code, reason)
+        return "Closed web socket %s %s" % (code, reason)
 
     def received_message(self, m):
         if m.is_binary:

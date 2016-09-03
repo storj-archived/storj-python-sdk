@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-
 
 import base64
 import binascii
@@ -295,27 +293,6 @@ class Shard:
             ', '.join(self.challenges)
         )
 
-    def set_path(self, path):
-        self.path = path
-
-    def set_id(self, id):
-        self.id = id
-
-    def set_index(self, index):
-        self.index = index
-
-    def set_hash(self, hash):
-        self.hash = hash
-
-    def set_size(self, size):
-        self.size = size
-
-    def set_tree(self, tree):
-        self.tree = tree
-
-    def set_challenges(self, challenges):
-        self.challenges = challenges
-
     def add_challenge(self, challenge):
         self.challenges.append(challenge)
 
@@ -366,7 +343,7 @@ class Keyring:
         with open(filepath, 'rb') as f:
             keyb64 = f.read()
 
-        user_pass = raw_input("Enter your keyring password: ")
+        user_pass = raw_input('Enter your keyring password: ')
 
         key_enc = base64.b64decode(keyb64)
         IV = key_enc[:16]

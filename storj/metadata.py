@@ -1,9 +1,6 @@
 # coding: utf-8
-# Copyright (c) 2016 Fabian Barkhau <f483@storj.io>
-# License: MIT (see LICENSE file)
+"""Storj metadata module."""
 
-
-# Store the version here so:
-# 1) we don't load dependencies by storing it in __init__.py
-# 2) we can import it in setup.py for the same reason
+__author__ = 'Daniel Hawkins,Fabian Barkhau,Mike Bailey,Pedro Salgado'
+__author_email__ = 'hwkns@alum.mit.edu;f483@storj.io;mibgranny@aol.com;steenzout@ymail.com'
 __version__ = '0.1.4'

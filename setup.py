@@ -12,6 +12,18 @@ from setuptools import setup, find_packages
 exec(open('storj/metadata.py').read())  # load __version__
 
 
+def requirements(requirements_file):
+    """Return package mentioned in the given file.
+    Args:
+        requirements_file (str): path to the requirements file to be parsed.
+    Returns:
+        (list): 3rd-party package dependencies contained in the file.
+    """
+    return [
+        str(package.req) for package in parse_requirements(
+            requirements_file, session=pip.download.PipSession())]
+
+
 setup(
     name='storj',
     version=__version__,  # NOQA
@@ -27,15 +39,9 @@ setup(
     packages=find_packages(
         exclude=('*.tests', '*.tests.*', 'tests.*', 'tests')
     ),
-    install_requires=[
-        str(pkg.req) for pkg in parse_requirements(
-            'requirements.txt', session=pip.download.PipSession())
-    ],
+    install_requires=requirements('requirements.txt'),
     test_suite='tests',
-    tests_require=[
-        str(pkg.req) for pkg in parse_requirements(
-            'requirements-test.txt', session=pip.download.PipSession())
-    ],
+    tests_require=requirements('requirements-test.txt'),
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -55,4 +61,11 @@ setup(
     keywords=','.join([
         'storj', 'bridge', 'metadisk', 'api', 'client', 'sdk', 'python'
     ]),
+    extras_require={
+        'cli': requirements('requirements-extra-cli.txt'),
+    },
+    entry_points={
+        'console_scripts':
+            ['storj = storj.cli:cli']
+    }
 )

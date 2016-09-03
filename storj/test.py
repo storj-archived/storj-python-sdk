@@ -1,5 +1,5 @@
-from storj import MediadiskClient
+from .http import Client
 
-mcd = MediadiskClient()
+mcd = Client()
 
 mcd.authenticate("Misker@protonmail.com", "pinhead1")

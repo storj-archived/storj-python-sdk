@@ -3,6 +3,7 @@
 
 import os
 
+import logging
 import json
 import requests
 import storj
@@ -10,6 +11,7 @@ import time
 
 from base64 import b64encode
 from binascii import b2a_hex
+from ecdsa import SigningKey
 from hashlib import sha256
 from io import BytesIO
 from urllib import urlencode
@@ -20,32 +22,53 @@ from .exception import MetadiskApiError
 from .web_socket import Client
 
 
-class Client:
+class Client(object):
+    """
 
-    def __init__(self):
+    Attributes:
+        api_url (str): the Storj API endpoint.
+        session ():
+        email (str): user email address.
+        password (str): user password.
+        private_key ():
+        public_key ():
+        public_key_hex ():
+    """
+
+    logger = logging.getLogger(Client.__name__)
+
+    def __init__(self, email, password):
         self.api_url = 'https://api.storj.io/'
         self.session = requests.Session()
-        self.email = None
-        self.password = None
+        self.email = email
+        self.password = password
         self.private_key = None
         self.public_key = None
         self.public_key_hex = None
 
-    def authenticate(self, email=None, password=None, ecdsa_private_key=None):
-        if email and password:
-            self.email = email
-            self.password = sha256(password).hexdigest()
+    @property
+    def password(self):
+        """(str):"""
+        return self._password
+
+    @password.setter
+    def password(self, value):
+        self._password = sha256(value).hexdigest()
+
+    def authenticate(self, ecdsa_private_key=None):
+        self.logger.debug('authenticate')
+
         if isinstance(ecdsa_private_key, SigningKey):
             self.private_key = ecdsa_private_key
             self.public_key = self.private_key.get_verifying_key()
             self.public_key_hex = ecdsa_to_hex(self.public_key)
 
     def _add_basic_auth(self, request_kwargs):
+        self.logger.debug('using basic auth')
 
-        email_and_password = self.email + ':' + self.password
         request_kwargs['headers'].update({
-            'Authorization': b'Basic ' + b64encode(
-                email_and_password.encode('ascii')
+            'Authorization': b'Basic %s' % b64encode(
+                ('%s:%s' % (self.email, self.password)).encode('ascii')
             ),
         })
 
@@ -121,7 +144,7 @@ class Client:
         assert(path.startswith('/'))
         kwargs['url'] = urljoin(self.api_url, path)
 
-        return Request(**kwargs).prepare()
+        return requests.Request(**kwargs).prepare()
 
     def request(self, **kwargs):
 

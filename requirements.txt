@@ -1,4 +1,5 @@
 ecdsa >= 0.13
+pycrypto >= 2.6.1
 pytz >= 2016.2
 requests >= 2.7.0
 ws4py >= 0.3.4

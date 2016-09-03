@@ -68,7 +68,27 @@ def bucket():
 
 
 @bucket.command()
-def list():
+@click.option('--storage', default=None, help='Storage limit.', type=click.INT)
+@click.option('--transfer', default=None, help='Transfer limit', type=click.INT)
+@click.argument('name', type=click.STRING)
+def create(storage, transfer, name):
+    """Create bucket.
+
+    Args:
+        storage (int): storage limit (in ??).
+        transfer (int): transfer limit (in ??).
+        name (str): bucket name.
+    """
+    get_client().create_bucket(name, storage_limit=storage, transfer_limit=transfer)
+    click.echo('Bucket %s created' % name)
+
+
+@bucket.command()
+@click.option('--full', default=False, is_flag=True)
+def list(full):
     """List buckets."""
     for bucket in get_client().get_buckets():
-        click.echo(bucket)
+        if full:
+            click.echo(repr(bucket))
+        else:
+            click.echo(bucket.name)

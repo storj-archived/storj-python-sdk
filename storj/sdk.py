@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 import base64
 import binascii
 import hashlib
@@ -9,10 +8,10 @@ import random
 import string
 
 from Crypto.Cipher import AES
-from storj.model import Bucket, Token, File
 
 from .api import ecdsa_to_hex
-from storj.http import Client
+from .model import Bucket, Token, File
+from .http import Client
 
 
 class BucketManager:

@@ -31,7 +31,7 @@ setup(
     long_description=open('README.rst').read(),
     url='http://storj.io',
     author=__author__,
-    author_email=__authoremail__,
+    author_email=__author_email__,
     license='MIT',
     dependency_links=[],
     # package_data={'storj': ['data/*.json']},

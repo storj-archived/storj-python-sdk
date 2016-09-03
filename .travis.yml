@@ -1,20 +1,26 @@
 language: python
+
 branches:
   except:
     - gh-pages
 
+cache:
+  directories:
+    - "${HOME}/virtualenv"
+    - "${TRAVIS_BUILD_DIR}/.tox"
+
 matrix:
   include:
-    - python: 2.7
-      env: TOXENV=py27
-    - python: 3.3
-      env: TOXENV=py33
-    - python: 3.4
-      env: TOXENV=py34
-    - python: 3.5
-      env: TOXENV=py35
     - python: 3.6
       env: TOXENV=py36
+    - python: 3.5
+      env: TOXENV=py35
+    - python: 3.4
+      env: TOXENV=py34
+    - python: 3.3
+      env: TOXENV=py33
+    - python: 2.7
+      env: TOXENV=py27
     - python: pypy
       env: TOXENV=pypy
   allow_failures:
@@ -26,6 +32,7 @@ install:
 
 script:
   - tox
+  - "find ${TRAVIS_BUILD_DIR}/.tox -name log -type d | xargs -I {} rm -rf {}"
 
 after_success:
   - pip install coveralls

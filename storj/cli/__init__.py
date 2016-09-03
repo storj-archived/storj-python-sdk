@@ -84,6 +84,16 @@ def create(storage, transfer, name):
 
 
 @bucket.command()
+@click.argument('bucket_id', type=click.STRING)
+def get(bucket_id):
+    """Get bucket."""
+    bucket = get_client().get_bucket(bucket_id)
+
+    for attr, value in bucket.__dict__.iteritems():
+        click.echo('%s : %s' % (attr.rjust(8), value))
+
+
+@bucket.command()
 @click.option('--full', default=False, is_flag=True)
 def list(full):
     """List buckets."""

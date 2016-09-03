@@ -1,30 +1,29 @@
 # -*- coding: utf-8 -*-
 """Storj model module."""
+
 import base64
 import binascii
 import hashlib
 import random
+import strict_rfc3339
 import string
 
 from datetime import datetime
-
 from pytz import utc
 from steenzout.object import Object
-from storj import BucketManager
-from storj.sdk import FileManager, BucketKeyManager, TokenManager, hash160, pad
 
 
 class Bucket(Object):
     """
 
     Attributes:
-        id ():
-        name ():
-        status ():
-        user ():
-        created ():
-        storage ():
-        transfer ():
+        id (str): unique identifier.
+        name (str): name.
+        status (str): bucket status (Active, ...).
+        user (str): user email address.
+        created (:py:class:`datetime.datetime`): time when the bucket was created.
+        storage (int): storage limit (in ??).
+        transfer (int): transfer limit (in ??).
         pubkeys ():
     """
 
@@ -37,23 +36,20 @@ class Bucket(Object):
         self.user = user
         self.storage = storage
         self.transfer = transfer
-        self.authorized_public_keys = pubkeys
+        self.pubkeys = pubkeys
 
-        self.files = FileManager(bucket_id=self.id)
-        self.authorized_public_keys = BucketKeyManager(
-            bucket=self, authorized_public_keys=self.authorized_public_keys)
-        self.tokens = TokenManager(bucket_id=self.id)
+        # self.files = FileManager(bucket_id=self.id)
+        # self.pubkeys = BucketKeyManager(
+        #     bucket=self, authorized_public_keys=self.pubkeys)
+        # self.tokens = TokenManager(bucket_id=self.id)
 
         if created is not None:
-            self.created = datetime.strptime(created, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
+            self.created = datetime.fromtimestamp(strict_rfc3339.rfc3339_to_timestamp(created))
         else:
             self.created = None
 
     def __str__(self):
         return self.name
-
-    def __repr__(self):
-        return 'Bucket {id} ({name})'.format(id=self.id, name=self.name)
 
     def delete(self):
         BucketManager.delete(bucket_id=self.id)

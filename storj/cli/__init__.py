@@ -5,6 +5,7 @@ import click
 
 from storj.api import generate_new_key_pair, export_keys, import_keys
 
+
 @click.group
 def cli():
     pass

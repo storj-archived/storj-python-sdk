@@ -11,12 +11,13 @@ import string
 from Crypto.Cipher import AES
 from storj.model import Bucket, Token, File
 
-from .api import ecdsa_to_hex, MetadiskClient
+from .api import ecdsa_to_hex
+from storj.http import Client
 
 
 class BucketManager:
 
-    client = MetadiskClient()
+    client = Client()
 
     @staticmethod
     def all():

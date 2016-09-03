@@ -10,7 +10,18 @@ from storj.sdk import FileManager, BucketKeyManager, TokenManager, ShardManager
 
 
 class Bucket(Object):
-    """"""
+    """
+
+    Attributes:
+        id ():
+        name ():
+        status ():
+        user ():
+        created ():
+        storage ():
+        transfer ():
+        pubkeys ():
+    """
 
     def __init__(
             self, id=None, name=None, status=None, user=None,
@@ -44,13 +55,20 @@ class Bucket(Object):
 
 
 class Token(Object):
+    """
+
+    Attributes:
+        token ():
+        bucket ():
+        operation ():
+        expires ():
+    """
 
     def __init__(
             self, token=None, bucket=None, operation=None, expires=None):
         self.id = token
         self.bucket_id = bucket
         self.operation = operation
-        self.expires_at = expires
 
         if expires is not None:
             self.expires = datetime.strptime(expires, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
@@ -66,25 +84,42 @@ class Token(Object):
 
 
 class File(Object):
+    """
+    Attributes:
+        bucket ():
+        hash ():
+        mimetype ():
+        filename ():
+        size ():
+        shardManager ():
+    """
 
     def __init__(self, bucket=None, hash=None, mimetype=None, filename=None, size=None):
-        self.bucket_id = bucket
+        self.bucket = bucket
         self.hash = hash
-        self.content_type = mimetype
-        self.name = filename
+        self.mimetype = mimetype
+        self.filename = filename
         self.size = size
         self.shardManager = ShardManager()
 
+    @property
+    def content_type(self):
+        return self.mimetype
+
+    @property
+    def name(self):
+        return self.filename
+
     def __str__(self):
-        return self.name
+        return self.filename
 
     def __repr__(self):
         return '{name} ({size} {content_type})'.format(
-            name=self.name, size=self.size, content_type=self.content_type)
+            name=self.filename, size=self.size, content_type=self.mimetype)
 
     def download(self):
-        return api_client.download_file(bucket_id=self.bucket_id, file_hash=self.hash)
+        return api_client.download_file(bucket_id=self.bucket, file_hash=self.hash)
 
     def delete(self):
-        bucket_files = FileManager(bucket_id=self.bucket_id)
+        bucket_files = FileManager(bucket_id=self.bucket)
         bucket_files.delete(self.hash)

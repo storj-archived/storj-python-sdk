@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 """Storj model module."""
+import base64
+import binascii
+import hashlib
+import random
+import string
 
 from datetime import datetime
 
 from pytz import utc
 from steenzout.object import Object
 from storj import BucketManager
-from storj.sdk import FileManager, BucketKeyManager, TokenManager, ShardManager
+from storj.sdk import FileManager, BucketKeyManager, TokenManager, hash160, pad
 
 
 class Bucket(Object):
@@ -123,3 +128,116 @@ class File(Object):
     def delete(self):
         bucket_files = FileManager(bucket_id=self.bucket)
         bucket_files.delete(self.hash)
+
+
+class ShardManager:
+
+    def __init__(self, filepath, shard_size):
+        self.shards = []
+        self.challenges = 8
+        self.shard_index = 0
+        self.index = 0
+        self.shard_size = shard_size
+        self.filepath = filepath
+
+        file = open(filepath, "rb")
+
+        while(True):
+            chunk = file.read(shard_size)
+            if not chunk:
+                break
+            tmpfile = open("C:/test/shard"+str(self.index)+".shard", "wb")
+            tmpfile.write(chunk)
+            tmpfile.close()
+
+            shard = Shard()
+            shard.set_size(shard_size)
+            shard.set_hash(hash160(chunk))
+            self.addChallenges(shard, chunk)
+            shard.set_index(self.index)
+            self.index += 1
+            self.shards.append(shard)
+
+    def addChallenges(self, shard, shardData, numberOfChallenges=12):
+        for i in xrange(numberOfChallenges):
+            challenge = self.getRandomChallengeString()
+
+            data2hash = binascii.hexlify('%s%s' % (challenge, shardData))  # concat and hex-encode data
+
+            tree = hash160(hash160(data2hash))  # double hash160 the data
+
+            shard.add_challenge(challenge)
+            shard.add_tree(tree)
+
+            def getRandomChallengeString(self):
+                    return ''.join(random.choice(string.ascii_letters) for _ in xrange(32))
+
+
+class Shard:
+
+    def __init__(self):
+        self.id = None
+        self.tree = []
+        self.challenges = []
+        self.path = None
+        self.hash = None
+        self.size = None
+        self.index = None
+
+    def all(self):
+        return 'Shard{index=%s, hash=%s, size=%s, tree={%s}, challenges={%s}' % (
+            self.index, self.hash, self.size,
+            ', '.join(self.tree),
+            ', '.join(self.challenges)
+        )
+
+    def add_challenge(self, challenge):
+        self.challenges.append(challenge)
+
+    def add_tree(self, tree):
+        self.tree.append(tree)
+
+
+class Keyring:
+
+    def __init__(self):
+        self.password = None
+        self.salt = None
+
+    def generate(self):
+        user_pass = raw_input("Enter your keyring password: ")
+        password = hex(random.getrandbits(512*8))[2:-1]
+        salt = hex(random.getrandbits(32*8))[2:-1]
+
+        pbkdf2 = hashlib.pbkdf2_hmac('sha512', password, salt, 25000, 512)
+
+        key = hashlib.new('sha256', pbkdf2).hexdigest()
+        IV = salt[:16]
+        self.export_keyring(password, salt, user_pass)
+        self.password = password
+        self.salt = salt
+
+    def export_keyring(self, password, salt, user_pass):
+        plain = pad("{\"pass\" : \"%s\", \n\"salt\" : \"%s\"\n}" % (password, salt))
+        IV = hex(random.getrandbits(8*8))[2:-1]
+
+        aes = AES.new(pad(user_pass), AES.MODE_CBC, IV)
+
+        with open('key.b64', 'wb') as f:
+            f.write(base64.b64encode(IV + aes.encrypt(plain)))
+
+    def import_keyring(self, filepath):
+        with open(filepath, 'rb') as f:
+            keyb64 = f.read()
+
+        user_pass = raw_input('Enter your keyring password: ')
+
+        key_enc = base64.b64decode(keyb64)
+        IV = key_enc[:16]
+        key = AES.new(pad(user_pass), AES.MODE_CBC, IV)
+
+        # returns the salt and password as a dict
+        creds = eval(key.decrypt(key_enc[16:])[:-4])
+        self.password = creds['pass']
+        self.salt = creds['salt']
+        return creds

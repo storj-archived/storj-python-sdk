@@ -3,7 +3,10 @@
 
 import json
 import os
+import requests
+import storj
 import time
+
 from base64 import b64encode
 from binascii import b2a_hex
 from hashlib import sha256
@@ -11,8 +14,7 @@ from io import BytesIO
 from urllib import urlencode
 from urlparse import urljoin
 
-import storj
-from storj.api import ecdsa_to_hex, JSONDecodeError, MetadiskApiError, FileRetrieverWebSocketClient
+from .api import ecdsa_to_hex, JSONDecodeError, MetadiskApiError, FileRetrieverWebSocketClient
 
 
 class Client:

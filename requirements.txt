@@ -1,6 +1,6 @@
-ecdsa >= 0.13
-pycrypto >= 2.6.1
-pytz >= 2016.2
-requests >= 2.7.0
-steenzout.object >= 1.0.0
-ws4py >= 0.3.4
+ecdsa>=0.13
+pycrypto>=2.6.1
+pytz>=2016.2
+requests>=2.7.0
+steenzout.object>=1.0.0
+ws4py>=0.3.4

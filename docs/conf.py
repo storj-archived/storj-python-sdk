@@ -142,20 +142,13 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
 html_theme_options = {
-    u'description': u'A Python SDK for the Storj API.',
-    u'fixed_sidebar': True,
-    u'github_button': True,
-    u'github_repo': u'storj-python-sdk',
-    u'github_user': u'Storj',
-    u'page_width': u'1220px',
-    u'sidebar_width': u'220px'
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -173,7 +166,7 @@ html_theme_options = {
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 #
-# html_logo = None
+# html_logo = os.path.join('_static', 'logo.png')
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32

@@ -14,7 +14,9 @@ from steenzout.object import Object
 
 
 class Bucket(Object):
-    """
+    """Storage bucket.
+
+    A bucket is a logical grouping of files which the user can assign permissions and limits to.
 
     Attributes:
         id (str): unique identifier.

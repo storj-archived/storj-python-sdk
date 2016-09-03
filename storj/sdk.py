@@ -9,61 +9,28 @@ import random
 import string
 
 from Crypto.Cipher import AES
-from datetime import datetime
-from pytz import utc
+from storj.model import Bucket, Token, File
 
-from .api import api_client, ecdsa_to_hex, MetadiskApiError
-
-
-class Bucket:
-
-    def __init__(self, json_payload):
-        try:
-            self.id = json_payload['id']
-            self.name = json_payload['name']
-            self.status = json_payload['status']
-            self.user = json_payload['user']
-            self.created_at = json_payload['created']
-            self.storage = json_payload['storage']
-            self.transfer = json_payload['transfer']
-            self.authorized_public_keys = json_payload['pubkeys']
-        except KeyError as e:
-            raise MetadiskApiError(
-                'Field "{field}" not present in JSON payload'.format(
-                    field=e.args[0]))
-
-        self.files = FileManager(bucket_id=self.id)
-        self.authorized_public_keys = BucketKeyManager(
-            bucket=self, authorized_public_keys=self.authorized_public_keys)
-        self.tokens = TokenManager(bucket_id=self.id)
-        self.created_at = datetime.strptime(
-            self.created_at, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return 'Bucket {id} ({name})'.format(id=self.id, name=self.name)
-
-    def delete(self):
-        BucketManager.delete(bucket_id=self.id)
+from .api import ecdsa_to_hex, MetadiskClient
 
 
 class BucketManager:
 
+    client = MetadiskClient()
+
     @staticmethod
     def all():
-        buckets_json = api_client.get_buckets()
+        buckets_json = BucketManager.client.get_buckets()
         return [Bucket(payload) for payload in buckets_json]
 
     @staticmethod
     def get(bucket_id):
-        bucket_json = api_client.get_bucket(bucket_id=bucket_id)
+        bucket_json = BucketManager.client.get_bucket(bucket_id=bucket_id)
         return Bucket(bucket_json)
 
     @staticmethod
     def create(name, storage_limit=None, transfer_limit=None):
-        bucket_json = api_client.create_bucket(
+        bucket_json = BucketManager.client.create_bucket(
             bucket_name=name,
             storage_limit=storage_limit,
             transfer_limit=transfer_limit,
@@ -72,7 +39,7 @@ class BucketManager:
 
     @staticmethod
     def delete(bucket_id):
-        api_client.delete_bucket(bucket_id=bucket_id)
+        BucketManager.client.delete_bucket(bucket_id=bucket_id)
 
 
 class BucketKeyManager:
@@ -138,24 +105,6 @@ class UserKeyManager:
             UserKeyManager.remove(key)
 
 
-class Token:
-
-    def __init__(self, json_payload):
-        self.id = json_payload['token']
-        self.bucket_id = json_payload['bucket']
-        self.operation = json_payload['operation']
-        self.expires_at = json_payload['expires']
-        self.expires_at = datetime.strptime(
-            self.expires_at, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
-
-    def __str__(self):
-        return self.id
-
-    def __repr__(self):
-        return '{operation} token: {id}'.format(
-            operation=self.operation, id=self.id)
-
-
 class TokenManager:
 
     def __init__(self, bucket_id):
@@ -167,32 +116,6 @@ class TokenManager:
         token_json = api_client.create_token(
             bucket_id=self.bucket_id, operation=operation)
         return Token(token_json)
-
-
-class File:
-
-    def __init__(self, json_payload):
-        self.bucket_id = json_payload['bucket']
-        self.hash = json_payload['hash']
-        self.content_type = json_payload['mimetype']
-        self.name = json_payload['filename']
-        self.size = json_payload['size']
-        self.shardManager = ShardManager()
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return '{name} ({size} {content_type})'.format(
-            name=self.name, size=self.size, content_type=self.content_type)
-
-    def download(self):
-        return api_client.download_file(
-            bucket_id=self.bucket_id, file_hash=self.hash)
-
-    def delete(self):
-        bucket_files = FileManager(bucket_id=self.bucket_id)
-        bucket_files.delete(self.hash)
 
 
 class FileManager:

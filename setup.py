@@ -34,7 +34,7 @@ setup(
     test_suite='tests',
     tests_require=[
         str(pkg.req) for pkg in parse_requirements(
-            'requirements_tests.txt', session=pip.download.PipSession())
+            'requirements-test.txt', session=pip.download.PipSession())
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

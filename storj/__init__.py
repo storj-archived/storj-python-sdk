@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """Storj package."""
 
-from hashlib import sha256
-
 from ecdsa import SigningKey, SECP256k1
+from hashlib import sha256
 
 from .api import api_client
 from .metadata import __version__

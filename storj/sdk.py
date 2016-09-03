@@ -3,17 +3,16 @@
 from __future__ import unicode_literals
 
 
+import base64
 import binascii
 import hashlib
 import io
 import random
 import string
+
 from Crypto.Cipher import AES
 from datetime import datetime
-import base64
-
 from pytz import utc
-from hashlib import sha256
 
 from .api import api_client, ecdsa_to_hex, MetadiskApiError
 
@@ -247,10 +246,10 @@ class ShardManager:
             tmpfile.close()
 
             shard = Shard()
-            shard.setSize(shard_size)
-            shard.setHash(hash160(chunk))
+            shard.set_size(shard_size)
+            shard.set_hash(hash160(chunk))
             self.addChallenges(shard, chunk)
-            shard.setIndex(self.index)
+            shard.set_index(self.index)
             self.index += 1
             self.shards.append(shard)
 
@@ -262,15 +261,17 @@ class ShardManager:
 
             tree = hash160(hash160(data2hash))  # double hash160 the data
 
-            shard.addChallenge(challenge)
-            shard.addTree(tree)
+            shard.add_challenge(challenge)
+            shard.add_tree(tree)
 
             def getRandomChallengeString(self):
                     return ''.join(random.choice(string.ascii_letters) for _ in xrange(32))
 
+
 def hash160(data):
     """hex encode returned str"""
-    return binascii.hexlify(self.ripemd160(hashlib.sha256(data).digest()))
+    return binascii.hexlify(ripemd160(hashlib.sha256(data).digest()))
+
 
 def ripemd160(data):
     return hashlib.new('ripemd160', data).digest()
@@ -294,40 +295,46 @@ class Shard:
             ', '.join(self.challenges)
         )
 
-    def setPath(self, path):
+    def set_path(self, path):
         self.path = path
 
     def set_id(self, id):
         self.id = id
 
-    def setIndex(self, index):
+    def set_index(self, index):
         self.index = index
 
-    def setHash(self, hash):
+    def set_hash(self, hash):
         self.hash = hash
 
-    def setSize(self, size):
+    def set_size(self, size):
         self.size = size
 
-    def setTree(self, tree):
+    def set_tree(self, tree):
         self.tree = tree
 
-    def setChallenges(self, challenges):
+    def set_challenges(self, challenges):
         self.challenges = challenges
 
-    def addChallenge(self, challenge):
+    def add_challenge(self, challenge):
         self.challenges.append(challenge)
 
-    def addTree(self, tree):
+    def add_tree(self, tree):
         self.tree.append(tree)
 
 
 BS = 16
-pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
-unpad = lambda s : s[:-ord(s[len(s)-1:])]
+
+
+def pad(s):
+    return s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
+
+
+def unpad(s):
+    return s[:-ord(s[len(s)-1:])]
+
 
 class Keyring:
-
 
     def __init__(self):
         self.password = None
@@ -346,18 +353,17 @@ class Keyring:
         self.password = password
         self.salt = salt
 
-
     def export_keyring(self, password, salt, user_pass):
         plain = pad("{\"pass\" : \"%s\", \n\"salt\" : \"%s\"\n}" % (password, salt))
         IV = hex(random.getrandbits(8*8))[2:-1]
-        print IV
+
         aes = AES.new(pad(user_pass), AES.MODE_CBC, IV)
 
-        with open("key.b64", "wb") as f:
+        with open('key.b64', 'wb') as f:
             f.write(base64.b64encode(IV + aes.encrypt(plain)))
 
     def import_keyring(self, filepath):
-        with open(filepath, "rb") as f:
+        with open(filepath, 'rb') as f:
             keyb64 = f.read()
 
         user_pass = raw_input("Enter your keyring password: ")
@@ -366,7 +372,8 @@ class Keyring:
         IV = key_enc[:16]
         key = AES.new(pad(user_pass), AES.MODE_CBC, IV)
 
-        creds = eval(key.decrypt(key_enc[16:])[:-4]) # returns the salt and password as a dict
+        # returns the salt and password as a dict
+        creds = eval(key.decrypt(key_enc[16:])[:-4])
         self.password = creds['pass']
         self.salt = creds['salt']
         return creds

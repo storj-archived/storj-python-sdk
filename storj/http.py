@@ -119,11 +119,10 @@ class Client(object):
         Returns:
             (:py:class:`model.Bucket`): bucket.
         """
-        response = self.request(
-            method='GET',
-            path='/buckets/{id}'.format(id=bucket_id),
-        )
-        return model.Bucket(**response)
+        response = self.request(method='GET', path='/buckets/%s' % bucket_id)
+
+        if response is not None:
+            return model.Bucket(**response)
 
     def get_buckets(self):
         """Returns buckets.

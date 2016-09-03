@@ -9,7 +9,7 @@ from pip.req import parse_requirements
 from setuptools import setup, find_packages
 
 
-exec(open('storj/version.py').read())  # load __version__
+exec(open('storj/metadata.py').read())  # load __version__
 
 
 setup(

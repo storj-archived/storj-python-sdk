@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Storj HTTP client module."""
+"""Storj HTTP module."""
 
 import json
 import os

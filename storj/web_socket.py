@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+"""Storj web socket module."""
+
 import json
 
 

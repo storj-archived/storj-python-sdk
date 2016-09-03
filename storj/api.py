@@ -440,8 +440,6 @@ class MetadiskClient:
 
         return response
 
-api_client = MetadiskClient()
-
 
 class FileRetrieverWebSocketClient(WebSocketClient):
 

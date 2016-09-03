@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+"""Storj model module."""
+
 from datetime import datetime
 
 from pytz import utc

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Storj HTTP module."""
 
-import json
 import os
+
+import json
 import requests
 import storj
 import time
@@ -14,8 +15,9 @@ from io import BytesIO
 from urllib import urlencode
 from urlparse import urljoin
 
-from .api import ecdsa_to_hex, JSONDecodeError, MetadiskApiError
-from storj.web_socket import Client
+from .api import ecdsa_to_hex, JSONDecodeError
+from .exception import MetadiskApiError
+from .web_socket import Client
 
 
 class Client:

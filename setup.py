@@ -65,7 +65,9 @@ setup(
         'cli': requirements('requirements-extra-cli.txt'),
     },
     entry_points={
-        'console_scripts':
-            ['storj = storj.cli:cli']
+        'console_scripts': [
+            'storj-bucket = storj.cli:bucket',
+            'storj-key = storj.cli:keys'
+        ]
     }
 )

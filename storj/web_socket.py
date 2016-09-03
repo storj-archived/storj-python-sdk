@@ -3,6 +3,8 @@
 
 import json
 
+from ws4py.client.threadedclient import WebSocketClient
+
 
 class Client(WebSocketClient):
 

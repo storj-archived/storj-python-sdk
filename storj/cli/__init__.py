@@ -79,7 +79,7 @@ def create(storage, transfer, name):
         transfer (int): transfer limit (in GB).
         name (str): bucket name.
     """
-    get_client().create_bucket(name, storage_limit=storage, transfer_limit=transfer)
+    get_client().create_bucket(name, storage=storage, transfer=transfer)
     click.echo('Bucket %s created' % name)
 
 
@@ -94,11 +94,23 @@ def get(bucket_id):
 
 
 @bucket.command()
-@click.option('--full', default=False, is_flag=True)
-def list(full):
+def list():
     """List buckets."""
     for bucket in get_client().get_buckets():
-        if full:
-            click.echo(repr(bucket))
-        else:
-            click.echo(bucket.name)
+        click.echo(
+            '[info]   ID: %s, Name: %s, Storage: %d, Transfer: %d' % (
+                bucket.id, bucket.name, bucket.storage, bucket.transfer)
+        )
+
+
+@click.group()
+def file():
+    pass
+
+
+@file.command()
+@click.argument('bucket_id', type=click.STRING)
+@click.argument('file path', type=click.File)
+def upload(bucket_id, file_path):
+    """Upload file to a storage bucket."""
+    get_client().upload_file(bucket_id, file_path)

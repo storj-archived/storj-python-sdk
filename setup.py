@@ -67,6 +67,7 @@ setup(
     entry_points={
         'console_scripts': [
             'storj-bucket = storj.cli:bucket',
+            'storj-file = storj.cli:file'
             'storj-key = storj.cli:keys'
         ]
     }

@@ -57,6 +57,38 @@ class Bucket(Object):
         BucketManager.delete(bucket_id=self.id)
 
 
+class Frame(Object):
+    """File staging frame.
+
+    Attributes:
+          "created": "2016-03-04T17:01:02.629Z",
+  "id": "507f1f77bcf86cd799439011",
+  "shards": [
+    {
+      "hash": "fde400fe0b6a5488e10d7317274a096aaa57914d",
+      "size": 4096,
+      "index": 0
+    }
+  ]
+        id (str): unique identifier.
+        created (:py:class:`datetime.datetime`): time when the bucket was created.
+        shards (list[:py:class:`Shard`]): shards that compose this frame.
+    """
+
+    def __init__(self, id=None, created=None, shards=None):
+        self.id = id
+
+        if created is not None:
+            self.created = datetime.fromtimestamp(strict_rfc3339.rfc3339_to_timestamp(created))
+        else:
+            self.created = None
+
+        if shards is None:
+            self.shards = []
+        else:
+            self.shards = shards
+
+
 class Token(Object):
     """
 

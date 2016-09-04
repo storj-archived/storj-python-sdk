@@ -57,67 +57,6 @@ class Bucket(Object):
         BucketManager.delete(bucket_id=self.id)
 
 
-class Frame(Object):
-    """File staging frame.
-
-    Attributes:
-          "created": "2016-03-04T17:01:02.629Z",
-  "id": "507f1f77bcf86cd799439011",
-  "shards": [
-    {
-      "hash": "fde400fe0b6a5488e10d7317274a096aaa57914d",
-      "size": 4096,
-      "index": 0
-    }
-  ]
-        id (str): unique identifier.
-        created (:py:class:`datetime.datetime`): time when the bucket was created.
-        shards (list[:py:class:`Shard`]): shards that compose this frame.
-    """
-
-    def __init__(self, id=None, created=None, shards=None):
-        self.id = id
-
-        if created is not None:
-            self.created = datetime.fromtimestamp(strict_rfc3339.rfc3339_to_timestamp(created))
-        else:
-            self.created = None
-
-        if shards is None:
-            self.shards = []
-        else:
-            self.shards = shards
-
-
-class Token(Object):
-    """
-
-    Attributes:
-        token ():
-        bucket ():
-        operation ():
-        expires ():
-    """
-
-    def __init__(
-            self, token=None, bucket=None, operation=None, expires=None):
-        self.id = token
-        self.bucket_id = bucket
-        self.operation = operation
-
-        if expires is not None:
-            self.expires = datetime.strptime(expires, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
-        else:
-            self.expires = None
-
-    def __str__(self):
-        return self.id
-
-    def __repr__(self):
-        return '{operation} token: {id}'.format(
-            operation=self.operation, id=self.id)
-
-
 class File(Object):
     """
     Attributes:
@@ -153,79 +92,34 @@ class File(Object):
             name=self.filename, size=self.size, content_type=self.mimetype)
 
     def download(self):
-        return api_client.download_file(bucket_id=self.bucket, file_hash=self.hash)
+        return api_client.file_download(bucket_id=self.bucket, file_hash=self.hash)
 
     def delete(self):
         bucket_files = FileManager(bucket_id=self.bucket)
         bucket_files.delete(self.hash)
 
 
-class ShardManager:
+class Frame(Object):
+    """File staging frame.
 
-    def __init__(self, filepath, shard_size):
-        self.shards = []
-        self.challenges = 8
-        self.shard_index = 0
-        self.index = 0
-        self.shard_size = shard_size
-        self.filepath = filepath
+    Attributes:
+        id (str): unique identifier.
+        created (:py:class:`datetime.datetime`): time when the bucket was created.
+        shards (list[:py:class:`Shard`]): shards that compose this frame.
+    """
 
-        file = open(filepath, "rb")
+    def __init__(self, id=None, created=None, shards=None):
+        self.id = id
 
-        while(True):
-            chunk = file.read(shard_size)
-            if not chunk:
-                break
-            tmpfile = open("C:/test/shard"+str(self.index)+".shard", "wb")
-            tmpfile.write(chunk)
-            tmpfile.close()
+        if created is not None:
+            self.created = datetime.fromtimestamp(strict_rfc3339.rfc3339_to_timestamp(created))
+        else:
+            self.created = None
 
-            shard = Shard()
-            shard.set_size(shard_size)
-            shard.set_hash(hash160(chunk))
-            self.addChallenges(shard, chunk)
-            shard.set_index(self.index)
-            self.index += 1
-            self.shards.append(shard)
-
-    def addChallenges(self, shard, shardData, numberOfChallenges=12):
-        for i in xrange(numberOfChallenges):
-            challenge = self.getRandomChallengeString()
-
-            data2hash = binascii.hexlify('%s%s' % (challenge, shardData))  # concat and hex-encode data
-
-            tree = hash160(hash160(data2hash))  # double hash160 the data
-
-            shard.add_challenge(challenge)
-            shard.add_tree(tree)
-
-            def getRandomChallengeString(self):
-                    return ''.join(random.choice(string.ascii_letters) for _ in xrange(32))
-
-
-class Shard:
-
-    def __init__(self):
-        self.id = None
-        self.tree = []
-        self.challenges = []
-        self.path = None
-        self.hash = None
-        self.size = None
-        self.index = None
-
-    def all(self):
-        return 'Shard{index=%s, hash=%s, size=%s, tree={%s}, challenges={%s}' % (
-            self.index, self.hash, self.size,
-            ', '.join(self.tree),
-            ', '.join(self.challenges)
-        )
-
-    def add_challenge(self, challenge):
-        self.challenges.append(challenge)
-
-    def add_tree(self, tree):
-        self.tree.append(tree)
+        if shards is None:
+            self.shards = []
+        else:
+            self.shards = shards
 
 
 class Keyring:
@@ -271,3 +165,130 @@ class Keyring:
         self.password = creds['pass']
         self.salt = creds['salt']
         return creds
+
+
+class Shard:
+    """Shard.
+
+    Attributes:
+        id (str): unique identifier.
+        hash (str): .
+        size (long): .
+        index (int): .
+        challenges (list[str]):
+        tree (list[str]):
+        exclude (list[str]):
+    """
+
+    def __init__(self, id=None, hash=None, index=None, challenges=None, tree=None, exclude=None):
+        self.id = None
+        # self.path = None
+        self.hash = None
+        self.size = None
+        self.index = None
+
+        if challenges is not None:
+            self.challenges = challenges
+        else:
+            self.challenges = []
+
+        if tree is not None:
+            self.tree = tree
+        else:
+            self.tree = []
+
+        if exclude is not None:
+            self.exclude = exclude
+        else:
+            self.exclude = []
+
+    def all(self):
+        return 'Shard{index=%s, hash=%s, size=%s, tree={%s}, challenges={%s}' % (
+            self.index, self.hash, self.size,
+            ', '.join(self.tree),
+            ', '.join(self.challenges)
+        )
+
+    def add_challenge(self, challenge):
+        """Append challenge.
+
+        Args:
+            challenge (str):.
+        """
+        self.challenges.append(challenge)
+
+    def add_tree(self, tree):
+        """Append tree."""
+        self.tree.append(tree)
+
+
+class ShardManager:
+
+    def __init__(self, filepath, shard_size):
+        self.shards = []
+        self.challenges = 8
+        self.shard_index = 0
+        self.index = 0
+        self.shard_size = shard_size
+        self.filepath = filepath
+
+        file = open(filepath, "rb")
+
+        while(True):
+            chunk = file.read(shard_size)
+            if not chunk:
+                break
+            tmpfile = open("C:/test/shard"+str(self.index)+".shard", "wb")
+            tmpfile.write(chunk)
+            tmpfile.close()
+
+            shard = Shard()
+            shard.set_size(shard_size)
+            shard.set_hash(hash160(chunk))
+            self.addChallenges(shard, chunk)
+            shard.set_index(self.index)
+            self.index += 1
+            self.shards.append(shard)
+
+    def addChallenges(self, shard, shardData, numberOfChallenges=12):
+        for i in xrange(numberOfChallenges):
+            challenge = self.getRandomChallengeString()
+
+            data2hash = binascii.hexlify('%s%s' % (challenge, shardData))  # concat and hex-encode data
+
+            tree = hash160(hash160(data2hash))  # double hash160 the data
+
+            shard.add_challenge(challenge)
+            shard.add_tree(tree)
+
+            def getRandomChallengeString(self):
+                    return ''.join(random.choice(string.ascii_letters) for _ in xrange(32))
+
+
+class Token(Object):
+    """
+
+    Attributes:
+        token ():
+        bucket ():
+        operation ():
+        expires ():
+    """
+
+    def __init__(
+            self, token=None, bucket=None, operation=None, expires=None):
+        self.id = token
+        self.bucket_id = bucket
+        self.operation = operation
+
+        if expires is not None:
+            self.expires = datetime.strptime(expires, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
+        else:
+            self.expires = None
+
+    def __str__(self):
+        return self.id
+
+    def __repr__(self):
+        return '{operation} token: {id}'.format(
+            operation=self.operation, id=self.id)

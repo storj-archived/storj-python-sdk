@@ -261,10 +261,6 @@ class Client(object):
             file_like_object.seek(old_position, os.SEEK_SET)
             return size
 
-        print file
-        print dir(file)
-        assert False
-
         file_size = get_size(file)
 
         # encrypt file

@@ -206,14 +206,18 @@ class Client(object):
         """Returns buckets.
 
         Returns:
-            (array[:py:class:`model.Bucket`]): buckets.
+            (generator[:py:class:`model.Bucket`]): buckets.
         """
         self.logger.debug('get_buckets()')
 
         response = self._request(method='GET', path='/buckets')
+        self.logger.debug('response %s', response)
 
-        for element in response:
-            yield model.Bucket(**element)
+        if response is not None:
+            for element in response:
+                yield model.Bucket(**element)
+        else:
+            raise StopIteration
 
     def bucket_set_keys(self, bucket_id, keys):
         self._request(method='PATCH', path='/buckets/%s' % bucket_id, json={'pubkeys': keys})

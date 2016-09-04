@@ -15,17 +15,17 @@ class BucketManager:
 
     @staticmethod
     def all():
-        buckets_json = BucketManager.client.get_buckets()
+        buckets_json = BucketManager.client.bucket_list()
         return [Bucket(payload) for payload in buckets_json]
 
     @staticmethod
     def get(bucket_id):
-        bucket_json = BucketManager.client.get_bucket(bucket_id=bucket_id)
+        bucket_json = BucketManager.client.bucket_get(bucket_id=bucket_id)
         return Bucket(bucket_json)
 
     @staticmethod
     def create(name, storage_limit=None, transfer_limit=None):
-        bucket_json = BucketManager.client.create_bucket(
+        bucket_json = BucketManager.client.bucket_create(
             name=name,
             storage=storage_limit,
             transfer=transfer_limit,
@@ -34,7 +34,7 @@ class BucketManager:
 
     @staticmethod
     def delete(bucket_id):
-        BucketManager.client.delete_bucket(bucket_id=bucket_id)
+        BucketManager.client.bucket_delete(bucket_id=bucket_id)
 
 
 class BucketKeyManager:
@@ -52,7 +52,7 @@ class BucketKeyManager:
             key = ecdsa_to_hex(key)
 
         self._authorized_public_keys.append(key)
-        api_client.set_bucket_pubkeys(
+        api_client.bucket_set_keys(
             bucket_id=self.bucket.id,
             keys=self._authorized_public_keys)
 
@@ -62,20 +62,20 @@ class BucketKeyManager:
             key = ecdsa_to_hex(key)
 
         self._authorized_public_keys.remove(key)
-        api_client.set_bucket_pubkeys(
+        api_client.bucket_set_keys(
             bucket_id=self.bucket.id,
             keys=self._authorized_public_keys)
 
     def clear(self):
         self._authorized_public_keys = []
-        api_client.set_bucket_pubkeys(bucket_id=self.bucket.id, keys=[])
+        api_client.bucket_set_keys(bucket_id=self.bucket.id, keys=[])
 
 
 class UserKeyManager:
 
     @staticmethod
     def all():
-        keys_json = api_client.get_keys()
+        keys_json = api_client.key_get()
         return [payload['key'] for payload in keys_json]
 
     @staticmethod
@@ -84,7 +84,7 @@ class UserKeyManager:
         if not isinstance(key, str):
             key = ecdsa_to_hex(key)
 
-        api_client.register_ecdsa_key(key)
+        api_client.key_register(key)
 
     @staticmethod
     def remove(key):
@@ -92,7 +92,7 @@ class UserKeyManager:
         if not isinstance(key, str):
             key = ecdsa_to_hex(key)
 
-        api_client.delete_key(key)
+        api_client.key_delete(key)
 
     @staticmethod
     def clear():
@@ -108,7 +108,7 @@ class TokenManager:
     def create(self, operation):
         operation = operation.upper()
         assert(operation in ['PUSH', 'PULL'])
-        token_json = api_client.create_token(
+        token_json = api_client.token_create(
             bucket_id=self.bucket_id, operation=operation)
         return Token(token_json)
 
@@ -119,11 +119,11 @@ class FileManager:
         self.bucket_id = bucket_id
 
     def all(self):
-        files_json = api_client.get_files(bucket_id=self.bucket_id)
+        files_json = api_client.file_get(bucket_id=self.bucket_id)
         return [File(payload) for payload in files_json]
 
     def _upload(self, file, frame):
-        api_client.upload_file(bucket_id=self.bucket_id, file=file, frame=frame)
+        api_client.file_upload(bucket_id=self.bucket_id, file=file, frame=frame)
 
     def upload(self, file, frame):
 
@@ -135,7 +135,7 @@ class FileManager:
             self._upload(file, frame)
 
     def download(self, file_id):
-        api_client.download_file(self, bucket_id, file_hash)
+        api_client.file_download(self, bucket_id, file_hash)
 
     def delete(self, file_id):
         raise NotImplementedError

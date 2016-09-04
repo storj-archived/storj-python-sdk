@@ -79,7 +79,7 @@ def create(storage, transfer, name):
         transfer (int): transfer limit (in GB).
         name (str): bucket name.
     """
-    get_client().create_bucket(name, storage=storage, transfer=transfer)
+    get_client().bucket_create(name, storage=storage, transfer=transfer)
     click.echo('Bucket %s created' % name)
 
 
@@ -87,7 +87,7 @@ def create(storage, transfer, name):
 @click.argument('bucket_id', type=click.STRING)
 def get(bucket_id):
     """Get bucket."""
-    bucket = get_client().get_bucket(bucket_id)
+    bucket = get_client().bucket_get(bucket_id)
 
     for attr, value in bucket.__dict__.iteritems():
         click.echo('%s : %s' % (attr.rjust(8), value))
@@ -96,7 +96,7 @@ def get(bucket_id):
 @bucket.command()
 def list():
     """List buckets."""
-    for bucket in get_client().get_buckets():
+    for bucket in get_client().bucket_list():
         click.echo(
             '[info]   ID: %s, Name: %s, Storage: %d, Transfer: %d' % (
                 bucket.id, bucket.name, bucket.storage, bucket.transfer)
@@ -110,7 +110,7 @@ def file():
 
 @file.command()
 @click.argument('bucket_id', type=click.STRING)
-@click.argument('file path', type=click.File)
+@click.argument('file_path', type=click.File('r'))
 def upload(bucket_id, file_path):
     """Upload file to a storage bucket."""
-    get_client().upload_file(bucket_id, file_path)
+    get_client().file_upload(bucket_id, file_path)

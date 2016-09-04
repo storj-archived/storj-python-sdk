@@ -197,7 +197,7 @@ class Client(object):
             response = self._request(method='GET', path='/buckets/%s' % bucket_id)
             return model.Bucket(**response)
         except requests.HTTPError as e:
-            if e.response.status_code == requests.code.not_found:
+            if e.response.status_code == requests.codes.not_found:
                 return None
             else:
                 raise e

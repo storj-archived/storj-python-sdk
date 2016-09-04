@@ -6,6 +6,9 @@ include requirements-test.txt
 include requirements-docs.txt
 include tox.ini
 
+include tests/logging.conf
+include tests/storj.cfg
+
 recursive-include tests *.py
 
 recursive-exclude storj *.pyc

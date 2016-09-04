@@ -75,8 +75,8 @@ def create(storage, transfer, name):
     """Create bucket.
 
     Args:
-        storage (int): storage limit (in ??).
-        transfer (int): transfer limit (in ??).
+        storage (int): storage limit (in GB).
+        transfer (int): transfer limit (in GB).
         name (str): bucket name.
     """
     get_client().create_bucket(name, storage_limit=storage, transfer_limit=transfer)

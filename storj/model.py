@@ -24,8 +24,8 @@ class Bucket(Object):
         status (str): bucket status (Active, ...).
         user (str): user email address.
         created (:py:class:`datetime.datetime`): time when the bucket was created.
-        storage (int): storage limit (in ??).
-        transfer (int): transfer limit (in ??).
+        storage (int): storage limit (in GB).
+        transfer (int): transfer limit (in GB).
         pubkeys ():
     """
 

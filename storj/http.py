@@ -99,6 +99,25 @@ class Client(object):
             }
         )
 
+    def create_bucket(self, name, storage=None, transfer=None):
+        """Create storage bucket.
+
+        Args:
+            name (str): name.
+            storage (int): storage limit (in GB).
+            transfer (int): transfer limit (in GB).
+        """
+
+        data = {'name': name}
+
+        if storage:
+            data['storage'] = storage
+
+        if transfer:
+            data['transfer'] = transfer
+
+        self.request(method='POST', path='/buckets', json=data)
+
     def generate_new_key_pair(self):
         print("This will replace your public and private keys in 3 seconds...")
         time.sleep(3)
@@ -329,31 +348,6 @@ class Client(object):
             path='/buckets/{id}'.format(id=bucket_id),
         )
         assert(response.status_code == 200)
-
-    def create_bucket(
-            self,
-            bucket_name,
-            storage_limit=None,
-            transfer_limit=None):
-
-        data = {
-            'name': bucket_name,
-        }
-
-        if storage_limit:
-            data['storage'] = storage_limit
-
-        if transfer_limit:
-            data['transfer'] = transfer_limit
-
-        response = self.request(
-            method='POST',
-            path='/buckets',
-            json=data,
-        )
-
-        for element in response.json():
-            yield model.Bucket(**element)
 
     def set_bucket_pubkeys(self, bucket_id, keys):
 

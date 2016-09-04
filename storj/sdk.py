@@ -26,9 +26,9 @@ class BucketManager:
     @staticmethod
     def create(name, storage_limit=None, transfer_limit=None):
         bucket_json = BucketManager.client.create_bucket(
-            bucket_name=name,
-            storage_limit=storage_limit,
-            transfer_limit=transfer_limit,
+            name=name,
+            storage=storage_limit,
+            transfer=transfer_limit,
         )
         return Bucket(bucket_json)
 

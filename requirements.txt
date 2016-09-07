@@ -4,4 +4,5 @@ pytz>=2016.2
 requests>=2.7.0
 steenzout.object>=1.0.4
 steenzout.serialization.json
+strict_rfc3339
 ws4py>=0.3.4

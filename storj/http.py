@@ -60,7 +60,7 @@ class Client(object):
 
     @password.setter
     def password(self, value):
-        self._password = sha256(value).hexdigest()
+        self._password = sha256(value.encode('ascii')).hexdigest()
 
     def authenticate(self, ecdsa_private_key=None):
         self.logger.debug('authenticate')

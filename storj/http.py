@@ -14,11 +14,17 @@ from binascii import b2a_hex
 from ecdsa import SigningKey
 from hashlib import sha256
 from io import BytesIO
-from urllib import urlencode
-from urlparse import urljoin
+from six.moves.urllib.parse import urlencode, urljoin
+
+try:
+    from json.decoder import JSONDecodeError
+except ImportError:
+    # Python 2
+    JSONDecodeError = ValueError
+
 
 from . import model
-from .api import ecdsa_to_hex, JSONDecodeError
+from .api import ecdsa_to_hex
 from .exception import MetadiskApiError
 from .web_socket import Client
 

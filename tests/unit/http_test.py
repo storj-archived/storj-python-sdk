@@ -31,8 +31,8 @@ class ClientTestCase(AbstractTestCase):
         self.client._add_basic_auth(request_kwargs)
 
         assert 'Authorization' in request_kwargs['headers']
-        assert request_kwargs['headers']['Authorization'].startswith('Basic ')
-        assert request_kwargs['headers']['Authorization'].endswith('==')
+        assert request_kwargs['headers']['Authorization'].startswith(b'Basic ')
+        assert request_kwargs['headers']['Authorization'].endswith(b'==')
 
     def test_bucket_create(self):
         """Test Client.bucket_create()."""

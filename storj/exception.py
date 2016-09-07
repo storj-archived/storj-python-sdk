@@ -3,4 +3,5 @@
 
 
 class MetadiskApiError(Exception):
+    """Generic Storj exception."""
     pass

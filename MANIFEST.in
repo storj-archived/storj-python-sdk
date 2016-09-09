@@ -1,10 +1,13 @@
 include README.rst
 include LICENSE
 include requirements.txt
+include requirements-extra-cli.txt
+include requirements-test.txt
 include requirements-docs.txt
-include requirements_tests.txt
-include requirements_develop.txt
 include tox.ini
+
+include tests/logging.conf
+include tests/storj.cfg
 
 recursive-include tests *.py
 

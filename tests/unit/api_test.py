@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """Test cases for the storj.api module."""
 
-import unittest
+from .. import AbstractTestCase
 
 from storj import api
 
 
-class FunctionsTestCase(unittest.TestCase):
+class FunctionsTestCase(AbstractTestCase):
     """Test case for the module functions."""
 
     def test_ecdsa_to_hex(self):

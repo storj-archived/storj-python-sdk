@@ -1,4 +1,0 @@
-ipython
-pudb
-restview
-autopep8

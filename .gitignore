@@ -1,4 +1,5 @@
 docs/apidoc
+log/
 t/
 tests/junit.xml
 

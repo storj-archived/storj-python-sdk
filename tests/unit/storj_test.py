@@ -2,12 +2,14 @@
 """Test cases for the storj package."""
 
 import storj
-import unittest
+
 
 from ecdsa import keys
 
+from .. import AbstractTestCase
 
-class FunctionsTestCase(unittest.TestCase):
+
+class FunctionsTestCase(AbstractTestCase):
     """Test case for the package functions."""
 
     def test_generate_new_key_pair(self):

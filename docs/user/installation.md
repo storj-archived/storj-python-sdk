@@ -40,6 +40,16 @@ you can install it using:
 $ python setup.py install
 ```
 
+
+## command-line
+
+To install the command-line tool do:
+
+```
+$ pip install storj[cli]
+```
+
+
 [github]:   https://github.com/Storj/storj-python-sdk/  "Git repo"
 [releases]: https://github.com/Storj/storj-python-sdk/releases/ "Releases"
 [storj]:    https://storj.io/   "Storj"

@@ -1,20 +1,10 @@
 # -*- coding: utf-8 -*-
 """Storj package."""
 
+from ecdsa import SigningKey, SECP256k1
 from hashlib import sha256
 
-from ecdsa import SigningKey, SECP256k1
-
-from .version import __version__
-from .api import api_client
-from .sdk import BucketManager, UserKeyManager
-
-
-buckets = BucketManager()
-public_keys = UserKeyManager()
-
-authenticate = api_client.authenticate
-register_new_user = api_client.register_user
+from .metadata import __version__
 
 
 def generate_new_key_pair():

@@ -10,12 +10,6 @@ storj-python-sdk
 .. |CoverageLink| image:: https://img.shields.io/coveralls/Storj/storj-python-sdk/master.svg?label=Coverage-Master
 .. _CoverageLink: https://coveralls.io/r/Storj/storj-python-sdk
 
-.. |BuildLink2| image:: https://img.shields.io/travis/Storj/storj-python-sdk/develop.svg?label=Build-Develop
-.. _BuildLink2: https://travis-ci.org/Storj/storj-python-sdk
-
-.. |CoverageLink2| image:: https://img.shields.io/coveralls/Storj/storj-python-sdk/develop.svg?label=Coverage-Develop
-.. _CoverageLink2: https://coveralls.io/r/Storj/storj-python-sdk
-
 .. |LicenseLink| image:: https://img.shields.io/badge/license-MIT-blue.svg
 .. _LicenseLink: https://raw.githubusercontent.com/Storj/storj-python-sdk
 

@@ -174,7 +174,7 @@ Manage a bucket's public keys
     existing_bucket.authorized_public_keys.clear()
 
 ------------------------------
-Use your own storj API service
+Use your own Storj API service
 ------------------------------
 
 .. code:: python

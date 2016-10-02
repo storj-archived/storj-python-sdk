@@ -137,8 +137,8 @@ class FileManager:
     def download(self, file_id):
         api_client.file_download(self, bucket_id, file_hash)
 
-    def delete(self, file_id):
-        raise NotImplementedError
+    def delete(self, bucket_id, file_id):
+        api_client.file_remove(self, bucket_id, file_id)
 
 
 def hash160(data):

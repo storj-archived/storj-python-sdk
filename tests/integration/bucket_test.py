@@ -32,8 +32,8 @@ class Bucket(Integration):
         1.2 list has bucket
 
         2. delete bucket
-        1.1 get does not retrieve the bucket
-        1.2 list does not have bucket
+        2.1 get does not retrieve the bucket
+        2.2 list does not have bucket
         """
         self.logger.debug('---------- %s.test() ----------' % __name__)
 

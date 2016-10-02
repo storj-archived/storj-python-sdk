@@ -74,6 +74,10 @@ class ClientTestCase(AbstractTestCase):
         """Test Client.file_upload()."""
         pass
 
+    def test_file_remove(self):
+        """Test Client.file_remove()."""
+        pass
+
     def test_frame_add_shard(self):
         """Test Client.frame_add_shard()."""
         pass

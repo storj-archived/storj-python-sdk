@@ -147,7 +147,9 @@ Download a file
 Delete a file
 -------------
 
-Not yet implemented.  Waiting for API support.
+.. code:: python
+
+    existing_file.delete()
 
 -----------------------------
 Manage a bucket's public keys

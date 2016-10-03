@@ -68,13 +68,14 @@ class File(Object):
         shardManager ():
     """
 
-    def __init__(self, bucket=None, hash=None, mimetype=None, filename=None, size=None):
+    def __init__(self, bucket=None, hash=None, mimetype=None, filename=None, size=None, id=None):
         self.bucket = Bucket(id=bucket)
         self.hash = hash
         self.mimetype = mimetype
         self.filename = filename
         self.size = size
         self.shardManager = ShardManager()
+        self.id = id
 
     @property
     def content_type(self):
@@ -96,7 +97,7 @@ class File(Object):
 
     def delete(self):
         bucket_files = FileManager(bucket_id=self.bucket)
-        bucket_files.delete(self.hash)
+        bucket_files.delete(self.id)
 
 
 class Frame(Object):

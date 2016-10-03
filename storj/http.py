@@ -295,6 +295,19 @@ class Client(object):
                 'x-filesize': str(file_size)}
         )
 
+    def file_remove(self, bucket_id, file_id):
+        """Delete a file pointer from a specified bucket
+
+        Args:
+            bucket_id (str): The ID of the bucket containing the file
+            file_id (str): The ID of the file
+        """
+
+        self._request(
+            method='DELETE',
+            path='/buckets/%s/files/%s' % (bucket_id, file_id)
+        )
+
     def frame_add_shard(self, shard, frame_id):
         data = {
             'hash': shard.hash,
@@ -325,7 +338,11 @@ class Client(object):
         Args:
             frame_id (str): unique identifier.
         """
-        self._request(method='DELETE', path='/frames/%s' % frame_id, json={'frame_id': frame_id})
+        self._request(
+            method='DELETE',
+            path='/frames/%s' % frame_id,
+            json={'frame_id': frame_id}
+        )
 
     def frame_get(self, frame_id):
         """Return a frame.

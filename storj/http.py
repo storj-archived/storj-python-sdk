@@ -262,14 +262,11 @@ class Client(object):
             file ():
             frame ():
         """
+
         self.logger.debug('upload_file(%s, %s, %s)', bucket_id, file, frame)
 
         def get_size(file_like_object):
-            old_position = file_like_object.tell()
-            file_like_object.seek(0, os.SEEK_END)
-            size = file_like_object.tell()
-            file_like_object.seek(old_position, os.SEEK_SET)
-            return size
+            return os.stat(file_like_object.name).st_size
 
         file_size = get_size(file)
 
@@ -277,23 +274,23 @@ class Client(object):
         # shard file
         # create frame
 
-        push_token = self.frame_create(bucket_id, operation='PUSH')
+        push_token = self.token_create(bucket_id, "PUSH")
+
         self.logger.debug('upload_file() push_token=%s', push_token)
 
-        # upload shards
+        # upload shards to frame
         # create bucket entry
         # delete encrypted file
-
         self._request(
             method='POST', path='/buckets/%s/files' % bucket_id,
-            files={
-                'frame': frame,
-                'mimetype': 'text',
-                'filename': 'test.txt'},
+            #files={'file' : file},
             headers={
-                'x-token': push_token['token'],
-                'x-filesize': str(file_size)}
-        )
+            #    'x-token': push_token['token'],
+            #    'x-filesize': str(file_size)}
+            "frame": frame['id'],
+            "mimetype": "text",
+            "filename": "test.txt",
+        })
 
     def file_remove(self, bucket_id, file_id):
         """Delete a file pointer from a specified bucket
@@ -317,7 +314,11 @@ class Client(object):
             'tree': shard.tree,
         }
 
-        response = self._request(method='PUT', path='/frames/%s' % frame_id, json=data)
+        response = self._request(
+        method='PUT',
+        path='/frames/%s' % frame_id,
+        json=data
+        )
 
         if response is not None:
             return response
@@ -436,7 +437,7 @@ class Client(object):
         Returns:
             (dict[]):
         """
-        self.logger('create_token(%s, %s)', bucket_id, operation)
+        self.logger.debug('create_token(%s, %s)', bucket_id, operation)
         return self._request(method='POST', path='/buckets/%s/tokens' % bucket_id, json={'operation': operation})
 
     def user_create(self, email, password):

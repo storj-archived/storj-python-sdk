@@ -289,7 +289,7 @@ class Client(object):
             #    'x-filesize': str(file_size)}
             "frame": frame['id'],
             "mimetype": "text",
-            "filename": "test.txt",
+            "filename": file.name,
         })
 
     def file_remove(self, bucket_id, file_id):

@@ -29,7 +29,8 @@ class Basic(object):
         Setup test configuration.
         It will also load (once) the test configuration.
         """
-        logging.getLogger('%s.%s' % (__name__, 'Basic')).info('setup_configuration()')
+        logging.getLogger(
+            '%s.%s' % (__name__, 'Basic')).info('setup_configuration()')
 
         self.configuration = config.get()
 
@@ -40,7 +41,8 @@ class Basic(object):
         """
         logging.getLogger('%s.%s' % (__name__, 'Basic')).info('setup_logger()')
 
-        self.logger = logging.getLogger('%s.%s' % (__name__, self.__class__.__name__))
+        self.logger = logging.getLogger(
+            '%s.%s' % (__name__, self.__class__.__name__))
 
 
 class AbstractTestCase(unittest.TestCase, Basic):

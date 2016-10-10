@@ -123,7 +123,8 @@ class FileManager:
         return [File(payload) for payload in files_json]
 
     def _upload(self, file, frame):
-        api_client.file_upload(bucket_id=self.bucket_id, file=file, frame=frame)
+        api_client.file_upload(bucket_id=self.bucket_id,
+                               file=file, frame=frame)
 
     def upload(self, file, frame):
 
@@ -158,4 +159,4 @@ def pad(s):
 
 
 def unpad(s):
-    return s[:-ord(s[len(s)-1:])]
+    return s[:-ord(s[len(s) - 1:])]

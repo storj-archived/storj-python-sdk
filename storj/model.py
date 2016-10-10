@@ -16,7 +16,8 @@ from steenzout.object import Object
 class Bucket(Object):
     """Storage bucket.
 
-    A bucket is a logical grouping of files which the user can assign permissions and limits to.
+    A bucket is a logical grouping of files
+    which the user can assign permissions and limits to.
 
     Attributes:
         id (str): unique identifier.
@@ -46,7 +47,8 @@ class Bucket(Object):
         # self.tokens = TokenManager(bucket_id=self.id)
 
         if created is not None:
-            self.created = datetime.fromtimestamp(strict_rfc3339.rfc3339_to_timestamp(created))
+            self.created = datetime.fromtimestamp(
+                strict_rfc3339.rfc3339_to_timestamp(created))
         else:
             self.created = None
 
@@ -68,7 +70,8 @@ class File(Object):
         shardManager ():
     """
 
-    def __init__(self, bucket=None, hash=None, mimetype=None, filename=None, size=None, id=None):
+    def __init__(self, bucket=None, hash=None, mimetype=None,
+                 filename=None, size=None, id=None):
         self.bucket = Bucket(id=bucket)
         self.hash = hash
         self.mimetype = mimetype
@@ -93,7 +96,8 @@ class File(Object):
             name=self.filename, size=self.size, content_type=self.mimetype)
 
     def download(self):
-        return api_client.file_download(bucket_id=self.bucket, file_hash=self.hash)
+        return api_client.file_download(bucket_id=self.bucket,
+                                        file_hash=self.hash)
 
     def delete(self):
         bucket_files = FileManager(bucket_id=self.bucket)
@@ -113,7 +117,8 @@ class Frame(Object):
         self.id = id
 
         if created is not None:
-            self.created = datetime.fromtimestamp(strict_rfc3339.rfc3339_to_timestamp(created))
+            self.created = datetime.fromtimestamp(
+                strict_rfc3339.rfc3339_to_timestamp(created))
         else:
             self.created = None
 
@@ -131,8 +136,8 @@ class Keyring:
 
     def generate(self):
         user_pass = raw_input("Enter your keyring password: ")
-        password = hex(random.getrandbits(512*8))[2:-1]
-        salt = hex(random.getrandbits(32*8))[2:-1]
+        password = hex(random.getrandbits(512 * 8))[2:-1]
+        salt = hex(random.getrandbits(32 * 8))[2:-1]
 
         pbkdf2 = hashlib.pbkdf2_hmac('sha512', password, salt, 25000, 512)
 
@@ -143,8 +148,9 @@ class Keyring:
         self.salt = salt
 
     def export_keyring(self, password, salt, user_pass):
-        plain = pad("{\"pass\" : \"%s\", \n\"salt\" : \"%s\"\n}" % (password, salt))
-        IV = hex(random.getrandbits(8*8))[2:-1]
+        plain = pad("{\"pass\" : \"%s\", \n\"salt\" : \"%s\"\n}"
+                    % (password, salt))
+        IV = hex(random.getrandbits(8 * 8))[2:-1]
 
         aes = AES.new(pad(user_pass), AES.MODE_CBC, IV)
 
@@ -181,7 +187,8 @@ class Shard:
         exclude (list[str]):
     """
 
-    def __init__(self, id=None, hash=None, index=None, challenges=None, tree=None, exclude=None):
+    def __init__(self, id=None, hash=None, index=None,
+                 challenges=None, tree=None, exclude=None):
         self.id = None
         # self.path = None
         self.hash = None
@@ -204,7 +211,8 @@ class Shard:
             self.exclude = []
 
     def all(self):
-        return 'Shard{index=%s, hash=%s, size=%s, tree={%s}, challenges={%s}' % (
+        return 'Shard{index=%s, hash=%s, size=%s, tree={%s}, challenges={%s}' %
+        (
             self.index, self.hash, self.size,
             ', '.join(self.tree),
             ', '.join(self.challenges)
@@ -239,7 +247,7 @@ class ShardManager:
             chunk = file.read(shard_size)
             if not chunk:
                 break
-            tmpfile = open("C:/test/shard"+str(self.index)+".shard", "wb")
+            tmpfile = open("C:/test/shard" + str(self.index) + ".shard", "wb")
             tmpfile.write(chunk)
             tmpfile.close()
 
@@ -255,7 +263,8 @@ class ShardManager:
         for i in xrange(numberOfChallenges):
             challenge = self.getRandomChallengeString()
 
-            data2hash = binascii.hexlify('%s%s' % (challenge, shardData))  # concat and hex-encode data
+            # concat and hex-encode data
+            data2hash = binascii.hexlify('%s%s' % (challenge, shardData))
 
             tree = hash160(hash160(data2hash))  # double hash160 the data
 
@@ -263,7 +272,8 @@ class ShardManager:
             shard.add_tree(tree)
 
             def getRandomChallengeString(self):
-                    return ''.join(random.choice(string.ascii_letters) for _ in xrange(32))
+                return ''.join(
+                    random.choice(string.ascii_letters) for _ in xrange(32))
 
 
 class Token(Object):
@@ -283,7 +293,8 @@ class Token(Object):
         self.operation = operation
 
         if expires is not None:
-            self.expires = datetime.strptime(expires, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
+            self.expires = datetime.strptime(
+                expires, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
         else:
             self.expires = None
 

@@ -17,7 +17,8 @@ class Bucket(Integration):
     def setUp(self):
         """Setup test bucket."""
         super(Bucket, self).setUp()
-        self.bucket = self.client.bucket_create('integration-%s' % self.test_id)
+        self.bucket = self.client.bucket_create(
+            'integration-%s' % self.test_id)
 
     def tearDown(self):
         """Destroy test bucket."""

@@ -211,12 +211,11 @@ class Shard:
             self.exclude = []
 
     def all(self):
-        return 'Shard{index=%s, hash=%s, size=%s, tree={%s}, challenges={%s}' %
-        (
-            self.index, self.hash, self.size,
+        return 'Shard{index=%s, hash=%s, size=%s, tree={%s}, challenges={%s}' % (
+            self.index,
+            self.hash, self.size,
             ', '.join(self.tree),
-            ', '.join(self.challenges)
-        )
+            ', '.join(self.challenges))
 
     def add_challenge(self, challenge):
         """Append challenge.

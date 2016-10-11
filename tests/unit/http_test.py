@@ -5,8 +5,8 @@ from .. import AbstractTestCase
 
 from hashlib import sha256
 
-
 from storj import http
+from storj import model
 
 
 class ClientTestCase(AbstractTestCase):
@@ -37,7 +37,10 @@ class ClientTestCase(AbstractTestCase):
 
     def test_bucket_create(self):
         """Test Client.bucket_create()."""
-        pass
+        bucket = self.client.bucket_create("Test Bucket",
+                                           storage=25, transfer=39)
+
+        assert isinstance(bucket, model.Bucket)
 
     def test_bucket_delete(self):
         """Test Client.bucket_delete()."""

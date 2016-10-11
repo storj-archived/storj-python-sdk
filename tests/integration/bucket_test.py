@@ -56,4 +56,4 @@ class Bucket(Integration):
 
         self.logger.debug('%s 2.2' % __name__)
         with pytest.raises(StopIteration):
-            self.client.bucket_list().next()
+            next(self.client.bucket_list())

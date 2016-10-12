@@ -7,6 +7,7 @@ import mock
 from hashlib import sha256
 
 from storj import http
+from storj import model
 
 
 class ClientTestCase(AbstractTestCase):
@@ -38,13 +39,15 @@ class ClientTestCase(AbstractTestCase):
 
     def test_bucket_create(self):
         """Test Client.bucket_create()."""
-        test_name = 'Test Bucket'
-        bucket = self.client.bucket_create(test_name,
-                                           storage=25, transfer=39)
-        test_json = {'name': test_name, 'storage': 25, 'transfer': 39}
+        test_json = {'name': 'Test Bucket', 'storage': 25, 'transfer': 39}
+        self.client._request.return_value = test_json
+
+        bucket = self.client.bucket_create('Test Bucket', storage=25,
+                                           transfer=39)
 
         self.client._request.assert_called_with(method='POST', path='/buckets',
                                                 json=test_json)
+        self.assertIsInstance(bucket, model.Bucket)
 
     def test_bucket_delete(self):
         """Test Client.bucket_delete()."""

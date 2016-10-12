@@ -2,11 +2,11 @@
 """Test cases for the storj.http module."""
 
 from .. import AbstractTestCase
+import mock
 
 from hashlib import sha256
 
 from storj import http
-from storj import model
 
 
 class ClientTestCase(AbstractTestCase):
@@ -18,6 +18,7 @@ class ClientTestCase(AbstractTestCase):
         self.email = 'email@example.com'
         self.password = 's3CR3cy'
         self.client = http.Client(self.email, self.password)
+        self.client._request = mock.MagicMock()
         self.password_digest = sha256(
             self.password.encode('ascii')).hexdigest()
 
@@ -37,10 +38,13 @@ class ClientTestCase(AbstractTestCase):
 
     def test_bucket_create(self):
         """Test Client.bucket_create()."""
-        bucket = self.client.bucket_create("Test Bucket",
+        test_name = 'Test Bucket'
+        bucket = self.client.bucket_create(test_name,
                                            storage=25, transfer=39)
+        test_json = {'name': test_name, 'storage': 25, 'transfer': 39}
 
-        assert isinstance(bucket, model.Bucket)
+        self.client._request.assert_called_with(method='POST', path='/buckets',
+                                                json=test_json)
 
     def test_bucket_delete(self):
         """Test Client.bucket_delete()."""

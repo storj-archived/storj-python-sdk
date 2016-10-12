@@ -42,11 +42,13 @@ def load_configuration(config_file=DEFAULT_CONFIG_FILE):
         Cache.settings = {}
         for section in parser.sections():
             Cache.settings[section] = dict(parser.items(section))
-        logging.getLogger(__name__).info('%s configuration file was loaded.', config_file)
+        logging.getLogger(__name__).info(
+            '%s configuration file was loaded.', config_file)
         return Cache.settings
     except Exception as e:
         Cache.settings = None
-        logging.getLogger(__name__).error('Failed to load configuration from %s!', config_file)
+        logging.getLogger(__name__).error(
+            'Failed to load configuration from %s!', config_file)
         logging.getLogger(__name__).debug(str(e), exc_info=True)
         raise e
 

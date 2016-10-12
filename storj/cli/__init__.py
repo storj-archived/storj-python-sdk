@@ -68,8 +68,9 @@ def bucket():
 
 
 @bucket.command()
-@click.option('--storage', default=None, help='Storage limit.', type=click.INT)
-@click.option('--transfer', default=None, help='Transfer limit', type=click.INT)
+@click.option('--storage', default=None, help='Storage limit', type=click.INT)
+@click.option('--transfer', default=None,
+              help='Transfer limit', type=click.INT)
 @click.argument('name', type=click.STRING)
 def create(storage, transfer, name):
     """Create bucket.

@@ -34,7 +34,7 @@ class Integration(AbstractTestCase):
         except KeyError as e:
             self.logger.error(e)
             err_msg = 'To run integration tests you need to define the following environment variables: %s, %s.' % (
-                    ENV_STORJ_EMAIL, ENV_STORJ_PASSWORD)
+                ENV_STORJ_EMAIL, ENV_STORJ_PASSWORD)
             self.logger.error(err_msg)
             self.fail(err_msg)
 

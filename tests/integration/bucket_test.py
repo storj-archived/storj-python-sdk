@@ -5,6 +5,7 @@ import pytest
 
 
 from . import Integration
+from requests.exceptions import HTTPError
 
 
 class Bucket(Integration):
@@ -17,12 +18,16 @@ class Bucket(Integration):
     def setUp(self):
         """Setup test bucket."""
         super(Bucket, self).setUp()
-        self.bucket = self.client.bucket_create('integration-%s' % self.test_id)
+        self.bucket = self.client.bucket_create(
+            'integration-%s' % self.test_id)
 
     def tearDown(self):
         """Destroy test bucket."""
         super(Bucket, self).tearDown()
-        self.client.bucket_delete(self.bucket.id)
+        try:
+            self.client.bucket_delete(self.bucket.id)
+        except HTTPError:
+            pass
 
     def test(self):
         """Test:

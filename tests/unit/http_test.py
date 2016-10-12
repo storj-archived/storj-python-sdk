@@ -18,7 +18,8 @@ class ClientTestCase(AbstractTestCase):
         self.email = 'email@example.com'
         self.password = 's3CR3cy'
         self.client = http.Client(self.email, self.password)
-        self.password_digest = sha256(self.password.encode('ascii')).hexdigest()
+        self.password_digest = sha256(
+            self.password.encode('ascii')).hexdigest()
 
     def test_init(self):
         """Test Client.__init__()."""

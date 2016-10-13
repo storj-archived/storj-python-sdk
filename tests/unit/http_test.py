@@ -68,7 +68,7 @@ class ClientTestCase(AbstractTestCase):
         self.client.token_create = mock.MagicMock()
         self.client.token_create.return_value = {'token': 'test_token'}
 
-        self.client.bucket_files(test_bucket_id, test_file_id)
+        self.client.bucket_files(test_bucket_id)
 
         self.client.token_create.assert_called_with(
             test_bucket_id,

@@ -320,17 +320,17 @@ class Client(object):
 
         file_size = get_size(file)
 
+        #TODO:
         # encrypt file
         # shard file
-        # create frame
 
         push_token = self.token_create(bucket_id, "PUSH")
 
         self.logger.debug('upload_file() push_token=%s', push_token)
 
         # upload shards to frame
-        # create bucket entry
         # delete encrypted file
+        
         self._request(
             method='POST', path='/buckets/%s/files' % bucket_id,
             # files={'file' : file},

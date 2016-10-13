@@ -6,7 +6,7 @@ import strict_rfc3339
 
 from datetime import datetime
 
-from storj.model import Bucket, Frame
+from storj.model import Bucket, Frame, Shard
 
 from .. import AbstractTestCase
 
@@ -57,3 +57,48 @@ class FrameTestCase(AbstractTestCase):
                 '2016-10-13T04:23:48.183Z'))
         assert frame.id == '510b23e9f63a77d939a72a77'
         assert frame.shards == []
+
+
+class ShardTestCase(AbstractTestCase):
+    """Test case for the Shard class."""
+
+    def _assert_init(self, kwargs):
+        """Run __init__ assertions.
+
+        Args:
+            kwargs (dict): keyword arguments for the Shard initializer.
+
+        Raises:
+            AssertionError: in case one of the Shard attributes is not set as expected.
+        """
+
+        shard = Shard(**kwargs)
+
+        assert kwargs['challenges'] if 'challenges' in kwargs else [] == shard.challenges
+        assert kwargs['exclude'] if 'exclude' in kwargs else [] == shard.exclude
+
+        assert shard.hash == kwargs['hash']
+        assert shard.id == kwargs['id']
+        assert shard.index == kwargs['index']
+
+        assert shard.size is None
+
+        assert kwargs['tree'] if 'tree' in kwargs else [] == shard.tree
+
+    def test_init(self):
+        """Test Shard.__init__()."""
+
+        kwargs = dict(
+            hash='',
+            id='510b23e9f63a77d939a72a77',
+            index='')
+        self._assert_init(kwargs)
+
+        kwargs = dict(
+            challenges=['abc'],
+            exclude=['abc'],
+            hash='',
+            id='510b23e9f63a77d939a72a77',
+            index='',
+            tree=['abc'])
+        self._assert_init(kwargs)

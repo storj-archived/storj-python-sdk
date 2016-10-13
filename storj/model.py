@@ -260,6 +260,13 @@ class ShardManager:
             self.index += 1
             self.shards.append(shard)
 
+    def hash160(data):
+        """hex encode returned str"""
+        return binascii.hexlify(ripemd160(hashlib.sha256(data).digest()))
+
+    def ripemd160(data):
+        return hashlib.new('ripemd160', data).digest()
+
     def addChallenges(self, shard, shardData, numberOfChallenges=12):
         for i in xrange(numberOfChallenges):
             challenge = self.getRandomChallengeString()

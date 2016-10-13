@@ -6,7 +6,7 @@ import strict_rfc3339
 
 from datetime import datetime
 
-from storj.model import Bucket
+from storj.model import Bucket, Frame
 
 from .. import AbstractTestCase
 
@@ -38,3 +38,22 @@ class BucketTestCase(AbstractTestCase):
         assert bucket.storage == 0
         assert bucket.transfer == 0
         assert bucket.user == 'steenzout@ymail.com'
+
+
+class FrameTestCase(AbstractTestCase):
+    """Test case for the Frame class."""
+
+    def test_init(self):
+        """Test Frame.__init__()."""
+        kwargs = dict(
+            created='2016-10-13T04:23:48.183Z',
+            id='510b23e9f63a77d939a72a77',
+            shards=[])
+
+        frame = Frame(**kwargs)
+
+        assert frame.created == datetime.fromtimestamp(
+            strict_rfc3339.rfc3339_to_timestamp(
+                '2016-10-13T04:23:48.183Z'))
+        assert frame.id == '510b23e9f63a77d939a72a77'
+        assert frame.shards == []

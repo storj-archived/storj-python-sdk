@@ -92,10 +92,6 @@ class File(Object):
     def __str__(self):
         return self.filename
 
-    def __repr__(self):
-        return '{name} ({size} {content_type})'.format(
-            name=self.filename, size=self.size, content_type=self.mimetype)
-
     def download(self):
         return api_client.file_download(bucket_id=self.bucket,
                                         file_hash=self.hash)
@@ -308,7 +304,3 @@ class Token(Object):
 
     def __str__(self):
         return self.id
-
-    def __repr__(self):
-        return '{operation} token: {id}'.format(
-            operation=self.operation, id=self.id)

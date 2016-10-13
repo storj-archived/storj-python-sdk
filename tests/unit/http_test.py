@@ -11,7 +11,7 @@ from storj import model
 
 
 class ClientTestCase(AbstractTestCase):
-    """Test case for the client class."""
+    """Test case for the Client class."""
 
     def setUp(self):
         super(AbstractTestCase, self).setUp()

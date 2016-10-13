@@ -194,22 +194,38 @@ class Client(object):
         self.logger.info('bucket_delete(%s)', bucket_id)
         self._request(method='DELETE', path='/buckets/%s' % bucket_id)
 
-    def bucket_files(self, bucket_id, file_hash):
+    def bucket_files(self, bucket_id):
         """
 
         Args:
             bucket_id (string): unique identifier.
-            file_hash (): .
         """
-        self.logger.info('bucket_files(%s, %s)', bucket_id, file_hash)
+        self.logger.info('bucket_files(%s)', bucket_id)
 
         pull_token = self.token_create(bucket_id, operation='PULL')
         return self._request(
             method='GET',
-            path='/buckets/%s/files/%s' % (bucket_id, file_hash),
+            path='/buckets/%s/files/' % (bucket_id),
             headers={
                 'x-token': pull_token['token'],
             })
+
+    def file_pointers(self, bucket_id, file_id):
+        """
+
+        Args:
+            bucket_id (string): unique identifier.
+        """
+        self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
+
+        pull_token = self.token_create(bucket_id, operation='PULL')
+        return self._request(
+            method='GET',
+            path='/buckets/%s/files/%s/' % (bucket_id, file_id),
+            headers={
+                'x-token': pull_token['token'],
+            })
+
 
     def bucket_get(self, bucket_id):
         """Returns buckets.
@@ -264,11 +280,11 @@ class Client(object):
         if response is not None:
             return response
 
-    def file_download(self, bucket_id, file_hash):
-        self.logger.info('file_download(%s, %s)', bucket_id, file_hash)
+    def file_download(self, bucket_id, file_id):
+        self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)
 
-        pointers = self.bucket_files(
-            bucket_id=bucket_id, file_hash=file_hash)
+        pointers = self.file_pointers(
+            bucket_id=bucket_id, file_id=file_id)
 
         file_contents = BytesIO()
         for pointer in pointers:

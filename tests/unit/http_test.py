@@ -96,7 +96,22 @@ class ClientTestCase(AbstractTestCase):
 
     def test_bucket_list(self):
         """Test Client.bucket_list()."""
-        pass
+        test_response = [
+            {'name': 'Test Bucket 1', 'storage': 25, 'transfer': 39},
+            {'name': 'Test Bucket 2', 'storage': 19, 'transfer': 83},
+            {'name': 'Test Bucket 3', 'storage': 86, 'transfer': 193}]
+
+        self.client._request.return_value = test_response
+
+        buckets = self.client.bucket_list()
+
+        # _request() is not getting called. Why?
+        for bucket in buckets:
+            self.assertIsInstance(bucket, model.Bucket)
+
+        self.client._request.assert_called_once_with(
+            method='GET',
+            path='/buckets')
 
     def test_bucket_set_keys(self):
         """Test Client.bucket_set_keys()."""

@@ -6,7 +6,7 @@ import strict_rfc3339
 
 from datetime import datetime
 
-from storj.model import Bucket, Frame, Shard
+from storj.model import Bucket, Frame, Shard, Token
 
 from .. import AbstractTestCase
 
@@ -101,4 +101,58 @@ class ShardTestCase(AbstractTestCase):
             id='510b23e9f63a77d939a72a77',
             index='',
             tree=['abc'])
+        self._assert_init(kwargs)
+
+
+class TokenTestCase(AbstractTestCase):
+    """Test case for the Token class."""
+
+    def _assert_init(self, kwargs):
+        """Run __init__ assertions.
+
+        Args:
+            kwargs (dict): keyword arguments for the Token initializer.
+
+        Raises:
+            AssertionError: in case one of the Token attributes is not set as expected.
+        """
+
+        token = Token(**kwargs)
+
+        if 'bucket' in kwargs:
+            assert token.bucket_id == kwargs['bucket']
+        else:
+            assert token.bucket_id is None
+
+        if 'expires' in kwargs:
+            assert token.expires == datetime.fromtimestamp(
+                strict_rfc3339.rfc3339_to_timestamp(
+                    kwargs['expires']))
+        else:
+            assert token.expires is None
+
+        if 'operation' in kwargs:
+            assert token.operation == kwargs['operation']
+        else:
+            assert token.operation is None
+
+        if 'token' in kwargs:
+            assert token.id == kwargs['token']
+        else:
+            assert token.id is None
+
+    def test_init(self):
+        """Test Token.__init__()."""
+        kwargs = dict(
+            bucket='',
+            expires='2016-10-13T04:23:48.183Z',
+            operation='unknown',
+            token='510b23e9f63a77d939a72a77')
+        self._assert_init(kwargs)
+
+        kwargs = dict(
+            bucket='',
+            expires='2016-10-13T04:23:48.183Z',
+            operation='unknown',
+            token='510b23e9f63a77d939a72a77')
         self._assert_init(kwargs)

@@ -191,11 +191,11 @@ class Shard:
 
     def __init__(self, id=None, hash=None, index=None,
                  challenges=None, tree=None, exclude=None):
-        self.id = None
+        self.id = id
         # self.path = None
-        self.hash = None
+        self.hash = hash
         self.size = None
-        self.index = None
+        self.index = index
 
         if challenges is not None:
             self.challenges = challenges
@@ -294,8 +294,8 @@ class Token(Object):
         self.operation = operation
 
         if expires is not None:
-            self.expires = datetime.strptime(
-                expires, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
+            self.expires = datetime.fromtimestamp(
+                strict_rfc3339.rfc3339_to_timestamp(expires))
         else:
             self.expires = None
 

@@ -45,33 +45,100 @@ class ClientTestCase(AbstractTestCase):
         bucket = self.client.bucket_create('Test Bucket', storage=25,
                                            transfer=39)
 
-        self.client._request.assert_called_with(method='POST', path='/buckets',
-                                                json=test_json)
+        self.client._request.assert_called_with(
+            method='POST',
+            path='/buckets',
+            json=test_json)
         self.assertIsInstance(bucket, model.Bucket)
 
     def test_bucket_delete(self):
         """Test Client.bucket_delete()."""
-        pass
+        bucket_id = '57fd385426adcf743b3d39c5'
+        self.client.bucket_delete(bucket_id)
+
+        self.client._request.assert_called_with(
+            method='DELETE',
+            path='/buckets/%s' % bucket_id)
 
     def test_bucket_files(self):
         """Test Client.bucket_files()."""
-        pass
+        test_bucket_id = "57fd385426adcf743b3d39c5"
+        test_file_id = "57ffbfd28ce9b61c2634ea5d"
+
+        self.client.token_create = mock.MagicMock()
+        self.client.token_create.return_value = {'token': 'test_token'}
+
+        self.client.bucket_files(test_bucket_id, test_file_id)
+
+        self.client.token_create.assert_called_with(
+            test_bucket_id,
+            operation='PULL')
+        self.client._request.assert_called_with(
+            method='GET',
+            path='/buckets/%s/files/%s' % (test_bucket_id, test_file_id),
+            headers={
+                'x-token': 'test_token'
+            })
 
     def test_bucket_get(self):
         """Test Client.bucket_get()."""
-        pass
+        test_bucket_id = "57fd385426adcf743b3d39c5"
+        test_json = {'name': 'Test Bucket', 'storage': 25, 'transfer': 39}
+
+        self.client._request.return_value = test_json
+
+        bucket = self.client.bucket_get(test_bucket_id)
+
+        self.client._request.assert_called_with(
+            method='GET',
+            path='/buckets/%s' % test_bucket_id)
+        self.assertIsInstance(bucket, model.Bucket)
 
     def test_bucket_list(self):
         """Test Client.bucket_list()."""
-        pass
+        test_response = [
+            {'name': 'Test Bucket 1', 'storage': 25, 'transfer': 39},
+            {'name': 'Test Bucket 2', 'storage': 19, 'transfer': 83},
+            {'name': 'Test Bucket 3', 'storage': 86, 'transfer': 193}]
+
+        self.client._request.return_value = test_response
+
+        buckets = self.client.bucket_list()
+
+        # _request() is not getting called. Why?
+        for bucket in buckets:
+            self.assertIsInstance(bucket, model.Bucket)
+
+        self.client._request.assert_called_once_with(
+            method='GET',
+            path='/buckets')
 
     def test_bucket_set_keys(self):
         """Test Client.bucket_set_keys()."""
-        pass
+        test_bucket_id = "57fd385426adcf743b3d39c5"
+        test_keys = ['key1', 'key2', 'key3']
 
-    def test_contact_list(self):
+        self.client.bucket_set_keys(test_bucket_id, test_keys)
+
+        self.client._request.assert_called_with(
+            method='PATCH',
+            path='/buckets/%s' % test_bucket_id,
+            json={'pubkeys': test_keys})
+
+    def test_contacts_list(self):
         """Test Client.contact_list()."""
-        pass
+        test_response = [{'protocol': '0.9.0', 'userAgent': '4.0.2'},
+                         {'protocol': '0.8.0', 'userAgent': '4.0.3'}]
+
+        self.client._request.return_value = test_response
+
+        contacts = self.client.contacts_list()
+
+        self.client._request.assert_called_with(
+            method='GET',
+            path='/contacts',
+            json={})
+        self.assertEqual(contacts, test_response)
 
     def test_file_download(self):
         """Test Client.file_download()."""

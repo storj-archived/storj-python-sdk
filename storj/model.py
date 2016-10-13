@@ -24,7 +24,8 @@ class Bucket(Object):
         name (str): name.
         status (str): bucket status (Active, ...).
         user (str): user email address.
-        created (:py:class:`datetime.datetime`): time when the bucket was created.
+        created (:py:class:`datetime.datetime`):
+            time when the bucket was created.
         storage (int): storage limit (in GB).
         transfer (int): transfer limit (in GB).
         pubkeys ():
@@ -109,7 +110,8 @@ class Frame(Object):
 
     Attributes:
         id (str): unique identifier.
-        created (:py:class:`datetime.datetime`): time when the bucket was created.
+        created (:py:class:`datetime.datetime`):
+            time when the bucket was created.
         shards (list[:py:class:`Shard`]): shards that compose this frame.
     """
 

@@ -294,8 +294,8 @@ class Token(Object):
         self.operation = operation
 
         if expires is not None:
-            self.expires = datetime.strptime(
-                expires, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=utc)
+            self.expires = datetime.fromtimestamp(
+                strict_rfc3339.rfc3339_to_timestamp(expires))
         else:
             self.expires = None
 

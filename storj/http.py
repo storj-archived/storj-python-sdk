@@ -25,7 +25,7 @@ except ImportError:
 
 from . import model
 from .api import ecdsa_to_hex
-from .exception import MetadiskApiError
+from .exception import StorjBridgeApiError
 from .web_socket import Client
 
 
@@ -130,7 +130,7 @@ class Client(object):
             kwargs (dict): keyword arguments.
 
         Raises:
-            :py:class:`MetadiskApiError`: in case::
+            :py:class:`StorjBridgeApiError`: in case::
                 - internal server error
                 - error attribute is present in the JSON response
                 - HTTP response JSON decoding failed
@@ -144,7 +144,7 @@ class Client(object):
         except requests.exceptions.HTTPError as e:
             self.logger.error(e)
             self.logger.debug('response.text=%s', response.text)
-            raise MetadiskApiError(response.text)
+            raise StorjBridgeApiError(response.text)
 
         # Raise any errors as exceptions
         try:
@@ -154,14 +154,14 @@ class Client(object):
                 return {}
 
             if 'error' in response_json:
-                raise MetadiskApiError(response_json['error'])
+                raise StorjBridgeApiError(response_json['error'])
 
             return response_json
 
         except JSONDecodeError as e:
             self.logger.error(e)
             self.logger.error('_request body %s', response.text)
-            raise MetadiskApiError('Could not decode response.')
+            raise StorjBridgeApiError('Could not decode response.')
 
     def bucket_create(self, name, storage=None, transfer=None):
         """Create storage bucket.

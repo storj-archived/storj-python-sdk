@@ -128,6 +128,12 @@ class Client(object):
 
         Args:
             kwargs (dict): keyword arguments.
+
+        Raises:
+            :py:class:`MetadiskApiError`: in case::
+                - internal server error
+                - error attribute is present in the JSON response
+                - HTTP response JSON decoding failed
         """
 
         response = self.session.send(self._prepare_request(**kwargs))
@@ -138,7 +144,7 @@ class Client(object):
         except requests.exceptions.HTTPError as e:
             self.logger.error(e)
             self.logger.debug('response.text=%s', response.text)
-            raise e
+            raise MetadiskApiError(response.text)
 
         # Raise any errors as exceptions
         try:
@@ -153,9 +159,9 @@ class Client(object):
             return response_json
 
         except JSONDecodeError as e:
-            self.logger.error('_request %s', e)
+            self.logger.error(e)
             self.logger.error('_request body %s', response.text)
-            raise e
+            raise MetadiskApiError('Could not decode response.')
 
     def bucket_create(self, name, storage=None, transfer=None):
         """Create storage bucket.

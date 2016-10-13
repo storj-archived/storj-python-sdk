@@ -115,11 +115,30 @@ class ClientTestCase(AbstractTestCase):
 
     def test_bucket_set_keys(self):
         """Test Client.bucket_set_keys()."""
-        pass
+        test_bucket_id = "57fd385426adcf743b3d39c5"
+        test_keys = ['key1', 'key2', 'key3']
 
-    def test_contact_list(self):
+        self.client.bucket_set_keys(test_bucket_id, test_keys)
+
+        self.client._request.assert_called_with(
+            method='PATCH',
+            path='/buckets/%s' % test_bucket_id,
+            json={'pubkeys': test_keys})
+
+    def test_contacts_list(self):
         """Test Client.contact_list()."""
-        pass
+        test_response = [{'protocol': '0.9.0', 'userAgent': '4.0.2'},
+                         {'protocol': '0.8.0', 'userAgent': '4.0.3'}]
+
+        self.client._request.return_value = test_response
+
+        contacts = self.client.contacts_list()
+
+        self.client._request.assert_called_with(
+            method='GET',
+            path='/contacts',
+            json={})
+        self.assertEqual(contacts, test_response)
 
     def test_file_download(self):
         """Test Client.file_download()."""

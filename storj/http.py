@@ -42,7 +42,7 @@ class Client(object):
         public_key_hex ():
     """
 
-    logger = logging.getLogger(Client.__name__)
+    logger = logging.getLogger('%s.Client' % __name__)
 
     def __init__(self, email, password):
         self.api_url = 'https://api.storj.io/'
@@ -133,7 +133,12 @@ class Client(object):
         response = self.session.send(self._prepare_request(**kwargs))
         self.logger.debug('_request response %s', response.text)
 
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            self.logger.error(e)
+            self.logger.debug('response.text=%s', response.text)
+            raise e
 
         # Raise any errors as exceptions
         try:
@@ -163,6 +168,7 @@ class Client(object):
         Returns:
             (:py:class:`model.Bucket`): bucket.
         """
+        self.logger.info('bucket_create(%s, %s, %s)', name, storage, transfer)
 
         data = {'name': name}
         if storage:
@@ -179,9 +185,18 @@ class Client(object):
         Args:
             bucket_id (string): unique identifier.
         """
+        self.logger.info('bucket_delete(%s)', bucket_id)
         self._request(method='DELETE', path='/buckets/%s' % bucket_id)
 
     def bucket_files(self, bucket_id, file_hash):
+        """
+
+        Args:
+            bucket_id (string): unique identifier.
+            file_hash (): .
+        """
+        self.logger.info('bucket_files(%s, %s)', bucket_id, file_hash)
+
         pull_token = self.token_create(bucket_id, operation='PULL')
         return self._request(
             method='GET',
@@ -217,10 +232,9 @@ class Client(object):
         Returns:
             (generator[:py:class:`model.Bucket`]): buckets.
         """
-        self.logger.debug('get_buckets()')
+        self.logger.info('bucket_list()')
 
         response = self._request(method='GET', path='/buckets')
-        self.logger.debug('response %s', response)
 
         if response is not None:
             for element in response:
@@ -229,18 +243,23 @@ class Client(object):
             raise StopIteration
 
     def bucket_set_keys(self, bucket_id, keys):
+        self.logger.info('bucket_set_keys()', bucket_id, keys)
+
         self._request(
             method='PATCH',
             path='/buckets/%s' % bucket_id,
             json={'pubkeys': keys})
 
     def contacts_list(self):
+        self.logger.info('contacts_list()')
+
         response = self._request(method='GET', path='/contacts', json={})
 
         if response is not None:
             return response
 
     def file_download(self, bucket_id, file_hash):
+        self.logger.info('file_download(%s, %s)', bucket_id, file_hash)
 
         pointers = self.bucket_files(
             bucket_id=bucket_id, file_hash=file_hash)
@@ -255,6 +274,8 @@ class Client(object):
         return file_contents
 
     def file_get(self, bucket_id):
+        self.logger.info('file_get(%s)', bucket_id)
+
         response = self._request(
             method='GET',
             path='/buckets/%s/files' % bucket_id)
@@ -270,8 +291,7 @@ class Client(object):
             file ():
             frame ():
         """
-
-        self.logger.debug('upload_file(%s, %s, %s)', bucket_id, file, frame)
+        self.logger.info('upload_file(%s, %s, %s)', bucket_id, file, frame)
 
         def get_size(file_like_object):
             return os.stat(file_like_object.name).st_size
@@ -307,12 +327,15 @@ class Client(object):
             bucket_id (str): The ID of the bucket containing the file
             file_id (str): The ID of the file
         """
+        self.logger.info('file_remove(%s, %s)', bucket_id, file_id)
 
         self._request(
             method='DELETE',
             path='/buckets/%s/files/%s' % (bucket_id, file_id))
 
     def frame_add_shard(self, shard, frame_id):
+        self.logger.info('frame_add_shard(%s, %s)', shard, frame_id)
+
         data = {
             'hash': shard.hash,
             'size': shard.size,
@@ -339,6 +362,8 @@ class Client(object):
         Returns:
 
         """
+        self.logger.info('frame_create()')
+
         return self._request(method='POST', path='/frames', json={})
 
     def frame_delete(self, frame_id):
@@ -347,6 +372,8 @@ class Client(object):
         Args:
             frame_id (str): unique identifier.
         """
+        self.logger.info('frame_delete(%s)', frame_id)
+
         self._request(
             method='DELETE',
             path='/frames/%s' % frame_id,
@@ -365,6 +392,8 @@ class Client(object):
         Returns:
             (?):
         """
+        self.logger.info('frame_get(%s)', frame_id)
+
         response = self._request(
             method='GET',
             path='/frames/%s' % frame_id,
@@ -379,6 +408,8 @@ class Client(object):
         Returns:
             (): all open file staging frames.
         """
+        self.logger.info('frame_list()')
+
         response = self._request(
             method='GET',
             path='/frames',
@@ -388,9 +419,13 @@ class Client(object):
             return response
 
     def key_delete(self, key):
+        self.logger.info('key_delete(%s)', key)
+
         self._request(method='DELETE', path='/keys/' + key)
 
     def key_dump(self):
+        self.logger.info('key_dump()')
+
         if (self.private_key is not None and self.public_key is not None):
             print("Local Private Key: "
                   + self.private_key
@@ -402,6 +437,8 @@ class Client(object):
             print("No keys associated with this account.")
 
     def key_export(self):
+        self.logger.info('key_export()')
+
         print("Writing your public key to file...")
         with open('public.pem', 'wb') as keyfile:
             keyfile.write(self.public_key.to_pem())
@@ -413,6 +450,8 @@ class Client(object):
         print("Wrote keyfiles to dir: " + os.getcwd())
 
     def key_generate(self):
+        self.logger.info('key_generate()')
+
         print("This will replace your public and private keys in 3 seconds...")
         time.sleep(3)
         (self.private_key, self.public_key) = storj.generate_new_key_pair()
@@ -424,12 +463,16 @@ class Client(object):
         self.key_register(self.public_key)
 
     def key_get(self):
+        self.logger.info('key_get()')
+
         response = self._request(method='GET', path='/keys')
 
         if response is not None:
             return response
 
     def key_import(self, private_keyfile_path, public_keyfile_path):
+        self.logger.info('key_import(%s, %s)', private_keyfile_path, public_keyfile_path)
+
         with open(public_keyfile_path, 'r') as f:
             self.public_key = VerifyingKey.from_pem(f.read())
 
@@ -439,6 +482,8 @@ class Client(object):
         self.key_register(self.public_key)
 
     def key_register(self, public_key):
+        self.logger.info('key_register(%s)', public_key)
+
         response = self._request(
             method='POST',
             path='/keys',
@@ -457,7 +502,8 @@ class Client(object):
         Returns:
             (dict[]):
         """
-        self.logger.debug('create_token(%s, %s)', bucket_id, operation)
+        self.logger.info('create_token(%s, %s)', bucket_id, operation)
+
         return self._request(
             method='POST',
             path='/buckets/%s/tokens' % bucket_id,
@@ -466,6 +512,8 @@ class Client(object):
     def user_create(self, email, password):
 
         password = sha256(password).hexdigest()
+
+        self.logger.info('user_create(%s, %s)', email, password)
 
         self._request(
             method='POST',

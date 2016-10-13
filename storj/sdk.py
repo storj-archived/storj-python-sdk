@@ -139,4 +139,4 @@ class FileManager:
         api_client.file_download(self, bucket_id, file_hash)
 
     def delete(self, bucket_id, file_id):
-        api_client.file_remove(self, bucket_id, file_id)    
+        api_client.file_remove(self, bucket_id, file_id)

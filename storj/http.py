@@ -229,7 +229,7 @@ class Client(object):
 
     def bucket_get(self, bucket_id):
         """Returns buckets.
-
+        
         Args:
             bucket_id (str): bucket unique identifier.
 
@@ -320,7 +320,7 @@ class Client(object):
 
         file_size = get_size(file)
 
-        #TODO:
+        # TODO:
         # encrypt file
         # shard file
 
@@ -330,7 +330,7 @@ class Client(object):
 
         # upload shards to frame
         # delete encrypted file
-        
+
         self._request(
             method='POST', path='/buckets/%s/files' % bucket_id,
             # files={'file' : file},

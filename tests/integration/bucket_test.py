@@ -6,7 +6,7 @@ import logging
 import pytest
 
 
-from storj.exception import MetadiskApiError
+from storj.exception import StorjBridgeApiError
 
 from . import Integration
 

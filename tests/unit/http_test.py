@@ -75,7 +75,7 @@ class ClientTestCase(AbstractTestCase):
             operation='PULL')
         self.client._request.assert_called_with(
             method='GET',
-            path='/buckets/%s/files/%s' % (test_bucket_id, test_file_id),
+            path='/buckets/%s/files/' % (test_bucket_id),
             headers={
                 'x-token': 'test_token'
             })

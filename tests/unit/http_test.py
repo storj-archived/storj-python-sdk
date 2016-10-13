@@ -45,21 +45,54 @@ class ClientTestCase(AbstractTestCase):
         bucket = self.client.bucket_create('Test Bucket', storage=25,
                                            transfer=39)
 
-        self.client._request.assert_called_with(method='POST', path='/buckets',
-                                                json=test_json)
+        self.client._request.assert_called_with(
+            method='POST',
+            path='/buckets',
+            json=test_json)
         self.assertIsInstance(bucket, model.Bucket)
 
     def test_bucket_delete(self):
         """Test Client.bucket_delete()."""
-        pass
+        bucket_id = '57fd385426adcf743b3d39c5'
+        self.client.bucket_delete(bucket_id)
+
+        self.client._request.assert_called_with(
+            method='DELETE',
+            path='/buckets/%s' % bucket_id)
 
     def test_bucket_files(self):
         """Test Client.bucket_files()."""
-        pass
+        test_bucket_id = "57fd385426adcf743b3d39c5"
+        test_file_id = "57ffbfd28ce9b61c2634ea5d"
+
+        self.client.token_create = mock.MagicMock()
+        self.client.token_create.return_value = {'token': 'test_token'}
+
+        self.client.bucket_files(test_bucket_id, test_file_id)
+
+        self.client.token_create.assert_called_with(
+            test_bucket_id,
+            operation='PULL')
+        self.client._request.assert_called_with(
+            method='GET',
+            path='/buckets/%s/files/%s' % (test_bucket_id, test_file_id),
+            headers={
+                'x-token': 'test_token'
+            })
 
     def test_bucket_get(self):
         """Test Client.bucket_get()."""
-        pass
+        test_bucket_id = "57fd385426adcf743b3d39c5"
+        test_json = {'name': 'Test Bucket', 'storage': 25, 'transfer': 39}
+
+        self.client._request.return_value = test_json
+
+        bucket = self.client.bucket_get(test_bucket_id)
+
+        self.client._request.assert_called_with(
+            method='GET',
+            path='/buckets/%s' % test_bucket_id)
+        self.assertIsInstance(bucket, model.Bucket)
 
     def test_bucket_list(self):
         """Test Client.bucket_list()."""

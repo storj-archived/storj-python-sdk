@@ -55,7 +55,7 @@ class Client(object):
 
     @property
     def password(self):
-        """(str):"""
+        """(str): user password"""
         return self._password
 
     @password.setter

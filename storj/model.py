@@ -9,7 +9,7 @@ import strict_rfc3339
 import string
 
 from datetime import datetime
-from pytz import utc
+
 from steenzout.object import Object
 
 

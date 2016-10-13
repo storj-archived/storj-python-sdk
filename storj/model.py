@@ -90,6 +90,11 @@ class File(Object):
         return self.filename
 
     def __str__(self):
+        """Returns the "informal" string representation of this object
+
+        Returns:
+            (str): the "informal" string representation of this object.
+        """
         return self.filename
 
     def download(self):
@@ -303,4 +308,9 @@ class Token(Object):
             self.expires = None
 
     def __str__(self):
+        """Returns the "informal" string representation of this object
+
+        Returns:
+            (str): the "informal" string representation of this object.
+        """
         return self.id

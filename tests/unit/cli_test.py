@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Test cases for the storj.cli package."""
 
-import datetime
-
 import mock
+
+from datetime import datetime
 
 from click.testing import CliRunner
 

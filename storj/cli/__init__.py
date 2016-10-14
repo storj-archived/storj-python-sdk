@@ -5,7 +5,6 @@ import os
 import click
 import ConfigParser
 
-# from storj.api import generate_new_key_pair, export_key, import_key
 from storj.http import Client
 
 

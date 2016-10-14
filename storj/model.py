@@ -9,7 +9,6 @@ import strict_rfc3339
 import string
 
 from datetime import datetime
-
 from steenzout.object import Object
 
 
@@ -88,6 +87,7 @@ class File(Object):
 
     def download(self):
         return api_client.file_download(bucket_id=self.bucket,
+                                        file_hash=self.hash)
 
     def delete(self):
         bucket_files = FileManager(bucket_id=self.bucket)

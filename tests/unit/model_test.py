@@ -103,6 +103,22 @@ class ShardTestCase(AbstractTestCase):
             tree=['abc'])
         self._assert_init(kwargs)
 
+    def test_add_challenge(self):
+        """Test Shard.add_challenge()."""
+
+        shard = Shard()
+        shard.add_challenge('challenge1')
+
+        assert shard.challenges == ['challenge1']
+
+    def test_add_tree(self):
+        """Test Shard.add_tree()."""
+
+        shard = Shard()
+        shard.add_tree('node')
+
+        assert shard.tree == ['node']
+
 
 class TokenTestCase(AbstractTestCase):
     """Test case for the Token class."""

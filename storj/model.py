@@ -9,7 +9,6 @@ import strict_rfc3339
 import string
 
 from datetime import datetime
-from pytz import utc
 from steenzout.object import Object
 
 
@@ -53,9 +52,6 @@ class Bucket(Object):
         else:
             self.created = None
 
-    def __str__(self):
-        return self.name
-
     def delete(self):
         BucketManager.delete(bucket_id=self.id)
 
@@ -88,13 +84,6 @@ class File(Object):
     @property
     def name(self):
         return self.filename
-
-    def __str__(self):
-        return self.filename
-
-    def __repr__(self):
-        return '{name} ({size} {content_type})'.format(
-            name=self.filename, size=self.size, content_type=self.mimetype)
 
     def download(self):
         return api_client.file_download(bucket_id=self.bucket,
@@ -305,10 +294,3 @@ class Token(Object):
                 strict_rfc3339.rfc3339_to_timestamp(expires))
         else:
             self.expires = None
-
-    def __str__(self):
-        return self.id
-
-    def __repr__(self):
-        return '{operation} token: {id}'.format(
-            operation=self.operation, id=self.id)

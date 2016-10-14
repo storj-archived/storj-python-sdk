@@ -53,9 +53,6 @@ class Bucket(Object):
         else:
             self.created = None
 
-    def __str__(self):
-        return self.name
-
     def delete(self):
         BucketManager.delete(bucket_id=self.id)
 
@@ -89,17 +86,8 @@ class File(Object):
     def name(self):
         return self.filename
 
-    def __str__(self):
-        """Returns the "informal" string representation of this object
-
-        Returns:
-            (str): the "informal" string representation of this object.
-        """
-        return self.filename
-
     def download(self):
         return api_client.file_download(bucket_id=self.bucket,
-                                        file_hash=self.hash)
 
     def delete(self):
         bucket_files = FileManager(bucket_id=self.bucket)
@@ -306,11 +294,3 @@ class Token(Object):
                 strict_rfc3339.rfc3339_to_timestamp(expires))
         else:
             self.expires = None
-
-    def __str__(self):
-        """Returns the "informal" string representation of this object
-
-        Returns:
-            (str): the "informal" string representation of this object.
-        """
-        return self.id

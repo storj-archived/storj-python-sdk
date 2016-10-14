@@ -2,8 +2,10 @@
 """Storj command-line interface package."""
 
 import os
-import click
 import ConfigParser
+import logging
+
+import click
 
 from storj.http import Client
 
@@ -12,6 +14,9 @@ APP_NAME = 'storj'
 
 CFG_EMAIL = 'storj.email'
 CFG_PASSWORD = 'storj.password'
+
+
+__logger = logging.getLogger(__name__)
 
 
 def get_client():

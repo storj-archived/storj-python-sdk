@@ -17,7 +17,7 @@ from .. import AbstractTestCase
 class FunctionsTestCase(AbstractTestCase):
     """Test case for the package functions."""
 
-    @mock.patch('storj.cli.read_config', autospec=True)
+    @mock.patch('storj.cli.read_config')
     def test_get_client(self, mock_read_config):
         mock_read_config.return_value = {
             cli.CFG_EMAIL: 'someone@example.com',
@@ -32,21 +32,28 @@ class FunctionsTestCase(AbstractTestCase):
 
         mock_read_config.assert_called_once_with()
 
-    @mock.patch.object(cli.ConfigParser, 'RawConfigParser')
-    def test_read_config(self, mock_parser):
-        mock_parser.sections = mock.MagicMock()
-        mock_parser.sections.return_value = {
-            'storj': {
-                'email': 'someone@example.com',
-                'password': 'secret'
-            }}
+    @mock.patch('storj.cli.click.get_app_dir')
+    @mock.patch('storj.cli.ConfigParser.RawConfigParser')
+    def test_read_config(self, mock_class_rawconfigparser, mock_app_dir):
+        # mock instance for ConfigParser.RawConfigParser
+        mrcp = mock_class_rawconfigparser.return_value
+        mrcp.read.return_value = None
+        mrcp.sections.return_value = ['storj']
+        mrcp.items.return_value = {
+            'email': 'someone@example.com',
+            'password': 'secret'
+        }.items()
+
+        mock_app_dir.return_value = '/nowhere'
 
         assert cli.read_config() == {
             cli.CFG_EMAIL: 'someone@example.com',
             cli.CFG_PASSWORD: 'secret'
         }
 
-        mock_parser.sections.assert_called_once_with()
+        mrcp.read.assert_called_once_with(['/nowhere/storj.ini'])
+        mrcp.sections.assert_called_once_with()
+        mrcp.items.assert_called_once_with('storj')
 
 
 class BucketTestCase(AbstractTestCase):

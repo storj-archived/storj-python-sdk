@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """Test cases for the storj.cli package."""
 
+import logging
 import mock
 
 from datetime import datetime
+from hashlib import sha256
 
 from click.testing import CliRunner
 
-from storj import cli, http, model
+from storj import cli, model
 
 from .. import AbstractTestCase
 
@@ -15,21 +17,24 @@ from .. import AbstractTestCase
 class FunctionsTestCase(AbstractTestCase):
     """Test case for the package functions."""
 
-    @mock.patch.object(http.Client, '__init__')
     @mock.patch('storj.cli.read_config', autospec=True)
-    def test_get_client(self, mock_read_config, mock_init):
+    def test_get_client(self, mock_read_config):
         mock_read_config.return_value = {
             cli.CFG_EMAIL: 'someone@example.com',
             cli.CFG_PASSWORD: 'secret'
         }
 
-        assert cli.get_client() is not None
+        client = cli.get_client()
+
+        assert client is not None
+        assert client.email == 'someone@example.com'
+        assert client.password == sha256('secret'.encode('ascii')).hexdigest()
 
         mock_read_config.assert_called_once_with()
-        mock_init.assert_called_once_with('someone@example.com', 'secret')
 
     @mock.patch.object(cli.ConfigParser, 'RawConfigParser')
     def test_read_config(self, mock_parser):
+        mock_parser.sections = mock.MagicMock()
         mock_parser.sections.return_value = {
             'storj': {
                 'email': 'someone@example.com',
@@ -47,30 +52,55 @@ class FunctionsTestCase(AbstractTestCase):
 class BucketTestCase(AbstractTestCase):
     """Test case for bucket commands."""
 
+    logger = logging.getLogger('%s.Client' % __name__)
     runner = CliRunner()
 
     def setUp(self):
-        self.test_id = 'unit-%s' % datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        self.timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
 
         self.bucket = model.Bucket(
-            id=self.test_id, name='bucket', storage=100, transfer=100)
+            id='id-%s' % self.timestamp, name='bucket-%s' % self.timestamp,
+            storage=100, transfer=100)
 
     @mock.patch.object(cli.Client, 'bucket_create')
     def test_bucket_create(self, mock_action):
         """Test create command."""
-        result = self.runner.invoke(cli.create, [self.test_id])
+        mock_action.return_value = None
+
+        result = self.runner.invoke(cli.create, [self.bucket.name])
 
         assert result.exit_code == 0
-        assert result.output == 'Hello Peter!\n'
+        assert result.output == 'Bucket %s created\n' % self.bucket.name
 
-        mock_action.assert_called_once_with()
+        mock_action.assert_called_once_with(
+            self.bucket.name, storage=None, transfer=None)
+
+    @mock.patch.object(cli.Client, 'bucket_create')
+    def test_bucket_create_with_options(self, mock_action):
+        """Test create command."""
+        mock_action.return_value = None
+
+        args = [
+            '--storage=%u' % self.bucket.storage,
+            '--transfer=%u' % self.bucket.transfer,
+            self.bucket.name
+        ]
+
+        self.logger.debug('test_bucket_create_with_options args=%s', args)
+        result = self.runner.invoke(cli.create, args)
+
+        assert result.exit_code == 0
+        assert result.output == 'Bucket %s created\n' % self.bucket.name
+
+        mock_action.assert_called_once_with(
+            self.bucket.name, storage=self.bucket.storage, transfer=self.bucket.transfer)
 
     @mock.patch.object(cli.Client, 'bucket_get')
     def test_bucket_get(self, mock_action):
         """Test get command."""
         mock_action.return_value = self.bucket
 
-        result = self.runner.invoke(cli.get, [self.test_id])
+        result = self.runner.invoke(cli.get, [self.bucket.id])
 
         assert result.exit_code == 0
         assert result.output == '\n'.join([

@@ -75,7 +75,7 @@ class Client(object):
 
         request_kwargs['headers'].update({
             'Authorization': b'Basic %s' % b64encode(
-                ('%s:%s' % (str(self.email), str(self.password))).encode('ascii')
+                ('%s:%s' % (self.email, self.password)).encode('ascii')
             ),
         })
 
@@ -229,7 +229,7 @@ class Client(object):
 
     def bucket_get(self, bucket_id):
         """Returns buckets.
-
+        
         Args:
             bucket_id (str): bucket unique identifier.
 

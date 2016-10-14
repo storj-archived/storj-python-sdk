@@ -22,7 +22,6 @@ except ImportError:
     # Python 2
     JSONDecodeError = ValueError
 
-
 from . import model
 from .api import ecdsa_to_hex
 from .exception import StorjBridgeApiError
@@ -118,7 +117,7 @@ class Client(object):
 
         # Generate URL from path
         path = kwargs.pop('path')
-        assert(path.startswith('/'))
+        assert path.startswith('/')
         kwargs['url'] = urljoin(self.api_url, path)
 
         return requests.Request(**kwargs).prepare()
@@ -228,7 +227,7 @@ class Client(object):
 
     def bucket_get(self, bucket_id):
         """Returns buckets.
-        
+
         Args:
             bucket_id (str): bucket unique identifier.
 
@@ -478,7 +477,7 @@ class Client(object):
         (self.private_key, self.public_key) = storj.generate_new_key_pair()
 
         s = raw_input('Export keys to file for later use? [Y/N]')
-        if('Y' in s.upper()):
+        if 'Y' in s.upper():
             self.key_export()
 
         self.key_register(self.public_key)

@@ -226,7 +226,6 @@ class Client(object):
                 'x-token': pull_token['token'],
             })
 
-
     def bucket_get(self, bucket_id):
         """Returns buckets.
         

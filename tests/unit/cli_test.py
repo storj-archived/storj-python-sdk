@@ -7,7 +7,7 @@ from datetime import datetime
 
 from click.testing import CliRunner
 
-from storj import cli, http
+from storj import cli, http, model
 
 from .. import AbstractTestCase
 
@@ -47,11 +47,15 @@ class FunctionsTestCase(AbstractTestCase):
 class BucketTestCase(AbstractTestCase):
     """Test case for bucket commands."""
 
-    def setUp(self):
-        self.runner = CliRunner()
-        self.test_id = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    runner = CliRunner()
 
-    @mock.patch('storj.cli.Client.bucket_create', autospec=True)
+    def setUp(self):
+        self.test_id = 'unit-%s' % datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+
+        self.bucket = model.Bucket(
+            id=self.test_id, name='bucket', storage=100, transfer=100)
+
+    @mock.patch.object(cli.Client, 'bucket_create')
     def test_bucket_create(self, mock_action):
         """Test create command."""
         result = self.runner.invoke(cli.create, [self.test_id])
@@ -61,22 +65,36 @@ class BucketTestCase(AbstractTestCase):
 
         mock_action.assert_called_once_with()
 
-    @mock.patch('storj.cli.Client.bucket_get', autospec=True)
+    @mock.patch.object(cli.Client, 'bucket_get')
     def test_bucket_get(self, mock_action):
         """Test get command."""
+        mock_action.return_value = self.bucket
+
         result = self.runner.invoke(cli.get, [self.test_id])
 
         assert result.exit_code == 0
-        assert result.output == 'Hello Peter!\n'
+        assert result.output == '\n'.join([
+            ' created : %s' % self.bucket.created,
+            '      id : %s' % self.bucket.id,
+            '    name : %s' % self.bucket.name,
+            ' pubkeys : %s' % self.bucket.pubkeys,
+            '  status : %s' % self.bucket.status,
+            ' storage : %u' % self.bucket.storage,
+            'transfer : %u' % self.bucket.transfer,
+            '    user : %s\n' % self.bucket.user,
+        ])
 
-        mock_action.assert_called_once_with()
+        mock_action.assert_called_once_with(self.bucket.id)
 
-    @mock.patch('storj.cli.Client.bucket_list', autospec=True)
+    @mock.patch.object(cli.Client, 'bucket_list')
     def test_bucket_list(self, mock_action):
         """Test list command."""
+        mock_action.return_value = [self.bucket]
+
         result = self.runner.invoke(cli.list, [])
 
         assert result.exit_code == 0
-        assert result.output == 'Hello Peter!\n'
+        assert result.output == '[info]   ID: %s, Name: %s, Storage: %d, Transfer: %d\n' % (
+            self.bucket.id, self.bucket.name, self.bucket.storage, self.bucket.transfer)
 
         mock_action.assert_called_once_with()

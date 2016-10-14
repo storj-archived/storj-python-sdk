@@ -2,10 +2,11 @@
 """Storj command-line interface package."""
 
 import os
-import ConfigParser
 import logging
 
 import click
+
+from six.moves import configparser
 
 from storj.http import Client
 
@@ -35,7 +36,7 @@ def read_config():
     # OSX: /Users/<username>/Library/Application Support/storj
     cfg = os.path.join(click.get_app_dir(APP_NAME), 'storj.ini')
 
-    parser = ConfigParser.RawConfigParser()
+    parser = configparser.RawConfigParser()
     parser.read([cfg])
 
     rv = {}

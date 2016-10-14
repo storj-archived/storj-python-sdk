@@ -33,7 +33,7 @@ class FunctionsTestCase(AbstractTestCase):
         mock_read_config.assert_called_once_with()
 
     @mock.patch('storj.cli.click.get_app_dir')
-    @mock.patch('storj.cli.ConfigParser.RawConfigParser')
+    @mock.patch('storj.cli.configparser.RawConfigParser')
     def test_read_config(self, mock_class_rawconfigparser, mock_app_dir):
         # mock instance for ConfigParser.RawConfigParser
         mrcp = mock_class_rawconfigparser.return_value

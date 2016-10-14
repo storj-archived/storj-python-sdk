@@ -69,23 +69,37 @@ class BucketTestCase(AbstractTestCase):
             id='id-%s' % self.timestamp, name='bucket-%s' % self.timestamp,
             storage=100, transfer=100)
 
-    @mock.patch.object(cli.Client, 'bucket_create')
-    def test_bucket_create(self, mock_action):
+        self.client_class_patch = mock.patch('storj.cli.Client', spec=True)
+        self.mock_client_class = self.client_class_patch.start()
+        self.mock_client = self.mock_client_class()
+
+        self.get_client_patch = mock.patch('storj.cli.get_client')
+        self.mock_get_client = self.get_client_patch.start()
+        self.mock_get_client.return_value = self.mock_client
+
+        self.mock_action = mock.MagicMock()
+
+    def tearDown(self):
+        self.get_client_patch.stop()
+        self.client_class_patch.stop()
+
+    def test_bucket_create(self):
         """Test create command."""
-        mock_action.return_value = None
+        self.mock_action.return_value = None
+        self.mock_client.bucket_create = self.mock_action
 
         result = self.runner.invoke(cli.create, [self.bucket.name])
 
         assert result.exit_code == 0
         assert result.output == 'Bucket %s created\n' % self.bucket.name
 
-        mock_action.assert_called_once_with(
+        self.mock_action.assert_called_once_with(
             self.bucket.name, storage=None, transfer=None)
 
-    @mock.patch.object(cli.Client, 'bucket_create')
-    def test_bucket_create_with_options(self, mock_action):
+    def test_bucket_create_with_options(self):
         """Test create command."""
-        mock_action.return_value = None
+        self.mock_action.return_value = None
+        self.mock_client.bucket_create = self.mock_action
 
         args = [
             '--storage=%u' % self.bucket.storage,
@@ -99,13 +113,13 @@ class BucketTestCase(AbstractTestCase):
         assert result.exit_code == 0
         assert result.output == 'Bucket %s created\n' % self.bucket.name
 
-        mock_action.assert_called_once_with(
+        self.mock_action.assert_called_once_with(
             self.bucket.name, storage=self.bucket.storage, transfer=self.bucket.transfer)
 
-    @mock.patch.object(cli.Client, 'bucket_get')
-    def test_bucket_get(self, mock_action):
+    def test_bucket_get(self):
         """Test get command."""
-        mock_action.return_value = self.bucket
+        self.mock_action.return_value = self.bucket
+        self.mock_client.bucket_get = self.mock_action
 
         result = self.runner.invoke(cli.get, [self.bucket.id])
 
@@ -121,12 +135,12 @@ class BucketTestCase(AbstractTestCase):
             '    user : %s\n' % self.bucket.user,
         ])
 
-        mock_action.assert_called_once_with(self.bucket.id)
+        self.mock_action.assert_called_once_with(self.bucket.id)
 
-    @mock.patch.object(cli.Client, 'bucket_list')
-    def test_bucket_list(self, mock_action):
+    def test_bucket_list(self):
         """Test list command."""
-        mock_action.return_value = [self.bucket]
+        self.mock_action.return_value = [self.bucket]
+        self.mock_client.bucket_list = self.mock_action
 
         result = self.runner.invoke(cli.list, [])
 
@@ -134,4 +148,4 @@ class BucketTestCase(AbstractTestCase):
         assert result.output == '[info]   ID: %s, Name: %s, Storage: %d, Transfer: %d\n' % (
             self.bucket.id, self.bucket.name, self.bucket.storage, self.bucket.transfer)
 
-        mock_action.assert_called_once_with()
+        self.mock_action.assert_called_once_with()

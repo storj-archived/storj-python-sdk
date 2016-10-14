@@ -31,7 +31,7 @@ class Bucket(Integration):
         super(Bucket, self).tearDown()
         try:
             self.client.bucket_delete(self.bucket.id)
-        except MetadiskApiError as e:
+        except StorjBridgeApiError as e:
             self.logger.error(e)
 
     def test(self):
@@ -57,7 +57,7 @@ class Bucket(Integration):
         self.client.bucket_delete(self.bucket.id)
 
         self.logger.debug('2.1')
-        with pytest.raises(MetadiskApiError):
+        with pytest.raises(StorjBridgeApiError):
             self.client.bucket_get(self.bucket.id)
 
         self.logger.debug('2.2')

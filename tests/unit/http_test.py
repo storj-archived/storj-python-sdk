@@ -63,22 +63,14 @@ class ClientTestCase(AbstractTestCase):
     def test_bucket_files(self):
         """Test Client.bucket_files()."""
         test_bucket_id = "57fd385426adcf743b3d39c5"
-        test_file_id = "57ffbfd28ce9b61c2634ea5d"
 
-        self.client.token_create = mock.MagicMock()
-        self.client.token_create.return_value = {'token': 'test_token'}
+        response = self.client.bucket_files(test_bucket_id)
 
-        self.client.bucket_files(test_bucket_id)
-
-        self.client.token_create.assert_called_with(
-            test_bucket_id,
-            operation='PULL')
         self.client._request.assert_called_with(
             method='GET',
-            path='/buckets/%s/files/' % (test_bucket_id),
-            headers={
-                'x-token': 'test_token'
-            })
+            path='/buckets/%s/files/' % (test_bucket_id))
+
+        self.assertIsNotNone(response)
 
     def test_bucket_get(self):
         """Test Client.bucket_get()."""
@@ -163,18 +155,6 @@ class ClientTestCase(AbstractTestCase):
 #            pointer=test_response[0],
 #            file_contents=test_object)
         pass
-
-    def test_file_list(self):
-        """Test Client.file_list()."""
-        test_file_id = '51239'
-
-        response = self.client.file_list(test_file_id)
-
-        self.client._request.assert_called_with(
-            method='GET',
-            path='/buckets/%s/files' % test_file_id)
-
-        self.assertIsNotNone(response)
 
     def test_file_upload(self):
         """Test Client.file_upload()."""

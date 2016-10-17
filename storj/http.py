@@ -200,13 +200,9 @@ class Client(object):
         """
         self.logger.info('bucket_files(%s)', bucket_id)
 
-        pull_token = self.token_create(bucket_id, operation='PULL')
         return self._request(
             method='GET',
-            path='/buckets/%s/files/' % (bucket_id),
-            headers={
-                'x-token': pull_token['token'],
-            })
+            path='/buckets/%s/files/' % (bucket_id),)
 
     def file_pointers(self, bucket_id, file_id):
         """
@@ -428,7 +424,7 @@ class Client(object):
             return response
 
     def key_delete(self, key_id):
-        self.logger.info('key_delete(%s)', key)
+        self.logger.info('key_delete(%s)', key_id)
         self._request(method='DELETE', path='/keys/%s' % key_id)
 
     def key_dump(self):

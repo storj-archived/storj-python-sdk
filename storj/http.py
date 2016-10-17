@@ -24,7 +24,7 @@ except ImportError:
 
 from . import model
 from .api import ecdsa_to_hex
-from .exception import MetadiskApiError
+from .exception import StorjBridgeApiError
 from storj import web_socket
 
 

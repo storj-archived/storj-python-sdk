@@ -258,7 +258,7 @@ class Client(object):
             return response
 
     def file_pointers(self, bucket_id, file_id):
-        """
+        """Get a list of pointers associated with a file.
 
         Args:
             bucket_id (string): unique identifier.
@@ -269,9 +269,7 @@ class Client(object):
         return self._request(
             method='GET',
             path='/buckets/%s/files/%s/' % (bucket_id, file_id),
-            headers={
-                'x-token': pull_token['token'],
-            })
+            headers={'x-token': pull_token['token']})
 
     def file_download(self, bucket_id, file_id):
         self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)

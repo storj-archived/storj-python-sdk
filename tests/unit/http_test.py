@@ -134,7 +134,20 @@ class ClientTestCase(AbstractTestCase):
 
     def test_file_pointers(self):
         """Test Client.file_pointers()."""
-        pass
+        test_bucket_id = '1234'
+        test_file_id = '5678'
+
+        self.client.token_create = mock.MagicMock()
+        self.client.token_create.return_value = {'token': 'test_token'}
+
+        response = self.client.file_pointers(test_bucket_id, test_file_id)
+
+        self.client._request.assert_called_with(
+            method='GET',
+            path='/buckets/%s/files/%s/' % (test_bucket_id, test_file_id),
+            headers={'x-token': 'test_token'})
+
+        self.assertIsNotNone(response)
 
 #    @mock.patch('storj.web_socket.Client', autospec=True)
 #    @mock.patch('storj.http.BytesIO', autospec=True)

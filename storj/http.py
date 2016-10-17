@@ -73,7 +73,7 @@ class Client(object):
         self.logger.debug('using basic auth')
 
         request_kwargs['headers'].update({
-            'Authorization': b'Basic %s' % b64encode(
+            'Authorization': b'Basic ' + b64encode(
                 ('%s:%s' % (self.email, self.password)).encode('ascii')
             ),
         })
@@ -447,12 +447,11 @@ class Client(object):
         self.logger.info('key_dump()')
 
         if (self.private_key is not None and self.public_key is not None):
-            print("Local Private Key: "
-                  + self.private_key
-                  + "Local Public Key:" + self.public_key)
+            print("Local Private Key: " + self.private_key +
+                  "Local Public Key:" + self.public_key)
         if (self.key_get() is not []):
-            print("Public keys for this account: "
-                  + str([key['id'] for key in self.key_get()]))
+            print("Public keys for this account: " +
+                  str([key['id'] for key in self.key_get()]))
         else:
             print("No keys associated with this account.")
 
@@ -491,7 +490,10 @@ class Client(object):
             return response
 
     def key_import(self, private_keyfile_path, public_keyfile_path):
-        self.logger.info('key_import(%s, %s)', private_keyfile_path, public_keyfile_path)
+        self.logger.info(
+            'key_import(%s, %s)',
+            private_keyfile_path,
+            public_keyfile_path)
 
         with open(public_keyfile_path, 'r') as f:
             self.public_key = VerifyingKey.from_pem(f.read())

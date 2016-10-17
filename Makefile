@@ -87,17 +87,17 @@ test: setup
 	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive tests
 
 	# ensure pep8
-	# $(PEP8) storj
-	# $(PEP8) examples
-	# $(PEP8) tests
+	$(PEP8) storj
+	$(PEP8) examples
+	$(PEP8) tests
 
 	# test
-	env/bin/tox  # --ignore=tests/integration
+	env/bin/tox -- --ignore=tests/integration
 	# $(COVERAGE) run --source=storj setup.py test
 
 	# report coverage
-	$(COVERAGE) html
-	$(COVERAGE) report  # --fail-under=90
+	# $(COVERAGE) html
+	# $(COVERAGE) report  # --fail-under=90
 
 
 publish: test

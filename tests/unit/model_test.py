@@ -69,13 +69,15 @@ class ShardTestCase(AbstractTestCase):
             kwargs (dict): keyword arguments for the Shard initializer.
 
         Raises:
-            AssertionError: in case one of the Shard attributes is not set as expected.
+            AssertionError: Shard attributes is not set as expected.
         """
 
         shard = Shard(**kwargs)
 
-        assert kwargs['challenges'] if 'challenges' in kwargs else [] == shard.challenges
-        assert kwargs['exclude'] if 'exclude' in kwargs else [] == shard.exclude
+        assert kwargs['challenges'] if 'challenges' in kwargs else [
+        ] == shard.challenges
+        assert kwargs[
+            'exclude'] if 'exclude' in kwargs else [] == shard.exclude
 
         assert shard.hash == kwargs['hash']
         assert shard.id == kwargs['id']
@@ -130,7 +132,7 @@ class TokenTestCase(AbstractTestCase):
             kwargs (dict): keyword arguments for the Token initializer.
 
         Raises:
-            AssertionError: in case one of the Token attributes is not set as expected.
+            AssertionError: Token attributes is not set as expected.
         """
 
         token = Token(**kwargs)

@@ -204,22 +204,6 @@ class Client(object):
             method='GET',
             path='/buckets/%s/files/' % (bucket_id),)
 
-    def file_pointers(self, bucket_id, file_id):
-        """
-
-        Args:
-            bucket_id (string): unique identifier.
-        """
-        self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
-
-        pull_token = self.token_create(bucket_id, operation='PULL')
-        return self._request(
-            method='GET',
-            path='/buckets/%s/files/%s/' % (bucket_id, file_id),
-            headers={
-                'x-token': pull_token['token'],
-            })
-
     def bucket_get(self, bucket_id):
         """Returns buckets.
 
@@ -272,6 +256,22 @@ class Client(object):
 
         if response is not None:
             return response
+
+    def file_pointers(self, bucket_id, file_id):
+        """
+
+        Args:
+            bucket_id (string): unique identifier.
+        """
+        self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
+
+        pull_token = self.token_create(bucket_id, operation='PULL')
+        return self._request(
+            method='GET',
+            path='/buckets/%s/files/%s/' % (bucket_id, file_id),
+            headers={
+                'x-token': pull_token['token'],
+            })
 
     def file_download(self, bucket_id, file_id):
         self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)
@@ -474,7 +474,8 @@ class Client(object):
             return response
 
     def key_import(self, private_keyfile_path, public_keyfile_path):
-        self.logger.info('key_import(%s, %s)', private_keyfile_path, public_keyfile_path)
+        self.logger.info(
+            'key_import(%s, %s)' % (private_keyfile_path, public_keyfile_path))
 
         with open(public_keyfile_path, 'r') as f:
             self.public_key = VerifyingKey.from_pem(f.read())

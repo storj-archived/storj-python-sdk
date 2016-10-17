@@ -132,6 +132,10 @@ class ClientTestCase(AbstractTestCase):
             json={})
         self.assertEqual(contacts, test_response)
 
+    def test_file_pointers(self):
+        """Test Client.file_pointers()."""
+        pass
+
 #    @mock.patch('storj.web_socket.Client', autospec=True)
 #    @mock.patch('storj.http.BytesIO', autospec=True)
 #    def test_file_download(self, mock_BytesIO, mock_web_socket_client):

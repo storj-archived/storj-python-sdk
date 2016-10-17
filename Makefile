@@ -52,8 +52,10 @@ fetch_wheel: virtualenv
 
 wheels: virtualenv
 	$(PIP) wheel --find-links=$(WHEEL_DIR) --wheel-dir=$(WHEEL_DIR) -r requirements.txt
-	$(PIP) wheel --find-links=$(WHEEL_DIR) --wheel-dir=$(WHEEL_DIR) -r requirements_tests.txt
-	$(PIP) wheel --find-links=$(WHEEL_DIR) --wheel-dir=$(WHEEL_DIR) -r requirements_develop.txt
+	$(PIP) wheel --find-links=$(WHEEL_DIR) --wheel-dir=$(WHEEL_DIR) -r requirements-test.txt
+	$(PIP) wheel --find-links=$(WHEEL_DIR) --wheel-dir=$(WHEEL_DIR) -r requirements-extra-cli.txt
+	$(PIP) wheel --find-links=$(WHEEL_DIR) --wheel-dir=$(WHEEL_DIR) -r requirements-docs.txt
+	$(PIP) wheel --find-links=$(WHEEL_DIR) --wheel-dir=$(WHEEL_DIR) tox
 
 
 wheel: setup
@@ -63,8 +65,10 @@ wheel: setup
 
 setup: virtualenv
 	$(PIP) install $(WHEEL_INSTALL_ARGS) -r requirements.txt
-	$(PIP) install $(WHEEL_INSTALL_ARGS) -r requirements_tests.txt
-	$(PIP) install $(WHEEL_INSTALL_ARGS) -r requirements_develop.txt
+	$(PIP) install $(WHEEL_INSTALL_ARGS) -r requirements-test.txt
+	$(PIP) install $(WHEEL_INSTALL_ARGS) -r requirements-extra-cli.txt
+	$(PIP) install $(WHEEL_INSTALL_ARGS) -r requirements-docs.txt
+	$(PIP) install $(WHEEL_INSTALL_ARGS) tox
 
 
 install: setup
@@ -83,12 +87,13 @@ test: setup
 	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive tests
 
 	# ensure pep8
-	$(PEP8) storj
-	$(PEP8) examples
-	$(PEP8) tests
+	# $(PEP8) storj
+	# $(PEP8) examples
+	# $(PEP8) tests
 
 	# test
-	$(COVERAGE) run --source=storj setup.py test
+	env/bin/tox  # --ignore=tests/integration
+	# $(COVERAGE) run --source=storj setup.py test
 
 	# report coverage
 	$(COVERAGE) html

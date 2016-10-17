@@ -292,14 +292,6 @@ class Client(object):
 
         return file_contents
 
-    def file_list(self, bucket_id):
-        response = self._request(
-            method='GET',
-            path='/buckets/%s/files' % bucket_id)
-
-        if response is not None:
-            return response
-
     def file_upload(self, bucket_id, file, frame):
         """Upload file.
 

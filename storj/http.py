@@ -40,7 +40,7 @@ class Client(object):
         public_key_hex ():
     """
 
-    logger = logging.getLogger(web_socket.Client.__name__)
+    logger = logging.getLogger('%s.Client' % __name__)
 
     def __init__(self, email, password):
         self.api_url = 'https://api.storj.io/'

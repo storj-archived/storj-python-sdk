@@ -295,28 +295,44 @@ class ClientTestCase(AbstractTestCase):
         """Test Client.key_dump()."""
         self.client.private_key = '1234'
         self.client.public_key = '5678'
-
-        self.client.key_get = mock.MagicMock()
-        self.client.key_get.return_value = [
+        test_keys = [
             {'id': 7},
             {'id': 8}]
+
+        self.client.key_get = mock.MagicMock()
+        self.client.key_get.return_value = test_keys
 
         self.client.key_dump()
 
         calls = [
-            mock.call.write("Local Private Key: " + self.client.private_key
-                            + "\nLocal Public Key:" + self.client.public_key),
-            mock.call.write("\n"),
-            mock.call.write(
+            mock.call("Local Private Key: " + self.client.private_key
+                      + "\nLocal Public Key:" + self.client.public_key),
+            mock.call("\n"),
+            mock.call(
                 "Public keys for this account: "
-                + str([key['id'] for key in self.client.key_get()])),
-            mock.call.write("\n")]
-        mock_stdout.assert_has_calls(calls)
+                + str([key['id'] for key in test_keys])),
+            mock.call("\n")]
+        mock_stdout.write.assert_has_calls(calls)
 
-    def test_key_dump_2(self):
+    @mock.patch('sys.stdout', autospec=True)
+    def test_key_dump_2(self, mock_stdout):
         """Test Client.key_dump() with missing keys."""
         self.client.private_key = None
-        pass
+
+        self.client.key_get = mock.MagicMock()
+        self.client.key_get.return_value = []
+
+        self.client.key_dump()
+
+        self.client.key_get.assert_called_once_with()
+
+        self.client.logger.info(mock_stdout.write.call_args_list)
+
+        calls = [
+            mock.call('No keys associated with this account.'),
+            mock.call('\n')]
+
+        mock_stdout.write.assert_has_calls(calls)
 
     def test_key_export(self):
         """Test Client.key_export()."""

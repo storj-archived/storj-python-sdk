@@ -429,13 +429,16 @@ class Client(object):
         self.logger.info('key_dump()')
 
         if (self.private_key is not None and self.public_key is not None):
-            print("Local Private Key: " + self.private_key
-                  + "\nLocal Public Key:" + self.public_key)
-        if (self.key_get() is not []):
-            print("Public keys for this account: "
-                  + str([key['id'] for key in self.key_get()]))
+            print('Local Private Key: ' + self.private_key
+                  + '\nLocal Public Key:' + self.public_key)
+
+        keys = self.key_get()
+
+        if not keys:
+            print('No keys associated with this account.')
         else:
-            print("No keys associated with this account.")
+            print('Public keys for this account: '
+                  + str([key['id'] for key in keys]))
 
     def key_export(self):
         self.logger.info('key_export()')

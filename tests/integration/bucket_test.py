@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """Storj API bucket endpoint integration tests."""
 
+import logging
+
 import pytest
 
+
+from storj.exception import StorjBridgeApiError
 
 from . import Integration
 
@@ -14,15 +18,21 @@ class Bucket(Integration):
         bucket (:py:class:`storj.models.Bucket`: test bucket.
     """
 
+    logger = logging.getLogger('%s.Bucket' % __name__)
+
     def setUp(self):
         """Setup test bucket."""
         super(Bucket, self).setUp()
-        self.bucket = self.client.bucket_create('integration-%s' % self.test_id)
+        self.bucket = self.client.bucket_create(
+            'integration-%s' % self.test_id)
 
     def tearDown(self):
         """Destroy test bucket."""
         super(Bucket, self).tearDown()
-        self.client.bucket_delete(self.bucket.id)
+        try:
+            self.client.bucket_delete(self.bucket.id)
+        except StorjBridgeApiError as e:
+            self.logger.error(e)
 
     def test(self):
         """Test:
@@ -35,20 +45,21 @@ class Bucket(Integration):
         2.1 get does not retrieve the bucket
         2.2 list does not have bucket
         """
-        self.logger.debug('---------- %s.test() ----------' % __name__)
+        self.logger.debug('---------- test() ----------')
 
-        self.logger.debug('%s 1.1' % __name__)
+        self.logger.debug('1.1')
         assert self.bucket == self.client.bucket_get(self.bucket.id)
 
-        self.logger.debug('%s 1.2' % __name__)
+        self.logger.debug('1.2')
         assert self.bucket in self.client.bucket_list()
 
-        self.logger.debug('%s 2.' % __name__)
+        self.logger.debug('2.')
         self.client.bucket_delete(self.bucket.id)
 
-        self.logger.debug('%s 2.1' % __name__)
-        assert self.client.bucket_get(self.bucket.id) is None
+        self.logger.debug('2.1')
+        with pytest.raises(StorjBridgeApiError):
+            self.client.bucket_get(self.bucket.id)
 
-        self.logger.debug('%s 2.2' % __name__)
+        self.logger.debug('2.2')
         with pytest.raises(StopIteration):
-            self.client.bucket_list().next()
+            next(self.client.bucket_list())

@@ -2,10 +2,12 @@
 """Storj command-line interface package."""
 
 import os
-import click
-import ConfigParser
+import logging
 
-# from storj.api import generate_new_key_pair, export_key, import_key
+import click
+
+from six.moves import configparser
+
 from storj.http import Client
 
 
@@ -13,6 +15,9 @@ APP_NAME = 'storj'
 
 CFG_EMAIL = 'storj.email'
 CFG_PASSWORD = 'storj.password'
+
+
+__logger = logging.getLogger(__name__)
 
 
 def get_client():
@@ -31,7 +36,7 @@ def read_config():
     # OSX: /Users/<username>/Library/Application Support/storj
     cfg = os.path.join(click.get_app_dir(APP_NAME), 'storj.ini')
 
-    parser = ConfigParser.RawConfigParser()
+    parser = configparser.RawConfigParser()
     parser.read([cfg])
 
     rv = {}
@@ -68,8 +73,9 @@ def bucket():
 
 
 @bucket.command()
-@click.option('--storage', default=None, help='Storage limit.', type=click.INT)
-@click.option('--transfer', default=None, help='Transfer limit', type=click.INT)
+@click.option('--storage', default=None, help='Storage limit', type=click.INT)
+@click.option('--transfer', default=None,
+              help='Transfer limit', type=click.INT)
 @click.argument('name', type=click.STRING)
 def create(storage, transfer, name):
     """Create bucket.
@@ -89,7 +95,7 @@ def get(bucket_id):
     """Get bucket."""
     bucket = get_client().bucket_get(bucket_id)
 
-    for attr, value in bucket.__dict__.iteritems():
+    for attr, value in sorted(bucket.__dict__.items()):
         click.echo('%s : %s' % (attr.rjust(8), value))
 
 

@@ -22,10 +22,9 @@ except ImportError:
     # Python 2
     JSONDecodeError = ValueError
 
-
 from . import model
 from .api import ecdsa_to_hex
-from .exception import MetadiskApiError
+from .exception import StorjBridgeApiError
 from .web_socket import Client
 
 
@@ -42,7 +41,7 @@ class Client(object):
         public_key_hex ():
     """
 
-    logger = logging.getLogger(Client.__name__)
+    logger = logging.getLogger('%s.Client' % __name__)
 
     def __init__(self, email, password):
         self.api_url = 'https://api.storj.io/'
@@ -55,7 +54,7 @@ class Client(object):
 
     @property
     def password(self):
-        """(str):"""
+        """(str): user password"""
         return self._password
 
     @password.setter
@@ -94,16 +93,17 @@ class Client(object):
 
         contract = '\n'.join(
             (method, request_kwargs['path'], data)).encode('utf-8')
+
         signature_bytes = self.private_key.sign(
             contract, sigencode=sigencode_der, hashfunc=sha256)
+
         signature = b2a_hex(signature_bytes).decode('ascii')
 
         request_kwargs['headers'].update(
             {
                 'x-signature': signature,
                 'x-pubkey': ecdsa_to_hex(self.public_key),
-            }
-        )
+            })
 
     def _prepare_request(self, **kwargs):
 
@@ -117,7 +117,7 @@ class Client(object):
 
         # Generate URL from path
         path = kwargs.pop('path')
-        assert(path.startswith('/'))
+        assert path.startswith('/')
         kwargs['url'] = urljoin(self.api_url, path)
 
         return requests.Request(**kwargs).prepare()
@@ -127,12 +127,23 @@ class Client(object):
 
         Args:
             kwargs (dict): keyword arguments.
+
+        Raises:
+            :py:class:`StorjBridgeApiError`: in case::
+                - internal server error
+                - error attribute is present in the JSON response
+                - HTTP response JSON decoding failed
         """
 
         response = self.session.send(self._prepare_request(**kwargs))
         self.logger.debug('_request response %s', response.text)
 
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            self.logger.error(e)
+            self.logger.debug('response.text=%s', response.text)
+            raise StorjBridgeApiError(response.text)
 
         # Raise any errors as exceptions
         try:
@@ -142,14 +153,14 @@ class Client(object):
                 return {}
 
             if 'error' in response_json:
-                raise MetadiskApiError(response_json['error'])
+                raise StorjBridgeApiError(response_json['error'])
 
             return response_json
 
         except JSONDecodeError as e:
-            self.logger.error('_request %s', e)
+            self.logger.error(e)
             self.logger.error('_request body %s', response.text)
-            raise e
+            raise StorjBridgeApiError('Could not decode response.')
 
     def bucket_create(self, name, storage=None, transfer=None):
         """Create storage bucket.
@@ -162,6 +173,7 @@ class Client(object):
         Returns:
             (:py:class:`model.Bucket`): bucket.
         """
+        self.logger.info('bucket_create(%s, %s, %s)', name, storage, transfer)
 
         data = {'name': name}
         if storage:
@@ -178,17 +190,40 @@ class Client(object):
         Args:
             bucket_id (string): unique identifier.
         """
+        self.logger.info('bucket_delete(%s)', bucket_id)
         self._request(method='DELETE', path='/buckets/%s' % bucket_id)
 
-    def bucket_files(self, bucket_id, file_hash):
+    def bucket_files(self, bucket_id):
+        """
+
+        Args:
+            bucket_id (string): unique identifier.
+        """
+        self.logger.info('bucket_files(%s)', bucket_id)
+
         pull_token = self.token_create(bucket_id, operation='PULL')
         return self._request(
             method='GET',
-            path='/buckets/%s/files/%s' % (bucket_id, file_hash),
+            path='/buckets/%s/files/' % (bucket_id),
             headers={
                 'x-token': pull_token['token'],
-            }
-        )
+            })
+
+    def file_pointers(self, bucket_id, file_id):
+        """
+
+        Args:
+            bucket_id (string): unique identifier.
+        """
+        self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
+
+        pull_token = self.token_create(bucket_id, operation='PULL')
+        return self._request(
+            method='GET',
+            path='/buckets/%s/files/%s/' % (bucket_id, file_id),
+            headers={
+                'x-token': pull_token['token'],
+            })
 
     def bucket_get(self, bucket_id):
         """Returns buckets.
@@ -200,8 +235,11 @@ class Client(object):
             (:py:class:`model.Bucket`): bucket.
         """
         try:
-            response = self._request(method='GET', path='/buckets/%s' % bucket_id)
+            response = self._request(
+                method='GET',
+                path='/buckets/%s' % bucket_id)
             return model.Bucket(**response)
+
         except requests.HTTPError as e:
             if e.response.status_code == requests.codes.not_found:
                 return None
@@ -214,10 +252,9 @@ class Client(object):
         Returns:
             (generator[:py:class:`model.Bucket`]): buckets.
         """
-        self.logger.debug('get_buckets()')
+        self.logger.info('bucket_list()')
 
         response = self._request(method='GET', path='/buckets')
-        self.logger.debug('response %s', response)
 
         if response is not None:
             for element in response:
@@ -226,18 +263,26 @@ class Client(object):
             raise StopIteration
 
     def bucket_set_keys(self, bucket_id, keys):
-        self._request(method='PATCH', path='/buckets/%s' % bucket_id, json={'pubkeys': keys})
+        self.logger.info('bucket_set_keys()', bucket_id, keys)
+
+        self._request(
+            method='PATCH',
+            path='/buckets/%s' % bucket_id,
+            json={'pubkeys': keys})
 
     def contacts_list(self):
+        self.logger.info('contacts_list()')
+
         response = self._request(method='GET', path='/contacts', json={})
 
         if response is not None:
             return response
 
-    def file_download(self, bucket_id, file_hash):
+    def file_download(self, bucket_id, file_id):
+        self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)
 
-        pointers = self.bucket_files(
-            bucket_id=bucket_id, file_hash=file_hash)
+        pointers = self.file_pointers(
+            bucket_id=bucket_id, file_id=file_id)
 
         file_contents = BytesIO()
         for pointer in pointers:
@@ -249,7 +294,11 @@ class Client(object):
         return file_contents
 
     def file_get(self, bucket_id):
-        response = self._request(method='GET', path='/buckets/%s/files' % bucket_id)
+        self.logger.info('file_get(%s)', bucket_id)
+
+        response = self._request(
+            method='GET',
+            path='/buckets/%s/files' % bucket_id)
 
         if response is None:
             return response
@@ -262,35 +311,34 @@ class Client(object):
             file ():
             frame ():
         """
-
-        self.logger.debug('upload_file(%s, %s, %s)', bucket_id, file, frame)
+        self.logger.info('upload_file(%s, %s, %s)', bucket_id, file, frame)
 
         def get_size(file_like_object):
             return os.stat(file_like_object.name).st_size
 
         file_size = get_size(file)
 
+        # TODO:
         # encrypt file
         # shard file
-        # create frame
 
         push_token = self.token_create(bucket_id, "PUSH")
 
         self.logger.debug('upload_file() push_token=%s', push_token)
 
         # upload shards to frame
-        # create bucket entry
         # delete encrypted file
+
         self._request(
             method='POST', path='/buckets/%s/files' % bucket_id,
-            #files={'file' : file},
+            # files={'file' : file},
             headers={
-            #    'x-token': push_token['token'],
-            #    'x-filesize': str(file_size)}
-            "frame": frame['id'],
-            "mimetype": "text",
-            "filename": file.name,
-        })
+                #    'x-token': push_token['token'],
+                #    'x-filesize': str(file_size)}
+                "frame": frame['id'],
+                "mimetype": "text",
+                "filename": file.name,
+            })
 
     def file_remove(self, bucket_id, file_id):
         """Delete a file pointer from a specified bucket
@@ -299,13 +347,15 @@ class Client(object):
             bucket_id (str): The ID of the bucket containing the file
             file_id (str): The ID of the file
         """
+        self.logger.info('file_remove(%s, %s)', bucket_id, file_id)
 
         self._request(
             method='DELETE',
-            path='/buckets/%s/files/%s' % (bucket_id, file_id)
-        )
+            path='/buckets/%s/files/%s' % (bucket_id, file_id))
 
     def frame_add_shard(self, shard, frame_id):
+        self.logger.info('frame_add_shard(%s, %s)', shard, frame_id)
+
         data = {
             'hash': shard.hash,
             'size': shard.size,
@@ -315,10 +365,9 @@ class Client(object):
         }
 
         response = self._request(
-        method='PUT',
-        path='/frames/%s' % frame_id,
-        json=data
-        )
+            method='PUT',
+            path='/frames/%s' % frame_id,
+            json=data)
 
         if response is not None:
             return response
@@ -326,11 +375,15 @@ class Client(object):
     def frame_create(self):
         """Create a file staging frame.
 
-        See `API frames:Creates a new file staging frame<https://storj.io/api.html#staging>`_
+        See `API frames:
+        Creates a new file staging frame
+        <https://storj.io/api.html#staging>`
 
         Returns:
 
         """
+        self.logger.info('frame_create()')
+
         return self._request(method='POST', path='/frames', json={})
 
     def frame_delete(self, frame_id):
@@ -339,16 +392,19 @@ class Client(object):
         Args:
             frame_id (str): unique identifier.
         """
+        self.logger.info('frame_delete(%s)', frame_id)
+
         self._request(
             method='DELETE',
             path='/frames/%s' % frame_id,
-            json={'frame_id': frame_id}
-        )
+            json={'frame_id': frame_id})
 
     def frame_get(self, frame_id):
         """Return a frame.
 
-        See `API frame: Fetches the file staging frame by it's unique ID<https://storj.io/api.html>`_
+        See `API frame:
+        Fetches the file staging frame by it's unique ID
+        <https://storj.io/api.html>`_
 
         Args:
             frame_id (str): unique identifier.
@@ -356,7 +412,12 @@ class Client(object):
         Returns:
             (?):
         """
-        response = self._request(method='GET', path='/frames/%s' % frame_id, json={'frame_id': frame_id})
+        self.logger.info('frame_get(%s)', frame_id)
+
+        response = self._request(
+            method='GET',
+            path='/frames/%s' % frame_id,
+            json={'frame_id': frame_id})
 
         if response is not None:
             return model.Frame(**response)
@@ -367,24 +428,37 @@ class Client(object):
         Returns:
             (): all open file staging frames.
         """
-        response = self._request(method='GET', path='/frames', json={})
+        self.logger.info('frame_list()')
+
+        response = self._request(
+            method='GET',
+            path='/frames',
+            json={})
 
         if response is not None:
             return response
 
     def key_delete(self, key):
+        self.logger.info('key_delete(%s)', key)
+
         self._request(method='DELETE', path='/keys/' + key)
 
     def key_dump(self):
+        self.logger.info('key_dump()')
+
         if (self.private_key is not None and self.public_key is not None):
-            print("Local Private Key: " + self.private_key +
-                  "Local Public Key:" + self.public_key)
+            print("Local Private Key: "
+                  + self.private_key
+                  + "Local Public Key:" + self.public_key)
         if (self.key_get() is not []):
-            print("Public keys for this account: " + str([key['id'] for key in self.key_get()]))
+            print("Public keys for this account: "
+                  + str([key['id'] for key in self.key_get()]))
         else:
             print("No keys associated with this account.")
 
     def key_export(self):
+        self.logger.info('key_export()')
+
         print("Writing your public key to file...")
         with open('public.pem', 'wb') as keyfile:
             keyfile.write(self.public_key.to_pem())
@@ -396,23 +470,29 @@ class Client(object):
         print("Wrote keyfiles to dir: " + os.getcwd())
 
     def key_generate(self):
+        self.logger.info('key_generate()')
+
         print("This will replace your public and private keys in 3 seconds...")
         time.sleep(3)
         (self.private_key, self.public_key) = storj.generate_new_key_pair()
 
         s = raw_input('Export keys to file for later use? [Y/N]')
-        if('Y' in s.upper()):
+        if 'Y' in s.upper():
             self.key_export()
 
         self.key_register(self.public_key)
 
     def key_get(self):
+        self.logger.info('key_get()')
+
         response = self._request(method='GET', path='/keys')
 
         if response is not None:
             return response
 
     def key_import(self, private_keyfile_path, public_keyfile_path):
+        self.logger.info('key_import(%s, %s)', private_keyfile_path, public_keyfile_path)
+
         with open(public_keyfile_path, 'r') as f:
             self.public_key = VerifyingKey.from_pem(f.read())
 
@@ -422,7 +502,12 @@ class Client(object):
         self.key_register(self.public_key)
 
     def key_register(self, public_key):
-        response = self._request(method='POST', path='/keys', json={'key': ecdsa_to_hex(public_key)})
+        self.logger.info('key_register(%s)', public_key)
+
+        response = self._request(
+            method='POST',
+            path='/keys',
+            json={'key': ecdsa_to_hex(public_key)})
 
         if response is not None:
             return response
@@ -437,13 +522,22 @@ class Client(object):
         Returns:
             (dict[]):
         """
-        self.logger.debug('create_token(%s, %s)', bucket_id, operation)
-        return self._request(method='POST', path='/buckets/%s/tokens' % bucket_id, json={'operation': operation})
+        self.logger.info('create_token(%s, %s)', bucket_id, operation)
+
+        return self._request(
+            method='POST',
+            path='/buckets/%s/tokens' % bucket_id,
+            json={'operation': operation})
 
     def user_create(self, email, password):
 
         password = sha256(password).hexdigest()
 
-        self._request(method='POST', path='/users', json={'email': email, 'password': password})
+        self.logger.info('user_create(%s, %s)', email, password)
+
+        self._request(
+            method='POST',
+            path='/users',
+            json={'email': email, 'password': password})
 
         self.authenticate(email=email, password=password)

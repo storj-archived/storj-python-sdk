@@ -123,7 +123,8 @@ class FileManager:
         return [File(payload) for payload in files_json]
 
     def _upload(self, file, frame):
-        api_client.file_upload(bucket_id=self.bucket_id, file=file, frame=frame)
+        api_client.file_upload(bucket_id=self.bucket_id,
+                               file=file, frame=frame)
 
     def upload(self, file, frame):
 
@@ -139,23 +140,3 @@ class FileManager:
 
     def delete(self, bucket_id, file_id):
         api_client.file_remove(self, bucket_id, file_id)
-
-
-def hash160(data):
-    """hex encode returned str"""
-    return binascii.hexlify(ripemd160(hashlib.sha256(data).digest()))
-
-
-def ripemd160(data):
-    return hashlib.new('ripemd160', data).digest()
-
-
-BS = 16
-
-
-def pad(s):
-    return s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
-
-
-def unpad(s):
-    return s[:-ord(s[len(s)-1:])]

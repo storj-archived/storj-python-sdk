@@ -10,7 +10,8 @@ class Client(WebSocketClient):
 
     def __init__(self, pointer, file_contents):
         assert isinstance(pointer, dict)
-        URI = "ws://" + pointer.get('farmer')['address'] + ":" + str(pointer.get('farmer')['port'])
+        URI = "ws://" + pointer.get('farmer')['address']
+        URI += ":" + str(pointer.get('farmer')['port'])
         self.json = pointer
         self.file_contents = file_contents
         super(Client, self).__init__(URI)

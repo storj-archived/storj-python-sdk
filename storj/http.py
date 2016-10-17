@@ -443,11 +443,11 @@ class Client(object):
     def key_export(self):
         self.logger.info('key_export()')
 
-        print("Writing your public key to file...")
+        print('Writing your public key to file...')
         with open('public.pem', 'wb') as keyfile:
             keyfile.write(self.public_key.to_pem())
 
-        print("Writing private key to file... Keep this secret!")
+        print('Writing private key to file... Keep this secret!')
         with open('private.pem', 'wb') as keyfile:
             keyfile.write(self.private_key.to_pem())
 

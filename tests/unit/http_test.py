@@ -334,9 +334,39 @@ class ClientTestCase(AbstractTestCase):
 
         mock_stdout.write.assert_has_calls(calls)
 
-    def test_key_export(self):
+    @mock.patch('storj.http.os', autospec=True)
+    @mock.patch('storj.http.open', create=True)
+    @mock.patch('sys.stdout', autospec=True)
+    def test_key_export(self, mock_stdout, mock_open, mock_os):
         """Test Client.key_export()."""
-        pass
+        test_cwd = '~/.keys/'
+
+        mock_os.getcwd.return_value = test_cwd
+
+        mock_file = mock.MagicMock(spec=file)
+        mock_open.return_value = mock_file
+        mock_file_handle = mock_open.return_value.__enter__.return_value
+
+        self.client.public_key = mock.MagicMock()
+        self.client.public_key.to_pem.return_value = '7'
+        self.client.private_key = mock.MagicMock()
+        self.client.private_key.to_pem.return_value = '8'
+
+        self.client.key_export()
+
+        file_write_calls = [
+            mock.call('7'),
+            mock.call('8')]
+        print_calls = [
+            mock.call('Writing your public key to file...'),
+            mock.call('\n'),
+            mock.call('Writing private key to file... Keep this secret!'),
+            mock.call('\n'),
+            mock.call('Wrote keyfiles to dir: ' + test_cwd),
+            mock.call('\n')]
+
+        mock_file_handle.write.assert_has_calls(file_write_calls)
+        mock_stdout.write.assert_has_calls(print_calls)
 
     def test_key_generate(self):
         """Test Client.key_generate()."""

@@ -2,6 +2,6 @@
 """Storj exception module."""
 
 
-class MetadiskApiError(Exception):
+class StorjBridgeApiError(Exception):
     """Generic Storj exception."""
     pass

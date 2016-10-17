@@ -11,7 +11,7 @@ from storj import model
 
 
 class ClientTestCase(AbstractTestCase):
-    """Test case for the client class."""
+    """Test case for the Client class."""
 
     def setUp(self):
         super(AbstractTestCase, self).setUp()
@@ -68,14 +68,14 @@ class ClientTestCase(AbstractTestCase):
         self.client.token_create = mock.MagicMock()
         self.client.token_create.return_value = {'token': 'test_token'}
 
-        self.client.bucket_files(test_bucket_id, test_file_id)
+        self.client.bucket_files(test_bucket_id)
 
         self.client.token_create.assert_called_with(
             test_bucket_id,
             operation='PULL')
         self.client._request.assert_called_with(
             method='GET',
-            path='/buckets/%s/files/%s' % (test_bucket_id, test_file_id),
+            path='/buckets/%s/files/' % (test_bucket_id),
             headers={
                 'x-token': 'test_token'
             })

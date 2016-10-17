@@ -26,12 +26,11 @@ except ImportError:
 from . import model
 from .api import ecdsa_to_hex
 from .exception import MetadiskApiError
-from .web_socket import Client
+from storj import web_socket
 
 
 class Client(object):
     """
-
     Attributes:
         api_url (str): the Storj API endpoint.
         session ():
@@ -42,7 +41,7 @@ class Client(object):
         public_key_hex ():
     """
 
-    logger = logging.getLogger(Client.__name__)
+    logger = logging.getLogger(web_socket.Client.__name__)
 
     def __init__(self, email, password):
         self.api_url = 'https://api.storj.io/'
@@ -241,25 +240,24 @@ class Client(object):
             return response
 
     def file_download(self, bucket_id, file_hash):
-
         pointers = self.bucket_files(
             bucket_id=bucket_id, file_hash=file_hash)
 
         file_contents = BytesIO()
         for pointer in pointers:
-            ws = Client(
+            ws = web_socket.Client(
                 pointer=pointer, file_contents=file_contents)
             ws.connect()
             ws.run_forever()
 
         return file_contents
 
-    def file_get(self, bucket_id):
+    def file_list(self, bucket_id):
         response = self._request(
             method='GET',
             path='/buckets/%s/files' % bucket_id)
 
-        if response is None:
+        if response is not None:
             return response
 
     def file_upload(self, bucket_id, file, frame):
@@ -387,14 +385,13 @@ class Client(object):
         if response is not None:
             return response
 
-    def key_delete(self, key):
-        self._request(method='DELETE', path='/keys/' + key)
+    def key_delete(self, key_id):
+        self._request(method='DELETE', path='/keys/%s' % key_id)
 
     def key_dump(self):
         if (self.private_key is not None and self.public_key is not None):
-            print("Local Private Key: "
-                  + self.private_key
-                  + "Local Public Key:" + self.public_key)
+            print("Local Private Key: " + self.private_key
+                  + "\nLocal Public Key:" + self.public_key)
         if (self.key_get() is not []):
             print("Public keys for this account: "
                   + str([key['id'] for key in self.key_get()]))

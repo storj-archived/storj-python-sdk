@@ -451,7 +451,7 @@ class Client(object):
         with open('private.pem', 'wb') as keyfile:
             keyfile.write(self.private_key.to_pem())
 
-        print('Wrote keyfiles to dir: ' + os.getcwd())
+        print('Wrote keyfiles to dir: %s' % os.getcwd())
 
     def key_generate(self):
         self.logger.info('key_generate()')

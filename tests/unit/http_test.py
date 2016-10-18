@@ -411,8 +411,16 @@ class ClientTestCase(AbstractTestCase):
 
     def test_token_create(self):
         """Test Client.token_create()."""
-        pass
+        test_bucket_id = '1234'
+        test_json = {'operation': 'PULL'}
 
-    def test_user_create(self):
+        self.client.token_create(test_bucket_id, 'PULL')
+
+        self.client._request.assert_called_once_with(
+            method='POST',
+            path='/buckets/%s/tokens' % test_bucket_id,
+            json=test_json)
+
+    @mock.patch('storj.http.sha256')
+    def test_user_create(self, mock_sha256):
         """Test Client.user_create()."""
-        pass

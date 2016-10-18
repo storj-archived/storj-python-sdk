@@ -393,9 +393,21 @@ class ClientTestCase(AbstractTestCase):
         """Test Client.key_import()."""
         pass
 
-    def test_key_register(self):
+    @mock.patch('storj.http.ecdsa_to_hex')
+    def test_key_register(self, mock_ecdsa):
         """Test Client.key_register()."""
-        pass
+        test_hex_key = 'hex encoded key'
+        test_json = {'key': test_hex_key}
+
+        mock_ecdsa.return_value = test_hex_key
+
+        response = self.client.key_register('key')
+
+        mock_ecdsa.assert_called_once_with('key')
+        self.client._request.assert_called_once_with(
+            method='POST',
+            path='/keys',
+            json=test_json)
 
     def test_token_create(self):
         """Test Client.token_create()."""

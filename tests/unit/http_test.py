@@ -343,7 +343,7 @@ class ClientTestCase(AbstractTestCase):
 
         mock_os.getcwd.return_value = test_cwd
 
-        mock_file = mock.MagicMock(spec=file)
+        mock_file = mock.MagicMock()
         mock_open.return_value = mock_file
         mock_file_handle = mock_open.return_value.__enter__.return_value
 
@@ -354,6 +354,9 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.key_export()
 
+        open_calls = [
+            mock.call('public.pem', 'wb'),
+            mock.call('private.pem', 'wb')]
         file_write_calls = [
             mock.call('7'),
             mock.call('8')]
@@ -361,12 +364,11 @@ class ClientTestCase(AbstractTestCase):
             mock.call('Writing your public key to file...'),
             mock.call('\n'),
             mock.call('Writing private key to file... Keep this secret!'),
-            mock.call('\n'),
-            mock.call('Wrote keyfiles to dir: ' + test_cwd),
-            mock.call('\n')]
+            mock.call('Wrote keyfiles to dir: ' + test_cwd)]
 
+        mock_open.assert_has_calls(open_calls, any_order=True)
         mock_file_handle.write.assert_has_calls(file_write_calls)
-        mock_stdout.write.assert_has_calls(print_calls)
+        mock_stdout.write.assert_has_calls(print_calls, any_order=True)
 
     def test_key_generate(self):
         """Test Client.key_generate()."""

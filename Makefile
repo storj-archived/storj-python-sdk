@@ -22,7 +22,6 @@ help:
 	@echo "  test           Run tests."
 	@echo "  wheel          Build package wheel & save in $(WHEEL_DIR)."
 	@echo "  wheels         Build dependency wheels & save in $(WHEEL_DIR)."
-	@echo "  publish        Build and upload package to pypi.python.org"
 	@echo ""
 	@echo "VARIABLES:"
 	@echo "  PY_VERSION     Version of python to use. Default: $(PY_VERSION)"
@@ -93,10 +92,6 @@ test: setup
 	# report coverage
 	$(COVERAGE) html
 	$(COVERAGE) report  # --fail-under=90
-
-
-publish: test
-	$(PY) setup.py register bdist_wheel upload
 
 
 view_readme: setup

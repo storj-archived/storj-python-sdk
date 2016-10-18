@@ -175,6 +175,7 @@ class ClientTestCase(AbstractTestCase):
 
     def test_file_upload(self):
         """Test Client.file_upload()."""
+        # file_upload is still TODO
         pass
 
     def test_file_remove(self):

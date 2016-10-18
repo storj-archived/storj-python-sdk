@@ -470,7 +470,7 @@ class Client(object):
         """Gets all public keys associated with the authenticated account
 
         Returns:
-            (): a list of dictionaries. Each dictionary represents 1 key.
+            (list[dict]): a list of keys
         """
         self.logger.info('key_get()')
 

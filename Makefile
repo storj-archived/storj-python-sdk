@@ -81,9 +81,7 @@ shell: install
 test: setup
 
 	# auto pep8 code
-	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive storj
 	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive examples
-	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive tests
 
 	# ensure pep8
 	$(PEP8) examples

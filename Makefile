@@ -86,9 +86,7 @@ test: setup
 	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive tests
 
 	# ensure pep8
-	$(PEP8) storj
 	$(PEP8) examples
-	$(PEP8) tests
 
 	# test
 	env/bin/tox -- --ignore=tests/integration

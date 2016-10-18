@@ -376,7 +376,18 @@ class ClientTestCase(AbstractTestCase):
 
     def test_key_get(self):
         """Test Client.key_get()."""
-        pass
+        test_key_dict = [
+            {'id': '7', 'user': 'cats@storj.io'},
+            {'id': 'a8939', 'user': 'dnr@dnr.com', 'key': 'test_key'}]
+
+        self.client._request.return_value = test_key_dict
+
+        response = self.client.key_get()
+
+        self.client._request.assert_called_once_with(
+            method='GET',
+            path='/keys')
+        self.assertIsNotNone(response)
 
     def test_key_import(self):
         """Test Client.key_import()."""

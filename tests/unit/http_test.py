@@ -424,3 +424,22 @@ class ClientTestCase(AbstractTestCase):
     @mock.patch('storj.http.sha256')
     def test_user_create(self, mock_sha256):
         """Test Client.user_create()."""
+        test_email = 'a@b.com'
+        test_password = 'toast'
+        test_hashed_password = 'hashed password'
+
+        mock_sha256.return_value.hexdigest.return_value = test_hashed_password
+
+        self.client.authenticate = mock.MagicMock()
+
+        self.client.user_create(test_email, test_password)
+
+        mock_sha256.assert_called_once_with(test_password)
+        mock_sha256.return_value.hexdigest.assert_called_once_with()
+        self.client._request.assert_called_once_with(
+            method='POST',
+            path='/users',
+            json={'email': test_email, 'password': test_hashed_password})
+        self.client.authenticate.assert_called_once_with(
+            email=test_email,
+            password=test_hashed_password)

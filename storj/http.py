@@ -520,10 +520,15 @@ class Client(object):
             json={'operation': operation})
 
     def user_create(self, email, password):
+        """Create a new user with specified email and password.
+
+        Args:
+            email (str): The new user's email address.
+            password (str): The new user's password
+        """
+        self.logger.info('user_create(%s, %s)', email, password)
 
         password = sha256(password).hexdigest()
-
-        self.logger.info('user_create(%s, %s)', email, password)
 
         self._request(
             method='POST',

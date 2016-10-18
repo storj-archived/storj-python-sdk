@@ -34,7 +34,7 @@ def read_config():
     """Reads configuration for the command-line interface."""
 
     # OSX: /Users/<username>/Library/Application Support/storj
-    cfg = os.path.join(click.get_app_dir(APP_NAME), 'storj.ini')
+    cfg = os.path.join(click.get_app_dir(APP_NAME, force_posix=True), 'storj.ini')
 
     parser = configparser.RawConfigParser()
     parser.read([cfg])

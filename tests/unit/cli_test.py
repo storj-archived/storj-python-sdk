@@ -114,7 +114,9 @@ class BucketTestCase(AbstractTestCase):
         assert result.output == 'Bucket %s created\n' % self.bucket.name
 
         self.mock_action.assert_called_once_with(
-            self.bucket.name, storage=self.bucket.storage, transfer=self.bucket.transfer)
+            self.bucket.name,
+            storage=self.bucket.storage,
+            transfer=self.bucket.transfer)
 
     def test_bucket_get(self):
         """Test get command."""
@@ -145,7 +147,10 @@ class BucketTestCase(AbstractTestCase):
         result = self.runner.invoke(cli.list, [])
 
         assert result.exit_code == 0
-        assert result.output == '[info]   ID: %s, Name: %s, Storage: %d, Transfer: %d\n' % (
-            self.bucket.id, self.bucket.name, self.bucket.storage, self.bucket.transfer)
+        msg = '[info]   ID: %s, Name: %s, Storage: %d, Transfer: %d\n'
+        assert result.output == msg % (
+            self.bucket.id, self.bucket.name,
+            self.bucket.storage, self.bucket.transfer
+        )
 
         self.mock_action.assert_called_once_with()

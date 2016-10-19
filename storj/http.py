@@ -72,7 +72,7 @@ class Client(object):
         self.logger.debug('using basic auth')
 
         request_kwargs['headers'].update({
-            'Authorization': b'Basic %s' % b64encode(
+            'Authorization': b'Basic ' + b64encode(
                 ('%s:%s' % (self.email, self.password)).encode('ascii')
             ),
         })
@@ -481,7 +481,9 @@ class Client(object):
 
     def key_import(self, private_keyfile_path, public_keyfile_path):
         self.logger.info(
-            'key_import(%s, %s)' % (private_keyfile_path, public_keyfile_path))
+            'key_import(%s, %s)',
+            private_keyfile_path,
+            public_keyfile_path)
 
         with open(public_keyfile_path, 'r') as f:
             self.public_key = VerifyingKey.from_pem(f.read())

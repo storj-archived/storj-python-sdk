@@ -6,8 +6,7 @@ branches:
 
 cache:
   directories:
-    - "${HOME}/virtualenv"
-    - "${TRAVIS_BUILD_DIR}/.tox"
+    - "${HOME}/.pip"
 
 matrix:
   include:

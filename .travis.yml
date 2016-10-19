@@ -35,7 +35,7 @@ install:
 
 script:
   - tox -- --ignore=tests/integration
-  - "find ${TRAVIS_BUILD_DIR}/.tox -name log -type d | xargs -I {} rm -rf {}"
+  - "find ${HOME}/.pip -name log -type d | xargs -I {} rm -rf {}"
 
 after_success:
   - pip install coveralls

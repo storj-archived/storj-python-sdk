@@ -81,22 +81,13 @@ shell: install
 test: setup
 
 	# auto pep8 code
-	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive storj
 	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive examples
-	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive tests
 
 	# ensure pep8
-	$(PEP8) storj
 	$(PEP8) examples
-	$(PEP8) tests
 
 	# test
 	env/bin/tox -- --ignore=tests/integration
-	# $(COVERAGE) run --source=storj setup.py test
-
-	# report coverage
-	# $(COVERAGE) html
-	# $(COVERAGE) report  # --fail-under=90
 
 
 view_readme: setup

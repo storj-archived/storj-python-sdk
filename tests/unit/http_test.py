@@ -97,7 +97,6 @@ class ClientTestCase(AbstractTestCase):
 
         buckets = self.client.bucket_list()
 
-        # _request() is not getting called. Why?
         for bucket in buckets:
             self.assertIsInstance(bucket, model.Bucket)
 
@@ -149,28 +148,8 @@ class ClientTestCase(AbstractTestCase):
 
         self.assertIsNotNone(response)
 
-#    @mock.patch('storj.web_socket.Client', autospec=True)
-#    @mock.patch('storj.http.BytesIO', autospec=True)
-#    def test_file_download(self, mock_BytesIO, mock_web_socket_client):
     def test_file_download(self):
         """Test Client.file_download()."""
-#        test_bucket_id = "57fd385426adcf743b3d39c5"
-#        test_file_id = "57ffbfd28ce9b61c2634ea5d"
-#        test_response = [{
-#            'token': '2e5c4f187c1be227c3e1de1f01d202ab06f9f1c7',
-#            'operation': 'PULL'}]
-
-#        self.client.bucket_files = mock.MagicMock()
-#        self.client.bucket_files.return_value = test_response
-
-#        test_object = mock.MagicMock()
-#        mock_BytesIO.return_value = test_object
-
-#        test_file = self.client.file_download(test_bucket_id, test_file_id)
-
-#        mock_web_socket_client.assert_called_with(
-#            pointer=test_response[0],
-#            file_contents=test_object)
         pass
 
     def test_file_upload(self):

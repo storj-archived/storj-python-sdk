@@ -1,8 +1,7 @@
-mock
-coverage
-coveralls
-pep8
 autopep8
+coverage
+mock
+pep8
 pylint
 pytest
 pytest-cov

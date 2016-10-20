@@ -25,12 +25,11 @@ except ImportError:
 from . import model
 from .api import ecdsa_to_hex
 from .exception import StorjBridgeApiError
-from .web_socket import Client
+from storj import web_socket
 
 
 class Client(object):
     """
-
     Attributes:
         api_url (str): the Storj API endpoint.
         session ():
@@ -201,29 +200,9 @@ class Client(object):
         """
         self.logger.info('bucket_files(%s)', bucket_id)
 
-        pull_token = self.token_create(bucket_id, operation='PULL')
         return self._request(
             method='GET',
-            path='/buckets/%s/files/' % (bucket_id),
-            headers={
-                'x-token': pull_token['token'],
-            })
-
-    def file_pointers(self, bucket_id, file_id):
-        """
-
-        Args:
-            bucket_id (string): unique identifier.
-        """
-        self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
-
-        pull_token = self.token_create(bucket_id, operation='PULL')
-        return self._request(
-            method='GET',
-            path='/buckets/%s/files/%s/' % (bucket_id, file_id),
-            headers={
-                'x-token': pull_token['token'],
-            })
+            path='/buckets/%s/files/' % (bucket_id),)
 
     def bucket_get(self, bucket_id):
         """Returns buckets.
@@ -278,6 +257,20 @@ class Client(object):
         if response is not None:
             return response
 
+    def file_pointers(self, bucket_id, file_id):
+        """Get a list of pointers associated with a file.
+
+        Args:
+            bucket_id (string): unique identifier.
+        """
+        self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
+
+        pull_token = self.token_create(bucket_id, operation='PULL')
+        return self._request(
+            method='GET',
+            path='/buckets/%s/files/%s/' % (bucket_id, file_id),
+            headers={'x-token': pull_token['token']})
+
     def file_download(self, bucket_id, file_id):
         self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)
 
@@ -286,22 +279,12 @@ class Client(object):
 
         file_contents = BytesIO()
         for pointer in pointers:
-            ws = Client(
+            ws = web_socket.Client(
                 pointer=pointer, file_contents=file_contents)
             ws.connect()
             ws.run_forever()
 
         return file_contents
-
-    def file_get(self, bucket_id):
-        self.logger.info('file_get(%s)', bucket_id)
-
-        response = self._request(
-            method='GET',
-            path='/buckets/%s/files' % bucket_id)
-
-        if response is None:
-            return response
 
     def file_upload(self, bucket_id, file, frame):
         """Upload file.
@@ -438,35 +421,37 @@ class Client(object):
         if response is not None:
             return response
 
-    def key_delete(self, key):
-        self.logger.info('key_delete(%s)', key)
-
-        self._request(method='DELETE', path='/keys/' + key)
+    def key_delete(self, key_id):
+        self.logger.info('key_delete(%s)', key_id)
+        self._request(method='DELETE', path='/keys/%s' % key_id)
 
     def key_dump(self):
         self.logger.info('key_dump()')
 
         if (self.private_key is not None and self.public_key is not None):
-            print("Local Private Key: " + self.private_key +
-                  "Local Public Key:" + self.public_key)
-        if (self.key_get() is not []):
-            print("Public keys for this account: " +
-                  str([key['id'] for key in self.key_get()]))
+            print('Local Private Key: %s' % self.private_key
+                  + '\nLocal Public Key: %s' % self.public_key)
+
+        keys = self.key_get()
+
+        if not keys:
+            print('No keys associated with this account.')
         else:
-            print("No keys associated with this account.")
+            print('Public keys for this account: '
+                  + str([key['id'] for key in keys]))
 
     def key_export(self):
         self.logger.info('key_export()')
 
-        print("Writing your public key to file...")
+        print('Writing your public key to file...')
         with open('public.pem', 'wb') as keyfile:
             keyfile.write(self.public_key.to_pem())
 
-        print("Writing private key to file... Keep this secret!")
+        print('Writing private key to file... Keep this secret!')
         with open('private.pem', 'wb') as keyfile:
             keyfile.write(self.private_key.to_pem())
 
-        print("Wrote keyfiles to dir: " + os.getcwd())
+        print('Wrote keyfiles to dir: %s' % os.getcwd())
 
     def key_generate(self):
         self.logger.info('key_generate()')
@@ -482,6 +467,11 @@ class Client(object):
         self.key_register(self.public_key)
 
     def key_get(self):
+        """Gets all public keys associated with the authenticated account
+
+        Returns:
+            (list[dict]): a list of keys
+        """
         self.logger.info('key_get()')
 
         response = self._request(method='GET', path='/keys')
@@ -532,10 +522,15 @@ class Client(object):
             json={'operation': operation})
 
     def user_create(self, email, password):
+        """Create a new user with specified email and password.
+
+        Args:
+            email (str): The new user's email address.
+            password (str): The new user's password
+        """
+        self.logger.info('user_create(%s, %s)', email, password)
 
         password = sha256(password).hexdigest()
-
-        self.logger.info('user_create(%s, %s)', email, password)
 
         self._request(
             method='POST',

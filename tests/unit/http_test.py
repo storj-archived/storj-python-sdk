@@ -63,22 +63,14 @@ class ClientTestCase(AbstractTestCase):
     def test_bucket_files(self):
         """Test Client.bucket_files()."""
         test_bucket_id = "57fd385426adcf743b3d39c5"
-        test_file_id = "57ffbfd28ce9b61c2634ea5d"
 
-        self.client.token_create = mock.MagicMock()
-        self.client.token_create.return_value = {'token': 'test_token'}
+        response = self.client.bucket_files(test_bucket_id)
 
-        self.client.bucket_files(test_bucket_id)
-
-        self.client.token_create.assert_called_with(
-            test_bucket_id,
-            operation='PULL')
         self.client._request.assert_called_with(
             method='GET',
-            path='/buckets/%s/files/' % (test_bucket_id),
-            headers={
-                'x-token': 'test_token'
-            })
+            path='/buckets/%s/files/' % (test_bucket_id))
+
+        self.assertIsNotNone(response)
 
     def test_bucket_get(self):
         """Test Client.bucket_get()."""
@@ -105,7 +97,6 @@ class ClientTestCase(AbstractTestCase):
 
         buckets = self.client.bucket_list()
 
-        # _request() is not getting called. Why?
         for bucket in buckets:
             self.assertIsInstance(bucket, model.Bucket)
 
@@ -140,53 +131,224 @@ class ClientTestCase(AbstractTestCase):
             json={})
         self.assertEqual(contacts, test_response)
 
+    def test_file_pointers(self):
+        """Test Client.file_pointers()."""
+        test_bucket_id = '1234'
+        test_file_id = '5678'
+
+        self.client.token_create = mock.MagicMock()
+        self.client.token_create.return_value = {'token': 'test_token'}
+
+        response = self.client.file_pointers(test_bucket_id, test_file_id)
+
+        self.client._request.assert_called_with(
+            method='GET',
+            path='/buckets/%s/files/%s/' % (test_bucket_id, test_file_id),
+            headers={'x-token': 'test_token'})
+
+        self.assertIsNotNone(response)
+
     def test_file_download(self):
         """Test Client.file_download()."""
         pass
 
-    def test_file_get(self):
-        """Test Client.file_get()."""
-        pass
-
     def test_file_upload(self):
         """Test Client.file_upload()."""
+        # file_upload is still TODO
         pass
 
     def test_file_remove(self):
         """Test Client.file_remove()."""
-        pass
+        test_bucket_id = 'lkh39d'
+        test_file_id = '72393'
+
+        self.client.file_remove(test_bucket_id, test_file_id)
+
+        self.client._request.assert_called_with(
+            method='DELETE',
+            path='/buckets/%s/files/%s' % (test_bucket_id, test_file_id)
+        )
 
     def test_frame_add_shard(self):
         """Test Client.frame_add_shard()."""
-        pass
+        test_tree = mock.MagicMock()
+        test_shard = model.Shard(
+            hash='5775772',
+            index=7,
+            challenges=['0118', 999, 88199, 9119, 725, 3],
+            tree=test_tree,
+            size=3810)
+        test_json = {
+            'hash': '5775772',
+            'index': 7,
+            'challenges': ['0118', 999, 88199, 9119, 725, 3],
+            'tree': test_tree,
+            'size': 3810}
+
+        test_frame_id = '8193'
+
+        self.client.frame_add_shard(test_shard, test_frame_id)
+
+        self.client._request.assert_called_with(
+            method='PUT',
+            path='/frames/%s' % test_frame_id,
+            json=test_json)
 
     def test_frame_create(self):
         """Test Client.frame_create()."""
-        pass
+        response = self.client.frame_create()
+
+        self.client._request.assert_called_with(
+            method='POST',
+            path='/frames',
+            json={})
 
     def test_frame_delete(self):
         """Test Client.frame_delete()."""
-        pass
+        test_frame_id = '314159265358979265'
+        test_json = {
+            'frame_id': test_frame_id}
 
-    def test_frame_get(self):
+        self.client.frame_delete(test_frame_id)
+
+        self.client._request.assert_called_with(
+            method='DELETE',
+            path='/frames/%s' % test_frame_id,
+            json=test_json
+        )
+
+    @mock.patch('storj.http.model.Frame', autospec=True)
+    def test_frame_get(self, mock_frame):
         """Test Client.frame_get()."""
-        pass
+        test_frame_id = '1234'
+        test_json = {
+            'created': '2016-03-04T17:01:02.629Z',
+            'id': '507f1f77bcf86cd799439011',
+            'shards': [{
+                'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',
+                'size': 4096,
+                'index': 0}]}
+
+        self.client._request.return_value = test_json
+
+        response = self.client.frame_get(test_frame_id)
+
+        mock_frame.assert_called_with(
+            created='2016-03-04T17:01:02.629Z',
+            id='507f1f77bcf86cd799439011',
+            shards=[{
+                'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',
+                'size': 4096,
+                'index': 0}])
+        self.client._request.assert_called_with(
+            method='GET',
+            path='/frames/%s' % test_frame_id,
+            json={'frame_id': test_frame_id})
+        self.assertIsNotNone(response)
 
     def test_frame_list(self):
         """Test Client.frame_list()."""
-        pass
+        self.client._request.return_value = [{
+            "created": "2016-03-04T17:01:02.629Z",
+            "id": "507f1f77bcf86cd799439011"}]
+
+        response = self.client.frame_list()
+
+        self.client._request.assert_called_with(
+            method='GET',
+            path='/frames',
+            json={})
 
     def test_key_delete(self):
         """Test Client.key_delete()."""
-        pass
+        test_key = '39ddkakdi'
 
-    def test_key_dump(self):
+        self.client.key_delete(test_key)
+
+        self.client._request.assert_called_with(
+            method='DELETE',
+            path='/keys/%s' % test_key
+        )
+
+    @mock.patch('sys.stdout', autospec=True)
+    def test_key_dump(self, mock_stdout):
         """Test Client.key_dump()."""
-        pass
+        self.client.private_key = '1234'
+        self.client.public_key = '5678'
+        test_keys = [
+            {'id': 7},
+            {'id': 8}]
 
-    def test_key_export(self):
+        self.client.key_get = mock.MagicMock()
+        self.client.key_get.return_value = test_keys
+
+        self.client.key_dump()
+
+        calls = [
+            mock.call("Local Private Key: %s" % self.client.private_key
+                      + "\nLocal Public Key: %s" % self.client.public_key),
+            mock.call("\n"),
+            mock.call(
+                "Public keys for this account: "
+                + str([key['id'] for key in test_keys])),
+            mock.call("\n")]
+        mock_stdout.write.assert_has_calls(calls)
+
+    @mock.patch('sys.stdout', autospec=True)
+    def test_key_dump_2(self, mock_stdout):
+        """Test Client.key_dump() with missing keys."""
+        self.client.private_key = None
+
+        self.client.key_get = mock.MagicMock()
+        self.client.key_get.return_value = []
+
+        self.client.key_dump()
+
+        self.client.key_get.assert_called_once_with()
+
+        self.client.logger.info(mock_stdout.write.call_args_list)
+
+        calls = [
+            mock.call('No keys associated with this account.'),
+            mock.call('\n')]
+
+        mock_stdout.write.assert_has_calls(calls)
+
+    @mock.patch('storj.http.os', autospec=True)
+    @mock.patch('storj.http.open', create=True)
+    @mock.patch('sys.stdout', autospec=True)
+    def test_key_export(self, mock_stdout, mock_open, mock_os):
         """Test Client.key_export()."""
-        pass
+        test_cwd = '~/.keys/'
+
+        mock_os.getcwd.return_value = test_cwd
+
+        mock_file = mock.MagicMock()
+        mock_open.return_value = mock_file
+        mock_file_handle = mock_open.return_value.__enter__.return_value
+
+        self.client.public_key = mock.MagicMock()
+        self.client.public_key.to_pem.return_value = '7'
+        self.client.private_key = mock.MagicMock()
+        self.client.private_key.to_pem.return_value = '8'
+
+        self.client.key_export()
+
+        open_calls = [
+            mock.call('public.pem', 'wb'),
+            mock.call('private.pem', 'wb')]
+        file_write_calls = [
+            mock.call('7'),
+            mock.call('8')]
+        print_calls = [
+            mock.call('Writing your public key to file...'),
+            mock.call('\n'),
+            mock.call('Writing private key to file... Keep this secret!'),
+            mock.call('Wrote keyfiles to dir: ' + test_cwd)]
+
+        mock_open.assert_has_calls(open_calls, any_order=True)
+        mock_file_handle.write.assert_has_calls(file_write_calls)
+        mock_stdout.write.assert_has_calls(print_calls, any_order=True)
 
     def test_key_generate(self):
         """Test Client.key_generate()."""
@@ -194,20 +356,70 @@ class ClientTestCase(AbstractTestCase):
 
     def test_key_get(self):
         """Test Client.key_get()."""
-        pass
+        test_key_dict = [
+            {'id': '7', 'user': 'cats@storj.io'},
+            {'id': 'a8939', 'user': 'dnr@dnr.com', 'key': 'test_key'}]
+
+        self.client._request.return_value = test_key_dict
+
+        response = self.client.key_get()
+
+        self.client._request.assert_called_once_with(
+            method='GET',
+            path='/keys')
+        self.assertIsNotNone(response)
 
     def test_key_import(self):
         """Test Client.key_import()."""
         pass
 
-    def test_key_register(self):
+    @mock.patch('storj.http.ecdsa_to_hex')
+    def test_key_register(self, mock_ecdsa):
         """Test Client.key_register()."""
-        pass
+        test_hex_key = 'hex encoded key'
+        test_json = {'key': test_hex_key}
+
+        mock_ecdsa.return_value = test_hex_key
+
+        response = self.client.key_register('key')
+
+        mock_ecdsa.assert_called_once_with('key')
+        self.client._request.assert_called_once_with(
+            method='POST',
+            path='/keys',
+            json=test_json)
 
     def test_token_create(self):
         """Test Client.token_create()."""
-        pass
+        test_bucket_id = '1234'
+        test_json = {'operation': 'PULL'}
 
-    def test_user_create(self):
+        self.client.token_create(test_bucket_id, 'PULL')
+
+        self.client._request.assert_called_once_with(
+            method='POST',
+            path='/buckets/%s/tokens' % test_bucket_id,
+            json=test_json)
+
+    @mock.patch('storj.http.sha256')
+    def test_user_create(self, mock_sha256):
         """Test Client.user_create()."""
-        pass
+        test_email = 'a@b.com'
+        test_password = 'toast'
+        test_hashed_password = 'hashed password'
+
+        mock_sha256.return_value.hexdigest.return_value = test_hashed_password
+
+        self.client.authenticate = mock.MagicMock()
+
+        self.client.user_create(test_email, test_password)
+
+        mock_sha256.assert_called_once_with(test_password)
+        mock_sha256.return_value.hexdigest.assert_called_once_with()
+        self.client._request.assert_called_once_with(
+            method='POST',
+            path='/users',
+            json={'email': test_email, 'password': test_hashed_password})
+        self.client.authenticate.assert_called_once_with(
+            email=test_email,
+            password=test_hashed_password)

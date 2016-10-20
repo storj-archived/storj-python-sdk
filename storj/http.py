@@ -429,8 +429,8 @@ class Client(object):
         self.logger.info('key_dump()')
 
         if (self.private_key is not None and self.public_key is not None):
-            print('Local Private Key: ' + self.private_key
-                  + '\nLocal Public Key:' + self.public_key)
+            print('Local Private Key: %s' % self.private_key
+                  + '\nLocal Public Key: %s' % self.public_key)
 
         keys = self.key_get()
 

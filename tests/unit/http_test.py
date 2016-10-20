@@ -285,8 +285,8 @@ class ClientTestCase(AbstractTestCase):
         self.client.key_dump()
 
         calls = [
-            mock.call("Local Private Key: " + self.client.private_key
-                      + "\nLocal Public Key:" + self.client.public_key),
+            mock.call("Local Private Key: %s" % self.client.private_key
+                      + "\nLocal Public Key: %s" % self.client.public_key),
             mock.call("\n"),
             mock.call(
                 "Public keys for this account: "

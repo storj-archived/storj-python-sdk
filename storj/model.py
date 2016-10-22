@@ -255,7 +255,7 @@ class ShardManager:
             self.index += 1
             self.shards.append(shard)
 
-    def hash160(data):
+    def rmd160sha256(data):
         """hex encode returned str"""
         return binascii.hexlify(ripemd160(hashlib.sha256(data).digest()))
 
@@ -269,7 +269,7 @@ class ShardManager:
             # concat and hex-encode data
             data2hash = binascii.hexlify('%s%s' % (challenge, shardData))
 
-            tree = hash160(hash160(data2hash))  # double hash160 the data
+            tree = ripe160sha256(ripe160sha256(data2hash))
 
             shard.add_challenge(challenge)
             shard.add_tree(tree)
@@ -281,7 +281,6 @@ class ShardManager:
 
 class Token(Object):
     """
-
     Attributes:
         token ():
         bucket ():
@@ -289,8 +288,7 @@ class Token(Object):
         expires ():
     """
 
-    def __init__(
-            self, token=None, bucket=None, operation=None, expires=None):
+    def __init__(self, token=None, bucket=None, operation=None, expires=None):
         self.id = token
         self.bucket_id = bucket
         self.operation = operation
@@ -300,3 +298,80 @@ class Token(Object):
                 strict_rfc3339.rfc3339_to_timestamp(expires))
         else:
             self.expires = None
+
+
+class MerkleTree:
+    """
+    Simple merkle hash tree. Nodes are stored as strings in rows.
+    Row 0 is the root node, row 1 is its children, row 2 is their children, etc
+
+    Arguments
+    leaves (list[str]): leaves of the tree, as hex digests
+
+    Attributes:
+    leaves (list[str]): leaves of the tree, as hex digests
+    depth (int): the number of levels in the tree
+    count (int): the number of nodes in the tree
+    rows (list[list[str]]): the levels of the tree
+    """
+
+    def __init__(self, leaves=[], prehashed=False):
+
+        self.leaves = leaves
+        self.prehashed = prehashed
+        self.depth = self._calculate_depth()
+        self.count = len(leaves)
+        self._rows = []
+
+        self._generate()
+
+    def _generate(self):
+        """Generate the merkle tree from the leaves"""
+        self._rows = [[] for _ in range(self.depth)]
+
+        if not self.prehashed:
+            self.leaves = [self._hash(leaf) for leaf in self.leaves]
+
+        self._rows[self.depth - 1] = self.leaves
+
+        for i in range(self.depth - 2, -1, -1):
+            self._rows[i] = self._make_row(i)
+            self.count += len(self._rows[i])
+
+    def _make_row(self, depth):
+        """Generate the row at the specified depth"""
+        row = []
+
+        prior = self._rows[depth + 1]
+
+        for i in range(0, len(prior), 2):
+            entry = self._hash('%s%s' % (prior[i], prior[i + 1]))
+            row.append(entry)
+
+        return row
+
+    def _hash(self, data):
+        """Returns ripemd160 of sha256 of a string"""
+        data = '%s' % data
+        return binascii.hexlify(self._ripemd160(hashlib.sha256(data).digest()))
+
+    def _ripemd160(self, data):
+        """Returns the ripemd160 digest of the data"""
+        return hashlib.new('ripemd160', data).digest()
+
+    def _calculate_depth(self):
+        """Calculate the depth of the tree from the number of leaves"""
+        pow = 0
+
+        while (2 ** pow) <= len(self.leaves):
+            pow += 1
+
+        return pow
+
+    def get_root(self):
+        """Return the root of the tree"""
+        return self._rows[0][0]
+
+    def get_level(self, depth):
+        """Returns the tree row at the specified depth"""
+        return self._rows[depth]

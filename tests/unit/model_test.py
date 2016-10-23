@@ -6,7 +6,8 @@ import strict_rfc3339
 
 from datetime import datetime
 
-from storj.model import Bucket, Frame, Shard, Token
+from storj.model import Bucket, Frame, Shard, Token, MerkleTree
+import mock
 
 from .. import AbstractTestCase
 
@@ -174,3 +175,51 @@ class TokenTestCase(AbstractTestCase):
             operation='unknown',
             token='510b23e9f63a77d939a72a77')
         self._assert_init(kwargs)
+
+
+class MerkleTreeTestCase(AbstractTestCase):
+    """Test case for the MerkleTree Class"""
+
+    @mock.patch('storj.model.MerkleTree._calculate_depth')
+    @mock.patch('storj.model.MerkleTree._generate')
+    def _assert_init(self, kwargs, mock_generate, mock_depth):
+        """Run init assertions for MerkleTree"""
+
+        mock_depth.return_value = 7
+        tree = MerkleTree(**kwargs)
+
+        mock_depth.assert_called_once_with()
+        mock_generate.assert_called_once_with()
+
+        assert kwargs['leaves'] == tree.leaves
+
+        prehashed = kwargs['prehashed'] if 'prehashed' in kwargs else False
+        assert prehashed == tree.prehashed
+        assert tree.depth == mock_depth.return_value
+        assert tree.count == len(kwargs['leaves'])
+        assert tree._rows == []
+
+    def test_init(self):
+        """Test MerkleTree.__init__()."""
+        kwargs = dict(
+            leaves=['a', 'b'],
+        )
+        self._assert_init(kwargs)
+
+        kwargs = dict(
+            leaves=['a', 'b'],
+            prehashed=True
+        )
+        self._assert_init(kwargs)
+
+        kwargs = dict(leaves=73)
+        with self.assertRaises(ValueError):
+            self._assert_init(kwargs)
+
+        kwargs = dict(leaves=[])
+        with self.assertRaises(ValueError):
+            self._assert_init(kwargs)
+
+        kwargs = dict(leaves=[1, 2])
+        with self.assertRaises(ValueError):
+            self._assert_init(kwargs)

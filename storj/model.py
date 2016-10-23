@@ -315,7 +315,15 @@ class MerkleTree:
     rows (list[list[str]]): the levels of the tree
     """
 
-    def __init__(self, leaves=[], prehashed=False):
+    def __init__(self, leaves, prehashed=False):
+
+        if not isinstance(leaves, list):
+            raise ValueError("Leaves should be a list.")
+        if len(leaves) < 1:
+            raise ValueError("Leaves should contain at least one entry.")
+        for leaf in leaves:
+            if not isinstance(leaf, str):
+                raise ValueError("Leaves should contain only strings.")
 
         self.leaves = leaves
         self.prehashed = prehashed

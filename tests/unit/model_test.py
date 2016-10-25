@@ -239,3 +239,24 @@ class MerkleTreeTestCase(AbstractTestCase):
 
         make_row_calls = [mock.call(1), mock.call(0)]
         self.tree._make_row.assert_has_calls(make_row_calls)
+
+    def test_make_row(self):
+        pass
+
+    def test_hash(self):
+        pass
+
+    def test_ripemd160(self):
+        pass
+
+    def test_sha256(self):
+        pass
+
+    def test_calculate_depth(self):
+        pass
+
+    def test_get_root(self):
+        pass
+
+    def test_get_level(self):
+        pass

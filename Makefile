@@ -93,11 +93,6 @@ test: setup
 
 	# test
 	env/bin/tox -- --ignore=tests/integration
-	# $(COVERAGE) run --source=storj setup.py test
-
-	# report coverage
-	# $(COVERAGE) html
-	# $(COVERAGE) report  # --fail-under=90
 
 
 publish: test

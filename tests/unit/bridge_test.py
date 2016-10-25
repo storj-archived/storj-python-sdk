@@ -4,10 +4,14 @@
 from .. import AbstractTestCase
 import mock
 
-from hashlib import sha256
-
-from storj import http
+from storj import bridge
 from storj import model
+
+
+PRIVKEY = "45c6efba90601d9ff8f6f46550cc4661b940f39761963d82529e555ead8e915b"
+PUBKEY = "0200802cc451fa39b0730bb5f37a3670e96e9e8e8ea479381f077ff4730fe2ed0b"
+PASSWORD = "s3CR3cy"
+PW_DIGEST = "67f1a7a10045d97a03312c9332d2c98195408abfb132be141194d8a75898d6da"
 
 
 class ClientTestCase(AbstractTestCase):
@@ -18,24 +22,27 @@ class ClientTestCase(AbstractTestCase):
 
         self.email = 'email@example.com'
         self.password = 's3CR3cy'
-        self.client = http.Client(self.email, self.password)
+        self.privkey = PRIVKEY
+        self.client = bridge.Client(email=self.email, password=self.password,
+                                    privkey=self.privkey)
         self.client._request = mock.MagicMock()
-        self.password_digest = sha256(
-            self.password.encode('ascii')).hexdigest()
 
     def test_init(self):
         """Test Client.__init__()."""
         assert self.email == self.client.email
-        assert self.password_digest == self.client.password
+        assert PW_DIGEST == self.client.password
 
-    def test_add_basic_auth(self):
-        """Test Client._add_basic_auth()."""
-        request_kwargs = dict(headers={})
-        self.client._add_basic_auth(request_kwargs)
-
-        assert 'Authorization' in request_kwargs['headers']
-        assert request_kwargs['headers']['Authorization'].startswith(b'Basic ')
-        assert request_kwargs['headers']['Authorization'].endswith(b'==')
+    def test_user_register(self):
+        self.client.user_register()
+        self.client._request.assert_called_with(
+            data={
+                'password': PW_DIGEST,
+                'pubkey': PUBKEY,
+                'email': 'email@example.com'
+            },
+            method='POST',
+            path='/users'
+        )
 
     def test_bucket_create(self):
         """Test Client.bucket_create()."""
@@ -48,7 +55,8 @@ class ClientTestCase(AbstractTestCase):
         self.client._request.assert_called_with(
             method='POST',
             path='/buckets',
-            json=test_json)
+            data=test_json
+        )
         self.assertIsInstance(bucket, model.Bucket)
 
     def test_bucket_delete(self):
@@ -63,7 +71,7 @@ class ClientTestCase(AbstractTestCase):
     def test_bucket_files(self):
         """Test Client.bucket_files()."""
         test_bucket_id = "57fd385426adcf743b3d39c5"
-        test_file_id = "57ffbfd28ce9b61c2634ea5d"
+        # test_file_id = "57ffbfd28ce9b61c2634ea5d"
 
         self.client.token_create = mock.MagicMock()
         self.client.token_create.return_value = {'token': 'test_token'}
@@ -123,7 +131,7 @@ class ClientTestCase(AbstractTestCase):
         self.client._request.assert_called_with(
             method='PATCH',
             path='/buckets/%s' % test_bucket_id,
-            json={'pubkeys': test_keys})
+            data={'pubkeys': test_keys})
 
     def test_contacts_list(self):
         """Test Client.contact_list()."""
@@ -137,7 +145,8 @@ class ClientTestCase(AbstractTestCase):
         self.client._request.assert_called_with(
             method='GET',
             path='/contacts',
-            json={})
+            params={}
+        )
         self.assertEqual(contacts, test_response)
 
     def test_file_download(self):

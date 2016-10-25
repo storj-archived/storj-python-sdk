@@ -8,7 +8,7 @@ import click
 
 from six.moves import configparser
 
-from storj.http import Client
+from storj.bridge import Client
 
 
 APP_NAME = 'storj'
@@ -54,7 +54,7 @@ def key():
 
 @key.command()
 def generate():
-    client = get_client()
+    pass  # client = get_client()
 
 
 @key.command

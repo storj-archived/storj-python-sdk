@@ -180,6 +180,12 @@ class TokenTestCase(AbstractTestCase):
 class MerkleTreeTestCase(AbstractTestCase):
     """Test case for the MerkleTree Class"""
 
+    def setUp(self):
+        super(AbstractTestCase, self).setUp()
+
+        self.leaves = ['a', 'b', 'c', 'd']
+        self.tree = MerkleTree(self.leaves)
+
     @mock.patch('storj.model.MerkleTree._calculate_depth')
     @mock.patch('storj.model.MerkleTree._generate')
     def _assert_init(self, kwargs, mock_generate, mock_depth):
@@ -188,16 +194,16 @@ class MerkleTreeTestCase(AbstractTestCase):
         mock_depth.return_value = 7
         tree = MerkleTree(**kwargs)
 
-        mock_depth.assert_called_once_with()
-        mock_generate.assert_called_once_with()
-
         assert kwargs['leaves'] == tree.leaves
 
-        prehashed = kwargs['prehashed'] if 'prehashed' in kwargs else False
+        prehashed = kwargs['prehashed'] if 'prehashed' in kwargs else True
         assert prehashed == tree.prehashed
         assert tree.depth == mock_depth.return_value
-        assert tree.count == len(kwargs['leaves'])
+        assert tree.count == 0
         assert tree._rows == []
+
+        mock_depth.assert_called_once_with()
+        mock_generate.assert_called_once_with()
 
     def test_init(self):
         """Test MerkleTree.__init__()."""
@@ -223,3 +229,13 @@ class MerkleTreeTestCase(AbstractTestCase):
         kwargs = dict(leaves=[1, 2])
         with self.assertRaises(ValueError):
             self._assert_init(kwargs)
+
+    def test_generate(self):
+        """Test MerkleTree._generate()"""
+        self.tree._make_row = mock.MagicMock()
+        self.tree._make_row.return_value = ['a', 'b']
+
+        self.tree._generate()
+
+        make_row_calls = [mock.call(1), mock.call(0)]
+        self.tree._make_row.assert_has_calls(make_row_calls)

@@ -315,7 +315,7 @@ class MerkleTree:
     rows (list[list[str]]): the levels of the tree
     """
 
-    def __init__(self, leaves, prehashed=False):
+    def __init__(self, leaves, prehashed=True):
 
         if not isinstance(leaves, list):
             raise ValueError("Leaves should be a list.")
@@ -325,24 +325,35 @@ class MerkleTree:
             if not isinstance(leaf, str):
                 raise ValueError("Leaves should contain only strings.")
 
-        self.leaves = leaves
+        self.leaves = [leaf for leaf in leaves]
         self.prehashed = prehashed
         self.depth = self._calculate_depth()
-        self.count = len(leaves)
+        self.count = 0
         self._rows = []
 
         self._generate()
 
     def _generate(self):
         """Generate the merkle tree from the leaves"""
-        self._rows = [[] for _ in range(self.depth)]
+        self._rows = [[] for _ in range(self.depth + 1)]
 
         if not self.prehashed:
             self.leaves = [self._hash(leaf) for leaf in self.leaves]
 
-        self._rows[self.depth - 1] = self.leaves
+        # The number of leaves should be filled with hash of empty strings
+        # until the number of leaves is a power of 2.
+        # See https://storj.github.io/core/tutorial-protocol-spec.html
+        while len(self.leaves) < (2 ** self.depth):
+            self.leaves.append(self._hash(''))
 
-        for i in range(self.depth - 2, -1, -1):
+        leaf_row = self.depth
+        deepest_branches = self.depth - 1
+
+        self._rows[leaf_row] = self.leaves
+        self.count += len(self.leaves)
+
+        # Generate each row, starting from the bottom
+        for i in range(deepest_branches, -1, -1):
             self._rows[i] = self._make_row(i)
             self.count += len(self._rows[i])
 
@@ -359,19 +370,25 @@ class MerkleTree:
         return row
 
     def _hash(self, data):
-        """Returns ripemd160 of sha256 of a string"""
-        data = '%s' % data
-        return binascii.hexlify(self._ripemd160(hashlib.sha256(data).digest()))
+        """Returns ripemd160 of sha256 of a utf-8 string"""
+        data = data.encode('utf-8')
+        data = bytes(data)
+        output = binascii.hexlify(self._ripemd160(self._sha256(data)))
+        return output.decode('utf-8')
 
-    def _ripemd160(self, data):
-        """Returns the ripemd160 digest of the data"""
-        return hashlib.new('ripemd160', data).digest()
+    def _ripemd160(self, b):
+        """Returns the ripemd160 digest of a bytes object as bytes"""
+        return hashlib.new('ripemd160', b).digest()
+
+    def _sha256(self, b):
+        """Returns the sha256 digest of a bytes object as bytes"""
+        return hashlib.new('sha256', b).digest()
 
     def _calculate_depth(self):
         """Calculate the depth of the tree from the number of leaves"""
         pow = 0
 
-        while (2 ** pow) <= len(self.leaves):
+        while (2 ** pow) < len(self.leaves):
             pow += 1
 
         return pow

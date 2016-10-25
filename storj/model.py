@@ -370,18 +370,18 @@ class MerkleTree:
         return row
 
     def _hash(self, data):
-        """Returns ripemd160 of sha256 of a utf-8 string"""
+        """Returns ripemd160 of sha256 of a string as a string of hex"""
         data = data.encode('utf-8')
         data = bytes(data)
         output = binascii.hexlify(self._ripemd160(self._sha256(data)))
         return output.decode('utf-8')
 
     def _ripemd160(self, b):
-        """Returns the ripemd160 digest of a bytes object as bytes"""
+        """Returns the ripemd160 digest of bytes as bytes"""
         return hashlib.new('ripemd160', b).digest()
 
     def _sha256(self, b):
-        """Returns the sha256 digest of a bytes object as bytes"""
+        """Returns the sha256 digest of bytes as bytes"""
         return hashlib.new('sha256', b).digest()
 
     def _calculate_depth(self):

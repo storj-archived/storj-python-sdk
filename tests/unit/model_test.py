@@ -281,8 +281,15 @@ class MerkleTreeTestCase(AbstractTestCase):
         mock_binascii.hexlify.assert_called_with(hash_output)
         test_data.decode.assert_called_with('utf-8')
 
-    def test_ripemd160(self):
-        pass
+    @mock.patch('storj.model.hashlib')
+    def test_ripemd160(self, mock_hashlib):
+        """Test MerkleTree._ripemd160"""
+        test_data = 'ab'
+
+        output = self.tree._ripemd160(test_data)
+
+        mock_hashlib.new.assert_called_with('ripemd160', test_data)
+        mock_hashlib.new.return_value.digest.assert_called_once_with()
 
     def test_sha256(self):
         pass

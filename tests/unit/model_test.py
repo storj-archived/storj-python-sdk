@@ -241,10 +241,45 @@ class MerkleTreeTestCase(AbstractTestCase):
         self.tree._make_row.assert_has_calls(make_row_calls)
 
     def test_make_row(self):
-        pass
+        """Test MerkleTree._make_row()"""
 
-    def test_hash(self):
-        pass
+        self.tree._rows = [[],
+                           [],
+                           ['a', 'b', 'c', 'd']]
+        self.tree._hash = mock.MagicMock()
+        self.tree._hash.return_value = '7'
+
+        row = self.tree._make_row(1)
+
+        calls = [mock.call('ab'),
+                 mock.call('cd')]
+        self.tree._hash.assert_has_calls(calls)
+        self.assertEqual(row, ['7', '7'])
+
+    @mock.patch('storj.model.bytes')
+    @mock.patch('storj.model.binascii')
+    def test_hash(self, mock_binascii, mock_bytes):
+        """Test MerkleTree._hash()"""
+
+        self.tree._ripemd160 = mock.MagicMock()
+        self.tree._sha256 = mock.MagicMock()
+        hash_output = mock.MagicMock()
+        test_data = mock.MagicMock()
+
+        test_data.encode.return_value = test_data
+        self.tree._ripemd160.return_value = hash_output
+        self.tree._sha256.return_value = hash_output
+        mock_bytes.return_value = test_data
+        mock_binascii.hexlify.return_value = test_data
+
+        output = self.tree._hash(test_data)
+
+        test_data.encode.assert_called_with('utf-8')
+        mock_bytes.assert_called_with(test_data)
+        self.tree._sha256.assert_called_with(test_data)
+        self.tree._ripemd160.assert_called_with(hash_output)
+        mock_binascii.hexlify.assert_called_with(hash_output)
+        test_data.decode.assert_called_with('utf-8')
 
     def test_ripemd160(self):
         pass

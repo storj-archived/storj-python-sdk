@@ -4,93 +4,14 @@
 from .. import AbstractTestCase
 import mock
 
-import jsonschema
-import os
 from storj import http
 from storj import model
-from micropayment_core import keys
 
 
 PRIVKEY = "45c6efba90601d9ff8f6f46550cc4661b940f39761963d82529e555ead8e915b"
 PUBKEY = "0200802cc451fa39b0730bb5f37a3670e96e9e8e8ea479381f077ff4730fe2ed0b"
 PASSWORD = "s3CR3cy"
 PW_DIGEST = "67f1a7a10045d97a03312c9332d2c98195408abfb132be141194d8a75898d6da"
-
-
-USER_REGISTER_RESULT = {
-    "type": "object",
-    "properties": {
-        "pubkey": {"type": "string"},
-        "activated": {"type": "boolean"},
-        "id": {"type": "string"},
-        "created": {"type": "string"},
-        "email": {"type": "string"}
-    },
-    "additionalProperties": False,
-    "required": ["pubkey", "activated", "id", "created", "email"]
-}
-
-
-CONTACTS_LIST_SCHEMA = {
-    "type": "array",
-    "itmes": {
-        "type": {
-            "type": "object",
-            "properties": {
-                "address": "string",
-                "port": "integer",
-                "nodeID": "string",
-                "lastSeen": "string",
-                "userAgent": "string",
-                "protocol": "string"
-            },
-            "additionalProperties": False,
-            "required": ["address", "port", "nodeID", "lastSeen", "protocol"]
-        }
-    }
-}
-
-
-USER_ACTIVATE_RESULT = {
-    "type": "object",
-    "properties": {
-        "activated": {"type": "boolean"},
-        "created": {"type": "string"},
-        "email": {"type": "string"}
-    },
-    "additionalProperties": False,
-    "required": ["activated", "created", "email"]
-}
-
-
-class ProperClientTestCase(AbstractTestCase):
-
-    def test_usage(self):
-        super(AbstractTestCase, self).setUp()
-
-        # FIXME move to integration
-        client = http.Client(
-            email="{0}@bar.com".format(keys.b2h(os.urandom(32))),
-            password="12345",
-            privkey=keys.generate_privkey(),
-            # url="http://api.staging.storj.io/"
-        )
-
-        # test call
-        apispec = client.call(method="GET")
-        self.assertEqual(apispec["info"]["title"], u"Storj Bridge")
-
-        # contacts list
-        result = client.contacts_list()
-        jsonschema.validate(result, CONTACTS_LIST_SCHEMA)
-
-        # register user
-        result = client.user_register()
-        jsonschema.validate(result, USER_REGISTER_RESULT)
-
-        # FIXME test activate user
-        # result = client.user_activate("TODO get token")
-        # jsonschema.validate(result, USER_ACTIVATE_RESULT)
 
 
 class ClientTestCase(AbstractTestCase):

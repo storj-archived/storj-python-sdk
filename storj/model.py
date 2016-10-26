@@ -347,15 +347,17 @@ class MerkleTree:
             self.leaves.append(self._hash(''))
 
         leaf_row = self.depth
-        deepest_branches = self.depth - 1
+        next_branches = self.depth - 1
 
         self._rows[leaf_row] = self.leaves
         self.count += len(self.leaves)
 
         # Generate each row, starting from the bottom
-        for i in range(deepest_branches, -1, -1):
-            self._rows[i] = self._make_row(i)
-            self.count += len(self._rows[i])
+
+        while next_branches >= 0:
+            self._rows[next_branches] = self._make_row(next_branches)
+            self.count += len(self._rows[next_branches])
+            next_branches -= 1
 
     def _make_row(self, depth):
         """Generate the row at the specified depth"""

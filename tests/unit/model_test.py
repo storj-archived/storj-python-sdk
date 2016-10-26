@@ -291,14 +291,35 @@ class MerkleTreeTestCase(AbstractTestCase):
         mock_hashlib.new.assert_called_with('ripemd160', test_data)
         mock_hashlib.new.return_value.digest.assert_called_once_with()
 
-    def test_sha256(self):
-        pass
+    @mock.patch('storj.model.hashlib')
+    def test_sha256(self, mock_hashlib):
+        """Test MerkleTree._sha256"""
+        test_data = 'ab'
+
+        output = self.tree._ripemd160(test_data)
+
+        mock_hashlib.new.assert_called_with('ripemd160', test_data)
+        mock_hashlib.new.return_value.digest.assert_called_once_with()
 
     def test_calculate_depth(self):
-        pass
+        """Test MerkleTree.calculate_depth"""
+
+        self.tree.leaves = mock.MagicMock()
+        self.tree.leaves.__len__.return_value = 8
+
+        depth = self.tree._calculate_depth()
+
+        self.assertEqual(self.tree.leaves.__len__.call_count, 4)
+        self.assertEqual(2 ** depth, 8)
 
     def test_get_root(self):
-        pass
+        """Test MerkleTree.get_root"""
+        root = self.tree.get_root()
+
+        self.assertEqual(root, self.tree._rows[0][0])
 
     def test_get_level(self):
-        pass
+        """Test MerkleTree.get_level"""
+        level = self.tree.get_level(1)
+
+        self.assertEqual(level, self.tree._rows[1])

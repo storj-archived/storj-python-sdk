@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import binascii
-import hashlib
 import io
 
-from .api import ecdsa_to_hex
-from .http import Client
+from .bridge import Client
 from .model import Bucket, Token, File
 
 
@@ -119,7 +116,7 @@ class FileManager:
         self.bucket_id = bucket_id
 
     def all(self):
-        files_json = api_client.file_get(bucket_id=self.bucket_id)
+        files_json = api_client.file_list(bucket_id=self.bucket_id)
         return [File(payload) for payload in files_json]
 
     def _upload(self, file, frame):

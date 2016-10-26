@@ -1,10 +1,7 @@
-mock
-coverage
-coveralls
-pep8
 autopep8
 pudb
 jsonschema
+mock
 pylint
 pytest
 pytest-cov

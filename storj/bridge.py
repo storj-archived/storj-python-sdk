@@ -311,7 +311,7 @@ class Client(object):
         See:
             https://storj.github.io/bridge/#!/keys/delete_keys_pubkey
         """
-        return self.call(method='DELETE', path='/keys/'.format(pubkey))
+        return self.call(method='DELETE', path='/keys/{0}'.format(pubkey))
 
     # ===================== TODO FRAMES =====================
 
@@ -378,9 +378,10 @@ class Client(object):
         return self.call(
             method='GET',
             path='/buckets/%s/files/%s/' % (bucket_id, file_id),
-            headers={
+            headers={  # FIXME undocumented unsigned header!!!
                 'x-token': pull_token['token'],
-            })
+            }
+        )
 
     def bucket_get(self, bucket_id):
         """Returns buckets.

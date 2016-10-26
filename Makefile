@@ -22,7 +22,6 @@ help:
 	@echo "  test           Run tests."
 	@echo "  wheel          Build package wheel & save in $(WHEEL_DIR)."
 	@echo "  wheels         Build dependency wheels & save in $(WHEEL_DIR)."
-	@echo "  publish        Build and upload package to pypi.python.org"
 	@echo ""
 	@echo "VARIABLES:"
 	@echo "  PY_VERSION     Version of python to use. Default: $(PY_VERSION)"
@@ -82,14 +81,10 @@ shell: install
 test: setup
 
 	# auto pep8 code
-	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive storj
 	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive examples
-	$(AUTOPEP8) --in-place --aggressive --aggressive --recursive tests
 
 	# ensure pep8
-	$(PEP8) storj
 	$(PEP8) examples
-	$(PEP8) tests
 
 	# test
 	env/bin/tox -- --ignore=tests/integration

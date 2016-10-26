@@ -170,21 +170,24 @@ class Shard:
 
     Attributes:
         id (str): unique identifier.
-        hash (str): .
-        size (long): .
-        index (int): .
-        challenges (list[str]):
-        tree (list[str]):
-        exclude (list[str]):
+        hash (str): hash of the data.
+        size (long): size of the shard in bytes.
+        index (int): numberic index of the shard in the frame.
+        challenges (list[str]): list of challenge numbers
+        tree (list[str]): audit merkle tree
+        exclude (list[str]): list of farmer nodeIDs to exclude
     """
 
-    def __init__(self, id=None, hash=None, index=None,
+    def __init__(self, id=None, hash=None, size=None, index=None,
                  challenges=None, tree=None, exclude=None):
         self.id = id
         # self.path = None
         self.hash = hash
-        self.size = None
+        self.size = size
         self.index = index
+        self.challenges = challenges
+        self.tree = tree
+        self.exclude = exclude
 
         if challenges is not None:
             self.challenges = challenges
@@ -202,13 +205,14 @@ class Shard:
             self.exclude = []
 
     def all(self):
-        msg = 'Shard{index=%s, hash=%s, size=%s, tree={%s}, challenges={%s}'
-        return msg % (
+        return_string = 'Shard{index=%s, hash=%s, ' % (
             self.index,
-            self.hash, self.size,
+            self.hash)
+        return_string += 'size=%s, tree={%s}, challenges={%s}' % (
+            self.size,
             ', '.join(self.tree),
-            ', '.join(self.challenges)
-        )
+            ', '.join(self.challenges))
+        return return_string
 
     def add_challenge(self, challenge):
         """Append challenge.

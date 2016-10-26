@@ -350,7 +350,8 @@ class MerkleTree:
         next_branches = self.depth - 1
 
         self._rows[leaf_row] = self.leaves
-        self.count += len(self.leaves)
+        if not self.prehashed:
+            self.count += len(self.leaves)
 
         # Generate each row, starting from the bottom
 

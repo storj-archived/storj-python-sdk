@@ -323,3 +323,24 @@ class MerkleTreeTestCase(AbstractTestCase):
         level = self.tree.get_level(1)
 
         self.assertEqual(level, self.tree._rows[1])
+
+    def test_node_output(self):
+        """Test MerkleTree with output from the node client"""
+        leaves = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+        depth = 3
+        rows = [['2adf050f14bf6324bfd41577d0dc08e2e49766fa'],
+                ['39c096fc1b11e77f4347cfdb45ba9b03c0ad95d9',
+                 '47121e7ec10e7653f1262b1d3abb6f9a71b3de8b'],
+                ['e4973182d0c331ce8b083ffa2b28c8b4fc0f1d93',
+                 'c91b9f3b2937035cc07d3fcd258d7d8a1f0c4d3c',
+                 '8182daac9a266aa39328b835726f80a34835027d',
+                 '222025114b2d1374b4a354d1b4452f648c9b481d'],
+                ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']]
+        count = 7
+
+        tree = MerkleTree(leaves)
+
+        self.assertEqual(tree.leaves, leaves)
+        self.assertEqual(tree.depth, depth)
+        self.assertEqual(tree._rows, rows)
+        self.assertEqual(tree.count, count)

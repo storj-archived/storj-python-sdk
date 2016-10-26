@@ -2,7 +2,7 @@
 
 import io
 
-from .bridge import Client
+from .http import Client
 from .model import Bucket, Token, File
 
 

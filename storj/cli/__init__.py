@@ -8,7 +8,7 @@ import click
 
 from six.moves import configparser
 
-from storj.bridge import Client
+from storj.http import Client
 
 
 APP_NAME = 'storj'

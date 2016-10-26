@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Test cases for the storj.bridge module."""
+"""Test cases for the storj.http module."""
 
 from .. import AbstractTestCase
 import mock
 
 import jsonschema
 import os
-from storj import bridge
+from storj import http
 from storj import model
 from micropayment_core import keys
 
@@ -68,7 +68,8 @@ class ProperClientTestCase(AbstractTestCase):
     def test_usage(self):
         super(AbstractTestCase, self).setUp()
 
-        client = bridge.Client(
+        # FIXME move to integration
+        client = http.Client(
             email="{0}@bar.com".format(keys.b2h(os.urandom(32))),
             password="12345",
             privkey=keys.generate_privkey(),
@@ -101,8 +102,8 @@ class ClientTestCase(AbstractTestCase):
         self.email = 'email@example.com'
         self.password = 's3CR3cy'
         self.privkey = PRIVKEY
-        self.client = bridge.Client(email=self.email, password=self.password,
-                                    privkey=self.privkey)
+        self.client = http.Client(email=self.email, password=self.password,
+                                  privkey=self.privkey)
 
         # FIXME doesnt interacts with bridge, how is it a valid test?
         self.client.call = mock.MagicMock()
@@ -315,7 +316,7 @@ class ClientTestCase(AbstractTestCase):
             data=test_json
         )
 
-    @mock.patch('storj.bridge.model.Frame', autospec=True)
+    @mock.patch('storj.http.model.Frame', autospec=True)
     def test_frame_get(self, mock_frame):
         """Test Client.frame_get()."""
         test_frame_id = '1234'

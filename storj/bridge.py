@@ -5,8 +5,6 @@ import os
 import json
 import logging
 import requests
-import storj
-import time
 from base64 import b64encode
 from hashlib import sha256
 from io import BytesIO
@@ -21,42 +19,50 @@ class Client(object):
     logger = logging.getLogger('%s.Client' % __name__)
 
     def __init__(self, email=None, password=None, privkey=None,
-                 api_url="https://api.storj.io/"):
-        self.api_url = api_url
+                 url="https://api.storj.io/"):
+        self.url = url
         self.session = requests.Session()
         self.privkey = privkey
         self.email = email
         self.password = sha256(password.encode('ascii')).hexdigest()
 
-    def _request(self, method=None, path=None, headers=None,
-                 data=None, params=None):
+    def call(self, method=None, path=None, headers=None,
+             data=None, params=None):
+        # TODO doc string
 
-        url = urljoin(self.api_url, path) if path else self.api_url
+        url = urljoin(self.url, path) if path else self.url
         headers = headers if headers is not None else {}
 
+        if self.privkey:
+            pubkey = keys.pubkey_from_privkey(self.privkey)
+            headers.update({
+                "x-pubkey": pubkey,
+                "x-signature": "invalid"  # FIXME create valid signature
+            })
+
         # basic auth
-        # TODO use requests.auth.HTTPBasicAuth?
-        if self.email and self.password and not self.privkey:
+        elif self.email and self.password:
+            # TODO use requests.auth.HTTPBasicAuth instead?
             headers.update({
                 'Authorization': b'Basic ' + b64encode(
                     ('%s:%s' % (self.email, self.password)).encode('ascii')
                 )
             })
 
-        # TODO sign privkey auth
+        else:
+            raise Exception("No auth credentials!")
 
-        response = self.session.send(requests.Request(
-            method=method,
-            url=url,
-            headers=headers,
-            data=json.dumps(data),
-            params=params,
-            # files=None, auth=None, cookies=None, hooks=None
-        ).prepare())
+        kwargs = dict(
+            method=method, url=url, headers=headers,
+            data=json.dumps(data), params=params,
+        )
+        # print("REQUEST:", json.dumps(kwargs, indent=2))
+        response = self.session.send(requests.Request(**kwargs).prepare())
+        response.raise_for_status()
+        result = response.json()
+        # print("RESPONSE:", result)
 
-        # TODO validate privkey auth
-
-        return response.json()
+        return result
 
     def contacts_list(self, **kwargs):
         """ Lists the contacts according to the supplied query.
@@ -73,6 +79,7 @@ class Client(object):
                 {
                     "address": "api.storj.io",
                     "port": 8443,
+                    "userAgent": "userAgent",
                     "nodeID": "32033d2dc11b877df4b1caefbffba06495ae6b18",
                     "lastSeen": "2016-05-24T15:16:01.139Z",
                     "protocol": "0.7.0"
@@ -82,7 +89,7 @@ class Client(object):
         See:
             https://storj.github.io/bridge/#!/contacts/get_contacts
         """
-        return self._request(method='GET', path='/contacts', params=kwargs)
+        return self.call(method='GET', path='/contacts', params=kwargs)
 
     def contact_information(self, nodeid):
         """ Performs a lookup for the contact information of a node.
@@ -102,7 +109,7 @@ class Client(object):
         See:
             https://storj.github.io/bridge/#!/contacts/get_contacts_nodeID
         """
-        return self._request(method='GET', path='/contacts/{0}'.format(nodeid))
+        return self.call(method='GET', path='/contacts/{0}'.format(nodeid))
 
     def user_register(self):
         """ Registers a new user account with Storj Bridge.
@@ -119,7 +126,7 @@ class Client(object):
         """
         privkey = self.privkey
         pubkey = keys.pubkey_from_privkey(privkey) if privkey else None
-        return self._request(
+        return self.call(
             method='POST',
             path='/users',
             data={
@@ -145,7 +152,7 @@ class Client(object):
         See:
             https://storj.github.io/bridge/#!/users/delete_users_email
         """
-        return self._request(
+        return self.call(
             method='DELETE',
             path='/users/{0}'.format(self.email),
             data={"redirect": redirect} if redirect else {}
@@ -164,7 +171,7 @@ class Client(object):
         See:
             https://storj.github.io/bridge/#!/users/patch_users_email
         """
-        return self._request(
+        return self.call(
             method='PATCH',
             path='/users/{0}'.format(self.email),
         )
@@ -186,7 +193,7 @@ class Client(object):
         See:
             https://storj.github.io/bridge/#!/users/get_resets_token
         """
-        return self._request(
+        return self.call(
             method='GET',
             path='/resets/{0}'.format(token),
             params={"redirect": redirect} if redirect is not None else {}
@@ -209,7 +216,7 @@ class Client(object):
         See:
             https://storj.github.io/bridge/#!/users/get_activations_token
         """
-        return self._request(
+        return self.call(
             method='GET',
             path='/activations/{0}'.format(token),
             params={"redirect": redirect} if redirect is not None else {}
@@ -232,7 +239,7 @@ class Client(object):
         See:
             https://storj.github.io/bridge/#!/users/post_activations_token
         """
-        return self._request(
+        return self.call(
             method='POST',
             path='/activations/{0}'.format(token),
             data={"redirect": redirect, "email": self.email}
@@ -255,7 +262,7 @@ class Client(object):
         See:
             https://storj.github.io/bridge/#!/users/get_deactivations_token
         """
-        return self._request(
+        return self.call(
             method='GET',
             path='/deactivations/{0}'.format(token),
             params={"redirect": redirect} if redirect is not None else {}
@@ -275,7 +282,7 @@ class Client(object):
         See:
             https://storj.github.io/bridge/#!/keys/get_keys
         """
-        return self._request(method='GET', path='/keys')
+        return self.call(method='GET', path='/keys')
 
     def keys_register(self, pubkey):
         """ Registers an ECDSA public key for the user account.
@@ -293,7 +300,7 @@ class Client(object):
             https://storj.github.io/bridge/#!/keys/post_keys
         """
         # FIXME nothing signed, should prove control of private key
-        return self._request(method='POST', path='/keys', data={'key': pubkey})
+        return self.call(method='POST', path='/keys', data={'key': pubkey})
 
     def keys_delete(self, pubkey):
         """ Destroys a ECDSA public key for the user account.
@@ -304,7 +311,7 @@ class Client(object):
         See:
             https://storj.github.io/bridge/#!/keys/delete_keys_pubkey
         """
-        return self._request(method='DELETE', path='/keys/'.format(pubkey))
+        return self.call(method='DELETE', path='/keys/'.format(pubkey))
 
     # ===================== TODO FRAMES =====================
 
@@ -331,7 +338,7 @@ class Client(object):
         if transfer:
             data['transfer'] = transfer
 
-        response = self._request(method='POST', path='/buckets', data=data)
+        response = self.call(method='POST', path='/buckets', data=data)
         return model.Bucket(**response)
 
     def bucket_delete(self, bucket_id):
@@ -341,7 +348,7 @@ class Client(object):
             bucket_id (string): unique identifier.
         """
         self.logger.info('bucket_delete(%s)', bucket_id)
-        self._request(method='DELETE', path='/buckets/%s' % bucket_id)
+        self.call(method='DELETE', path='/buckets/%s' % bucket_id)
 
     def bucket_files(self, bucket_id):
         """
@@ -352,7 +359,7 @@ class Client(object):
         self.logger.info('bucket_files(%s)', bucket_id)
 
         pull_token = self.token_create(bucket_id, operation='PULL')
-        return self._request(
+        return self.call(
             method='GET',
             path='/buckets/%s/files/' % (bucket_id),
             headers={
@@ -368,7 +375,7 @@ class Client(object):
         self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
 
         pull_token = self.token_create(bucket_id, operation='PULL')
-        return self._request(
+        return self.call(
             method='GET',
             path='/buckets/%s/files/%s/' % (bucket_id, file_id),
             headers={
@@ -385,7 +392,7 @@ class Client(object):
             (:py:class:`model.Bucket`): bucket.
         """
         try:
-            response = self._request(
+            response = self.call(
                 method='GET',
                 path='/buckets/%s' % bucket_id)
             return model.Bucket(**response)
@@ -404,7 +411,7 @@ class Client(object):
         """
         self.logger.info('bucket_list()')
 
-        response = self._request(method='GET', path='/buckets')
+        response = self.call(method='GET', path='/buckets')
 
         if response is not None:
             for element in response:
@@ -415,7 +422,7 @@ class Client(object):
     def bucket_set_keys(self, bucket_id, keys):
         self.logger.info('bucket_set_keys()', bucket_id, keys)
 
-        self._request(
+        self.call(
             method='PATCH',
             path='/buckets/%s' % bucket_id,
             data={'pubkeys': keys})
@@ -437,7 +444,7 @@ class Client(object):
     def file_get(self, bucket_id):
         self.logger.info('file_get(%s)', bucket_id)
 
-        response = self._request(
+        response = self.call(
             method='GET',
             path='/buckets/%s/files' % bucket_id)
 
@@ -470,7 +477,7 @@ class Client(object):
         # upload shards to frame
         # delete encrypted file
 
-        self._request(
+        self.call(
             method='POST', path='/buckets/%s/files' % bucket_id,
             # files={'file' : file},
             headers={
@@ -490,7 +497,7 @@ class Client(object):
         """
         self.logger.info('file_remove(%s, %s)', bucket_id, file_id)
 
-        self._request(
+        self.call(
             method='DELETE',
             path='/buckets/%s/files/%s' % (bucket_id, file_id))
 
@@ -505,7 +512,7 @@ class Client(object):
             'tree': shard.tree,
         }
 
-        response = self._request(
+        response = self.call(
             method='PUT',
             path='/frames/%s' % frame_id,
             data=data)
@@ -525,7 +532,7 @@ class Client(object):
         """
         self.logger.info('frame_create()')
 
-        return self._request(method='POST', path='/frames', data={})
+        return self.call(method='POST', path='/frames', data={})
 
     def frame_delete(self, frame_id):
         """
@@ -535,7 +542,7 @@ class Client(object):
         """
         self.logger.info('frame_delete(%s)', frame_id)
 
-        self._request(
+        self.call(
             method='DELETE',
             path='/frames/%s' % frame_id,
             data={'frame_id': frame_id})
@@ -555,7 +562,7 @@ class Client(object):
         """
         self.logger.info('frame_get(%s)', frame_id)
 
-        response = self._request(
+        response = self.call(
             method='GET',
             path='/frames/%s' % frame_id,
             data={'frame_id': frame_id})
@@ -571,7 +578,7 @@ class Client(object):
         """
         self.logger.info('frame_list()')
 
-        response = self._request(
+        response = self.call(
             method='GET',
             path='/frames',
             data={})
@@ -591,7 +598,7 @@ class Client(object):
         """
         self.logger.info('create_token(%s, %s)', bucket_id, operation)
 
-        return self._request(
+        return self.call(
             method='POST',
             path='/buckets/%s/tokens' % bucket_id,
             data={'operation': operation})

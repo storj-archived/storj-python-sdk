@@ -4,14 +4,92 @@
 from .. import AbstractTestCase
 import mock
 
+import jsonschema
+import os
 from storj import bridge
 from storj import model
+from micropayment_core import keys
 
 
 PRIVKEY = "45c6efba90601d9ff8f6f46550cc4661b940f39761963d82529e555ead8e915b"
 PUBKEY = "0200802cc451fa39b0730bb5f37a3670e96e9e8e8ea479381f077ff4730fe2ed0b"
 PASSWORD = "s3CR3cy"
 PW_DIGEST = "67f1a7a10045d97a03312c9332d2c98195408abfb132be141194d8a75898d6da"
+
+
+USER_REGISTER_RESULT = {
+    "type": "object",
+    "properties": {
+        "pubkey": {"type": "string"},
+        "activated": {"type": "boolean"},
+        "id": {"type": "string"},
+        "created": {"type": "string"},
+        "email": {"type": "string"}
+    },
+    "additionalProperties": False,
+    "required": ["pubkey", "activated", "id", "created", "email"]
+}
+
+
+CONTACTS_LIST_SCHEMA = {
+    "type": "array",
+    "itmes": {
+        "type": {
+            "type": "object",
+            "properties": {
+                "address": "string",
+                "port": "integer",
+                "nodeID": "string",
+                "lastSeen": "string",
+                "userAgent": "string",
+                "protocol": "string"
+            },
+            "additionalProperties": False,
+            "required": ["address", "port", "nodeID", "lastSeen", "protocol"]
+        }
+    }
+}
+
+
+USER_ACTIVATE_RESULT = {
+    "type": "object",
+    "properties": {
+        "activated": {"type": "boolean"},
+        "created": {"type": "string"},
+        "email": {"type": "string"}
+    },
+    "additionalProperties": False,
+    "required": ["activated", "created", "email"]
+}
+
+
+class ProperClientTestCase(AbstractTestCase):
+
+    def test_usage(self):
+        super(AbstractTestCase, self).setUp()
+
+        client = bridge.Client(
+            email="{0}@bar.com".format(keys.b2h(os.urandom(32))),
+            password="12345",
+            privkey=keys.generate_privkey(),
+            # url="http://api.staging.storj.io/"
+        )
+
+        # test call
+        apispec = client.call(method="GET")
+        self.assertEqual(apispec["info"]["title"], u"Storj Bridge")
+
+        # contacts list
+        result = client.contacts_list()
+        jsonschema.validate(result, CONTACTS_LIST_SCHEMA)
+
+        # register user
+        result = client.user_register()
+        jsonschema.validate(result, USER_REGISTER_RESULT)
+
+        # FIXME test activate user
+        # result = client.user_activate("TODO get token")
+        # jsonschema.validate(result, USER_ACTIVATE_RESULT)
 
 
 class ClientTestCase(AbstractTestCase):
@@ -25,16 +103,21 @@ class ClientTestCase(AbstractTestCase):
         self.privkey = PRIVKEY
         self.client = bridge.Client(email=self.email, password=self.password,
                                     privkey=self.privkey)
-        self.client._request = mock.MagicMock()
+
+        # FIXME doesnt interacts with bridge, how is it a valid test?
+        self.client.call = mock.MagicMock()
 
     def test_init(self):
         """Test Client.__init__()."""
         assert self.email == self.client.email
         assert PW_DIGEST == self.client.password
 
+    def test_call(self):
+        pass
+
     def test_user_register(self):
         self.client.user_register()
-        self.client._request.assert_called_with(
+        self.client.call.assert_called_with(
             data={
                 'password': PW_DIGEST,
                 'pubkey': PUBKEY,
@@ -47,12 +130,12 @@ class ClientTestCase(AbstractTestCase):
     def test_bucket_create(self):
         """Test Client.bucket_create()."""
         test_json = {'name': 'Test Bucket', 'storage': 25, 'transfer': 39}
-        self.client._request.return_value = test_json
+        self.client.call.return_value = test_json
 
         bucket = self.client.bucket_create('Test Bucket', storage=25,
                                            transfer=39)
 
-        self.client._request.assert_called_with(
+        self.client.call.assert_called_with(
             method='POST',
             path='/buckets',
             data=test_json
@@ -64,7 +147,7 @@ class ClientTestCase(AbstractTestCase):
         bucket_id = '57fd385426adcf743b3d39c5'
         self.client.bucket_delete(bucket_id)
 
-        self.client._request.assert_called_with(
+        self.client.call.assert_called_with(
             method='DELETE',
             path='/buckets/%s' % bucket_id)
 
@@ -81,7 +164,7 @@ class ClientTestCase(AbstractTestCase):
         self.client.token_create.assert_called_with(
             test_bucket_id,
             operation='PULL')
-        self.client._request.assert_called_with(
+        self.client.call.assert_called_with(
             method='GET',
             path='/buckets/%s/files/' % (test_bucket_id),
             headers={
@@ -93,11 +176,11 @@ class ClientTestCase(AbstractTestCase):
         test_bucket_id = "57fd385426adcf743b3d39c5"
         test_json = {'name': 'Test Bucket', 'storage': 25, 'transfer': 39}
 
-        self.client._request.return_value = test_json
+        self.client.call.return_value = test_json
 
         bucket = self.client.bucket_get(test_bucket_id)
 
-        self.client._request.assert_called_with(
+        self.client.call.assert_called_with(
             method='GET',
             path='/buckets/%s' % test_bucket_id)
         self.assertIsInstance(bucket, model.Bucket)
@@ -109,15 +192,15 @@ class ClientTestCase(AbstractTestCase):
             {'name': 'Test Bucket 2', 'storage': 19, 'transfer': 83},
             {'name': 'Test Bucket 3', 'storage': 86, 'transfer': 193}]
 
-        self.client._request.return_value = test_response
+        self.client.call.return_value = test_response
 
         buckets = self.client.bucket_list()
 
-        # _request() is not getting called. Why?
+        # call() is not getting called. Why?
         for bucket in buckets:
             self.assertIsInstance(bucket, model.Bucket)
 
-        self.client._request.assert_called_once_with(
+        self.client.call.assert_called_once_with(
             method='GET',
             path='/buckets')
 
@@ -128,7 +211,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.bucket_set_keys(test_bucket_id, test_keys)
 
-        self.client._request.assert_called_with(
+        self.client.call.assert_called_with(
             method='PATCH',
             path='/buckets/%s' % test_bucket_id,
             data={'pubkeys': test_keys})
@@ -138,11 +221,11 @@ class ClientTestCase(AbstractTestCase):
         test_response = [{'protocol': '0.9.0', 'userAgent': '4.0.2'},
                          {'protocol': '0.8.0', 'userAgent': '4.0.3'}]
 
-        self.client._request.return_value = test_response
+        self.client.call.return_value = test_response
 
         contacts = self.client.contacts_list()
 
-        self.client._request.assert_called_with(
+        self.client.call.assert_called_with(
             method='GET',
             path='/contacts',
             params={}

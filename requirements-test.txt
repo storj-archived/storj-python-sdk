@@ -3,6 +3,8 @@ coverage
 coveralls
 pep8
 autopep8
+pudb
+jsonschema
 pylint
 pytest
 pytest-cov

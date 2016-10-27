@@ -2,164 +2,331 @@
 """Storj HTTP module."""
 
 import os
-
-import logging
 import json
+import logging
 import requests
-import storj
-import time
-
 from base64 import b64encode
-from binascii import b2a_hex
-from ecdsa import SigningKey
 from hashlib import sha256
 from io import BytesIO
-from six.moves.urllib.parse import urlencode, urljoin
-
-try:
-    from json.decoder import JSONDecodeError
-except ImportError:
-    # Python 2
-    JSONDecodeError = ValueError
-
+from micropayment_core import keys
+from six.moves.urllib.parse import urljoin
+from .web_socket import Client as WSClient
 from . import model
-from .api import ecdsa_to_hex
-from .exception import StorjBridgeApiError
-from storj import web_socket
 
 
 class Client(object):
-    """
-    Attributes:
-        api_url (str): the Storj API endpoint.
-        session ():
-        email (str): user email address.
-        password (str): user password.
-        private_key ():
-        public_key ():
-        public_key_hex ():
-    """
 
     logger = logging.getLogger('%s.Client' % __name__)
 
-    def __init__(self, email, password):
-        self.api_url = 'https://api.storj.io/'
+    def __init__(self, email=None, password=None, privkey=None,
+                 url="https://api.storj.io/"):
+        self.url = url
         self.session = requests.Session()
+        self.privkey = privkey
         self.email = email
-        self.password = password
-        self.private_key = None
-        self.public_key = None
-        self.public_key_hex = None
+        self.password = sha256(password.encode('ascii')).hexdigest()
 
-    @property
-    def password(self):
-        """(str): user password"""
-        return self._password
-
-    @password.setter
-    def password(self, value):
-        self._password = sha256(value.encode('ascii')).hexdigest()
-
-    def authenticate(self, ecdsa_private_key=None):
-        self.logger.debug('authenticate')
-
-        if isinstance(ecdsa_private_key, SigningKey):
-            self.private_key = ecdsa_private_key
-            self.public_key = self.private_key.get_verifying_key()
-            self.public_key_hex = ecdsa_to_hex(self.public_key)
-
-    def _add_basic_auth(self, request_kwargs):
-        self.logger.debug('using basic auth')
-
-        request_kwargs['headers'].update({
-            'Authorization': b'Basic ' + b64encode(
-                ('%s:%s' % (self.email, self.password)).encode('ascii')
-            ),
-        })
-
-    def _add_ecdsa_signature(self, request_kwargs):
-
-        method = request_kwargs.get('method', 'GET')
-
-        if method in ('GET', 'DELETE'):
-            request_kwargs.setdefault('params', {})
-            request_kwargs['params']['__nonce'] = int(time.time())
-            data = urlencode(request_kwargs['params'])
+    def _get_signature(self, method, path, data, params):
+        if method in ['POST', 'PATCH', 'PUT']:
+            payload = json.dumps(data)
+        elif method in ['GET', 'DELETE', 'OPTIONS']:
+            payload = "&".join(["=".join(i) for i in params.items()])
         else:
-            request_kwargs.setdefault('json', {})
-            request_kwargs['json']['__nonce'] = int(time.time())
-            data = json.dumps(request_kwargs['json'])
+            raise Exception("Invalid method: {0}".format(method))
+        sigmessage = "\n".join([method, path, payload])
+        return keys.sign_sha256(self.privkey, sigmessage)
 
-        contract = '\n'.join(
-            (method, request_kwargs['path'], data)).encode('utf-8')
+    def call(self, method=None, path=None, headers=None,
+             data=None, params=None):
+        # TODO doc string
+        path = path or ""
+        headers = headers if headers is not None else {}
+        params = params or {}
+        url = urljoin(self.url, path)
 
-        signature_bytes = self.private_key.sign(
-            contract, sigencode=sigencode_der, hashfunc=sha256)
+        if self.privkey:
+            pubkey = keys.pubkey_from_privkey(self.privkey)
+            signature = self._get_signature(method, path, data, params)
+            headers.update({"x-pubkey": pubkey, "x-signature": signature})
 
-        signature = b2a_hex(signature_bytes).decode('ascii')
-
-        request_kwargs['headers'].update(
-            {
-                'x-signature': signature,
-                'x-pubkey': ecdsa_to_hex(self.public_key),
+        # basic auth
+        elif self.email and self.password:
+            # TODO use requests.auth.HTTPBasicAuth instead?
+            headers.update({
+                'Authorization': b'Basic ' + b64encode(
+                    ('%s:%s' % (self.email, self.password)).encode('ascii')
+                )
             })
 
-    def _prepare_request(self, **kwargs):
+        else:
+            raise Exception("No auth credentials!")
 
-        kwargs.setdefault('headers', {})
+        kwargs = dict(
+            method=method, url=url, headers=headers,
+            data=json.dumps(data), params=params,
+        )
+        # print("REQUEST:", json.dumps(kwargs, indent=2))
+        response = self.session.send(requests.Request(**kwargs).prepare())
+        response.raise_for_status()
+        result = response.json()
+        # print("RESPONSE:", result)
 
-        # Add appropriate authentication headers
-        if isinstance(self.private_key, SigningKey):
-            self._add_ecdsa_signature(kwargs)
-        elif self.email and self.password:
-            self._add_basic_auth(kwargs)
+        return result
 
-        # Generate URL from path
-        path = kwargs.pop('path')
-        assert path.startswith('/')
-        kwargs['url'] = urljoin(self.api_url, path)
-
-        return requests.Request(**kwargs).prepare()
-
-    def _request(self, **kwargs):
-        """Perform HTTP request.
+    def contacts_list(self, **kwargs):
+        """ Lists the contacts according to the supplied query.
 
         Args:
-            kwargs (dict): keyword arguments.
+            page (str): Paginagtion indicator, defaults to 1.
+            address (str): Hostname or IP address.
+            protocol (str): SemVer protocol tag.
+            userAgent (str): Storj user agent string for farming client.
+            connected (str): Filter results by connection status (true/false)
 
-        Raises:
-            :py:class:`StorjBridgeApiError`: in case::
-                - internal server error
-                - error attribute is present in the JSON response
-                - HTTP response JSON decoding failed
+        Returns:
+            [
+                {
+                    "address": "api.storj.io",
+                    "port": 8443,
+                    "userAgent": "userAgent",
+                    "nodeID": "32033d2dc11b877df4b1caefbffba06495ae6b18",
+                    "lastSeen": "2016-05-24T15:16:01.139Z",
+                    "protocol": "0.7.0"
+                }
+            ]
+
+        See:
+            https://storj.github.io/bridge/#!/contacts/get_contacts
         """
+        return self.call(method='GET', path='/contacts', params=kwargs)
 
-        response = self.session.send(self._prepare_request(**kwargs))
-        self.logger.debug('_request response %s', response.text)
+    def contact_information(self, nodeid):
+        """ Performs a lookup for the contact information of a node.
 
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            self.logger.error(e)
-            self.logger.debug('response.text=%s', response.text)
-            raise StorjBridgeApiError(response.text)
+        Args:
+            nodeid (str): Node ID of the contact to lookup.
 
-        # Raise any errors as exceptions
-        try:
-            if response.text != '':
-                response_json = response.json()
-            else:
-                return {}
+        Returns:
+            {
+                "address": "api.storj.io",
+                "port": 8443,
+                "nodeID": "32033d2dc11b877df4b1caefbffba06495ae6b18",
+                "lastSeen": "2016-05-24T15:16:01.139Z",
+                "protocol": "0.7.0"
+            }
 
-            if 'error' in response_json:
-                raise StorjBridgeApiError(response_json['error'])
+        See:
+            https://storj.github.io/bridge/#!/contacts/get_contacts_nodeID
+        """
+        return self.call(method='GET', path='/contacts/{0}'.format(nodeid))
 
-            return response_json
+    def user_register(self):
+        """ Registers a new user account with Storj Bridge.
 
-        except JSONDecodeError as e:
-            self.logger.error(e)
-            self.logger.error('_request body %s', response.text)
-            raise StorjBridgeApiError('Could not decode response.')
+        Returns:
+            {
+                "email": "gordon@storj.io",
+                "created": "2016-03-04T17:01:02.629Z",
+                "activated": true
+            }
+
+        See:
+            https://storj.github.io/bridge/#!/users/post_users
+        """
+        privkey = self.privkey
+        pubkey = keys.pubkey_from_privkey(privkey) if privkey else None
+        return self.call(
+            method='POST',
+            path='/users',
+            data={
+                "email": self.email,
+                "password": self.password,
+                "pubkey": pubkey
+            }
+        )
+
+    def user_delete(self, redirect=None):
+        """ Requests the deletion of the account.
+
+        Args:
+            redirect (str): Optional redirect URL for successful deletion.
+
+        Returns:
+            {
+                "email": "gordon@storj.io",
+                "created": "2016-03-04T17:01:02.629Z",
+                "activated": true
+            }
+
+        See:
+            https://storj.github.io/bridge/#!/users/delete_users_email
+        """
+        return self.call(
+            method='DELETE',
+            path='/users/{0}'.format(self.email),
+            data={"redirect": redirect} if redirect else {}
+        )
+
+    def user_reset_password(self):
+        """ Requests the reset of the account password.
+
+        Returns:
+            {
+                "email": "gordon@storj.io",
+                "created": "2016-03-04T17:01:02.629Z",
+                "activated": true
+            }
+
+        See:
+            https://storj.github.io/bridge/#!/users/patch_users_email
+        """
+        return self.call(
+            method='PATCH',
+            path='/users/{0}'.format(self.email),
+        )
+
+    def user_confirm_reset(self, token, redirect=None):
+        """ Confirms the password reset and optionally redirects.
+
+        Args:
+            token (str): Confirmation token sent to user's email address.
+            redirect (str): Optional redirect URL for successful confirmation.
+
+        Returns:
+            {
+                "email": "gordon@storj.io",
+                "created": "2016-03-04T17:01:02.629Z",
+                "activated": true
+            }
+
+        See:
+            https://storj.github.io/bridge/#!/users/get_resets_token
+        """
+        return self.call(
+            method='GET',
+            path='/resets/{0}'.format(token),
+            params={"redirect": redirect} if redirect is not None else {}
+        )
+
+    def user_activate(self, token, redirect=None):
+        """ Activates a registered user and optionally redirects.
+
+        Args:
+            token (str): Activation token sent to user's email address.
+            redirect (str): Optional redirect URL for successful confirmation.
+
+        Returns:
+            {
+                "email": "gordon@storj.io",
+                "created": "2016-03-04T17:01:02.629Z",
+                "activated": true
+            }
+
+        See:
+            https://storj.github.io/bridge/#!/users/get_activations_token
+        """
+        return self.call(
+            method='GET',
+            path='/activations/{0}'.format(token),
+            params={"redirect": redirect} if redirect is not None else {}
+        )
+
+    def user_reactivate(self, token, redirect):
+        """ Sends the user email for reactivating a disabled account.
+
+        Args:
+            token (str): Deactivation token sent to user's email address.
+            redirect (str): TODO correct doc string
+
+        Returns:
+            {
+                "email": "gordon@storj.io",
+                "created": "2016-03-04T17:01:02.629Z",
+                "activated": true
+            }
+
+        See:
+            https://storj.github.io/bridge/#!/users/post_activations_token
+        """
+        return self.call(
+            method='POST',
+            path='/activations/{0}'.format(token),
+            data={"redirect": redirect, "email": self.email}
+        )
+
+    def user_deactivate(self, token, redirect=None):
+        """ Deactivates a registered user and optionally redirects
+
+        Args:
+            token (str): Deactivation token sent to user's email address.
+            redirect (str): Optional redirect URL for successful deactivation.
+
+        Returns:
+            {
+                "email": "gordon@storj.io",
+                "created": "2016-03-04T17:01:02.629Z",
+                "activated": true
+            }
+
+        See:
+            https://storj.github.io/bridge/#!/users/get_deactivations_token
+        """
+        return self.call(
+            method='GET',
+            path='/deactivations/{0}'.format(token),
+            params={"redirect": redirect} if redirect is not None else {}
+        )
+
+    def keys_list(self):
+        """ Lists the public ECDSA keys associated with the user.
+
+        Returns:
+            [
+                {
+                    "key": "pubkey",
+                    "user": "gordon@storj.io"
+                }
+            ]
+
+        See:
+            https://storj.github.io/bridge/#!/keys/get_keys
+        """
+        return self.call(method='GET', path='/keys')
+
+    def keys_register(self, pubkey):
+        """ Registers an ECDSA public key for the user account.
+
+        Args:
+            pubkey (str): Hex encoded 33Byte compressed public key.
+
+        Returns:
+            {
+                "key": "pubkey",
+                "user": "gordon@storj.io"
+            }
+
+        See:
+            https://storj.github.io/bridge/#!/keys/post_keys
+        """
+        # FIXME nothing signed, should prove control of private key
+        return self.call(method='POST', path='/keys', data={'key': pubkey})
+
+    def keys_delete(self, pubkey):
+        """ Destroys a ECDSA public key for the user account.
+
+        Args:
+            pubkey (str): Hex encoded 33Byte compressed public key.
+
+        See:
+            https://storj.github.io/bridge/#!/keys/delete_keys_pubkey
+        """
+        return self.call(method='DELETE', path='/keys/{0}'.format(pubkey))
+
+    # ===================== TODO FRAMES =====================
+
+    # ===================== TODO BUCKETS =====================
+
+    # =====================
 
     def bucket_create(self, name, storage=None, transfer=None):
         """Create storage bucket.
@@ -180,7 +347,7 @@ class Client(object):
         if transfer:
             data['transfer'] = transfer
 
-        response = self._request(method='POST', path='/buckets', json=data)
+        response = self.call(method='POST', path='/buckets', data=data)
         return model.Bucket(**response)
 
     def bucket_delete(self, bucket_id):
@@ -190,7 +357,7 @@ class Client(object):
             bucket_id (string): unique identifier.
         """
         self.logger.info('bucket_delete(%s)', bucket_id)
-        self._request(method='DELETE', path='/buckets/%s' % bucket_id)
+        self.call(method='DELETE', path='/buckets/%s' % bucket_id)
 
     def bucket_files(self, bucket_id):
         """
@@ -200,9 +367,30 @@ class Client(object):
         """
         self.logger.info('bucket_files(%s)', bucket_id)
 
-        return self._request(
+        pull_token = self.token_create(bucket_id, operation='PULL')
+        return self.call(
             method='GET',
-            path='/buckets/%s/files/' % (bucket_id),)
+            path='/buckets/%s/files/' % (bucket_id),
+            headers={
+                'x-token': pull_token['token'],
+            })
+
+    def file_pointers(self, bucket_id, file_id):
+        """
+
+        Args:
+            bucket_id (string): unique identifier.
+        """
+        self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
+
+        pull_token = self.token_create(bucket_id, operation='PULL')
+        return self.call(
+            method='GET',
+            path='/buckets/%s/files/%s/' % (bucket_id, file_id),
+            headers={  # FIXME undocumented unsigned header!!!
+                'x-token': pull_token['token'],
+            }
+        )
 
     def bucket_get(self, bucket_id):
         """Returns buckets.
@@ -214,7 +402,7 @@ class Client(object):
             (:py:class:`model.Bucket`): bucket.
         """
         try:
-            response = self._request(
+            response = self.call(
                 method='GET',
                 path='/buckets/%s' % bucket_id)
             return model.Bucket(**response)
@@ -233,7 +421,7 @@ class Client(object):
         """
         self.logger.info('bucket_list()')
 
-        response = self._request(method='GET', path='/buckets')
+        response = self.call(method='GET', path='/buckets')
 
         if response is not None:
             for element in response:
@@ -244,32 +432,10 @@ class Client(object):
     def bucket_set_keys(self, bucket_id, keys):
         self.logger.info('bucket_set_keys()', bucket_id, keys)
 
-        self._request(
+        self.call(
             method='PATCH',
             path='/buckets/%s' % bucket_id,
-            json={'pubkeys': keys})
-
-    def contacts_list(self):
-        self.logger.info('contacts_list()')
-
-        response = self._request(method='GET', path='/contacts', json={})
-
-        if response is not None:
-            return response
-
-    def file_pointers(self, bucket_id, file_id):
-        """Get a list of pointers associated with a file.
-
-        Args:
-            bucket_id (string): unique identifier.
-        """
-        self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
-
-        pull_token = self.token_create(bucket_id, operation='PULL')
-        return self._request(
-            method='GET',
-            path='/buckets/%s/files/%s/' % (bucket_id, file_id),
-            headers={'x-token': pull_token['token']})
+            data={'pubkeys': keys})
 
     def file_download(self, bucket_id, file_id):
         self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)
@@ -279,12 +445,21 @@ class Client(object):
 
         file_contents = BytesIO()
         for pointer in pointers:
-            ws = web_socket.Client(
-                pointer=pointer, file_contents=file_contents)
+            ws = WSClient(pointer=pointer, file_contents=file_contents)
             ws.connect()
             ws.run_forever()
 
         return file_contents
+
+    def file_get(self, bucket_id):
+        self.logger.info('file_get(%s)', bucket_id)
+
+        response = self.call(
+            method='GET',
+            path='/buckets/%s/files' % bucket_id)
+
+        if response is None:
+            return response
 
     def file_upload(self, bucket_id, file, frame):
         """Upload file.
@@ -299,7 +474,7 @@ class Client(object):
         def get_size(file_like_object):
             return os.stat(file_like_object.name).st_size
 
-        file_size = get_size(file)
+        # file_size = get_size(file)
 
         # TODO:
         # encrypt file
@@ -312,7 +487,7 @@ class Client(object):
         # upload shards to frame
         # delete encrypted file
 
-        self._request(
+        self.call(
             method='POST', path='/buckets/%s/files' % bucket_id,
             # files={'file' : file},
             headers={
@@ -332,7 +507,7 @@ class Client(object):
         """
         self.logger.info('file_remove(%s, %s)', bucket_id, file_id)
 
-        self._request(
+        self.call(
             method='DELETE',
             path='/buckets/%s/files/%s' % (bucket_id, file_id))
 
@@ -347,10 +522,10 @@ class Client(object):
             'tree': shard.tree,
         }
 
-        response = self._request(
+        response = self.call(
             method='PUT',
             path='/frames/%s' % frame_id,
-            json=data)
+            data=data)
 
         if response is not None:
             return response
@@ -367,7 +542,7 @@ class Client(object):
         """
         self.logger.info('frame_create()')
 
-        return self._request(method='POST', path='/frames', json={})
+        return self.call(method='POST', path='/frames', data={})
 
     def frame_delete(self, frame_id):
         """
@@ -377,10 +552,10 @@ class Client(object):
         """
         self.logger.info('frame_delete(%s)', frame_id)
 
-        self._request(
+        self.call(
             method='DELETE',
             path='/frames/%s' % frame_id,
-            json={'frame_id': frame_id})
+            data={'frame_id': frame_id})
 
     def frame_get(self, frame_id):
         """Return a frame.
@@ -397,10 +572,10 @@ class Client(object):
         """
         self.logger.info('frame_get(%s)', frame_id)
 
-        response = self._request(
+        response = self.call(
             method='GET',
             path='/frames/%s' % frame_id,
-            json={'frame_id': frame_id})
+            data={'frame_id': frame_id})
 
         if response is not None:
             return model.Frame(**response)
@@ -413,93 +588,10 @@ class Client(object):
         """
         self.logger.info('frame_list()')
 
-        response = self._request(
+        response = self.call(
             method='GET',
             path='/frames',
-            json={})
-
-        if response is not None:
-            return response
-
-    def key_delete(self, key_id):
-        self.logger.info('key_delete(%s)', key_id)
-        self._request(method='DELETE', path='/keys/%s' % key_id)
-
-    def key_dump(self):
-        self.logger.info('key_dump()')
-
-        if (self.private_key is not None and self.public_key is not None):
-            print('Local Private Key: %s' % self.private_key
-                  + '\nLocal Public Key: %s' % self.public_key)
-
-        keys = self.key_get()
-
-        if not keys:
-            print('No keys associated with this account.')
-        else:
-            print('Public keys for this account: '
-                  + str([key['id'] for key in keys]))
-
-    def key_export(self):
-        self.logger.info('key_export()')
-
-        print('Writing your public key to file...')
-        with open('public.pem', 'wb') as keyfile:
-            keyfile.write(self.public_key.to_pem())
-
-        print('Writing private key to file... Keep this secret!')
-        with open('private.pem', 'wb') as keyfile:
-            keyfile.write(self.private_key.to_pem())
-
-        print('Wrote keyfiles to dir: %s' % os.getcwd())
-
-    def key_generate(self):
-        self.logger.info('key_generate()')
-
-        print("This will replace your public and private keys in 3 seconds...")
-        time.sleep(3)
-        (self.private_key, self.public_key) = storj.generate_new_key_pair()
-
-        s = raw_input('Export keys to file for later use? [Y/N]')
-        if 'Y' in s.upper():
-            self.key_export()
-
-        self.key_register(self.public_key)
-
-    def key_get(self):
-        """Gets all public keys associated with the authenticated account
-
-        Returns:
-            (list[dict]): a list of keys
-        """
-        self.logger.info('key_get()')
-
-        response = self._request(method='GET', path='/keys')
-
-        if response is not None:
-            return response
-
-    def key_import(self, private_keyfile_path, public_keyfile_path):
-        self.logger.info(
-            'key_import(%s, %s)',
-            private_keyfile_path,
-            public_keyfile_path)
-
-        with open(public_keyfile_path, 'r') as f:
-            self.public_key = VerifyingKey.from_pem(f.read())
-
-        with open(private_keyfile_path, 'r') as f:
-            self.private_key = SigningKey.from_pem(f.read())
-
-        self.key_register(self.public_key)
-
-    def key_register(self, public_key):
-        self.logger.info('key_register(%s)', public_key)
-
-        response = self._request(
-            method='POST',
-            path='/keys',
-            json={'key': ecdsa_to_hex(public_key)})
+            data={})
 
         if response is not None:
             return response
@@ -516,25 +608,7 @@ class Client(object):
         """
         self.logger.info('create_token(%s, %s)', bucket_id, operation)
 
-        return self._request(
+        return self.call(
             method='POST',
             path='/buckets/%s/tokens' % bucket_id,
-            json={'operation': operation})
-
-    def user_create(self, email, password):
-        """Create a new user with specified email and password.
-
-        Args:
-            email (str): The new user's email address.
-            password (str): The new user's password
-        """
-        self.logger.info('user_create(%s, %s)', email, password)
-
-        password = sha256(password).hexdigest()
-
-        self._request(
-            method='POST',
-            path='/users',
-            json={'email': email, 'password': password})
-
-        self.authenticate(email=email, password=password)
+            data={'operation': operation})

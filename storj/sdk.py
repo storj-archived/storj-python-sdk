@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import binascii
-import hashlib
 import io
 
-from .api import ecdsa_to_hex
 from .http import Client
 from .model import Bucket, Token, File
 

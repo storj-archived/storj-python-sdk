@@ -139,7 +139,7 @@ class Client(object):
 
         try:
             response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.RequestException as e:
             self.logger.error(e)
             self.logger.debug('response.text=%s', response.text)
             raise StorjBridgeApiError(response.text)

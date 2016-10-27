@@ -31,15 +31,18 @@ class Client(object):
             payload = json.dumps(data)
         elif method in ['GET', 'DELETE', 'OPTIONS']:
             payload = "&".join(["=".join(i) for i in params.items()])
+        else:
+            raise Exception("Invalid method: {0}".format(method))
         sigmessage = "\n".join([method, path, payload])
         return keys.sign_sha256(self.privkey, sigmessage)
 
     def call(self, method=None, path=None, headers=None,
              data=None, params=None):
         # TODO doc string
-
-        url = urljoin(self.url, path) if path else self.url
+        path = path or ""
         headers = headers if headers is not None else {}
+        params = params or {}
+        url = urljoin(self.url, path)
 
         if self.privkey:
             pubkey = keys.pubkey_from_privkey(self.privkey)

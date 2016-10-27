@@ -4,7 +4,7 @@ import os
 import jsonschema
 from storj import http
 from micropayment_core import keys
-from . import Integration
+from .. import AbstractTestCase
 
 
 USER_REGISTER_RESULT = {
@@ -53,17 +53,16 @@ USER_ACTIVATE_RESULT = {
 }
 
 
-class UsersIntegrationTestCase(Integration):
+class UsersIntegrationTestCase(AbstractTestCase):
 
     def test(self):
         super(UsersIntegrationTestCase, self).setUp()
 
-        # FIXME move to integration
         client = http.Client(
             email="{0}@bar.com".format(keys.b2h(os.urandom(32))),
             password="12345",
             privkey=keys.generate_privkey(),
-            # url="http://api.staging.storj.io/"
+            # FIXME use: url="http://api.staging.storj.io/"
         )
 
         # test call
@@ -78,7 +77,6 @@ class UsersIntegrationTestCase(Integration):
         result = client.user_register()
         jsonschema.validate(result, USER_REGISTER_RESULT)
 
-        self.assertFalse(True)
         # FIXME test activate user
         # result = client.user_activate("TODO get token")
         # jsonschema.validate(result, USER_ACTIVATE_RESULT)

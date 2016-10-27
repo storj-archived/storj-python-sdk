@@ -87,7 +87,7 @@ test: setup
 	$(PEP8) examples
 
 	# test
-	env/bin/tox -- --ignore=tests/integration
+	env/bin/tox -- --ignore=tests/integration/bucket_test.py
 
 
 publish: test

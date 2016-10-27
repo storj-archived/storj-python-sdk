@@ -122,6 +122,16 @@ class ShardTestCase(AbstractTestCase):
 
         assert shard.tree == ['node']
 
+    def test_get_public_record(self):
+        pass
+
+    def test_get_private_record(self):
+        pass
+
+
+class ShardManagerTestCase(AbstractTestCase):
+    pass
+
 
 class TokenTestCase(AbstractTestCase):
     """Test case for the Token class."""

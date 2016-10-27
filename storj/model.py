@@ -7,6 +7,7 @@ import hashlib
 import random
 import strict_rfc3339
 import string
+import os
 
 from datetime import datetime
 from steenzout.object import Object
@@ -226,57 +227,92 @@ class Shard:
         """Append tree."""
         self.tree.append(tree)
 
+    def get_public_record(self):
+        pass
+
+    def get_private_record(self):
+        pass
+
 
 class ShardManager:
 
     def __init__(self, filepath, shard_size):
         self.shards = []
         self.challenges = 8
-        self.shard_index = 0
-        self.index = 0
         self.shard_size = shard_size
         self.filepath = filepath
 
         file = open(filepath, "rb")
 
+        self._make_shards(file)
+
+    def _make_shards(file):
+        shard_index = 0
+
         while(True):
             chunk = file.read(shard_size)
             if not chunk:
                 break
-            tmpfile = open("C:/test/shard" + str(self.index) + ".shard", "wb")
-            tmpfile.write(chunk)
-            tmpfile.close()
 
-            shard = Shard()
-            shard.set_size(shard_size)
-            shard.set_hash(hash160(chunk))
-            self.addChallenges(shard, chunk)
-            shard.set_index(self.index)
-            self.index += 1
+            challenges = self._make_challenges()
+            tree = self._make_tree(challenges, chunk)
+
+            shard = Shard(size=shard_size,
+                          index=shard_index,
+                          hash=_self._hash(chunk),
+                          tree=tree,
+                          challenges=challenges)
+
             self.shards.append(shard)
 
-    def rmd160sha256(data):
-        """hex encode returned str"""
-        return binascii.hexlify(ripemd160(hashlib.sha256(data).digest()))
+            shard_index += 1
 
-    def ripemd160(data):
-        return hashlib.new('ripemd160', data).digest()
+    def _hash(self, data):
+        """Returns ripemd160 of sha256 of a string as a string of hex"""
+        data = data.encode('utf-8')
+        data = bytes(data)
+        output = binascii.hexlify(self._ripemd160(self._sha256(data)))
+        return output.decode('utf-8')
 
-    def addChallenges(self, shard, shardData, numberOfChallenges=12):
+    def _ripemd160(self, b):
+        """Returns the ripemd160 digest of bytes as bytes"""
+        return hashlib.new('ripemd160', b).digest()
+
+    def _sha256(self, b):
+        """Returns the sha256 digest of bytes as bytes"""
+        return hashlib.new('sha256', b).digest()
+
+    def _make_challenges(self, numberOfChallenges=12):
+        challenges = []
+
         for i in xrange(numberOfChallenges):
-            challenge = self.getRandomChallengeString()
-
-            # concat and hex-encode data
-            data2hash = binascii.hexlify('%s%s' % (challenge, shardData))
-
-            tree = ripe160sha256(ripe160sha256(data2hash))
-
-            shard.add_challenge(challenge)
-            shard.add_tree(tree)
+            challenges.append(self.getRandomChallengeString())
 
             def getRandomChallengeString(self):
-                return ''.join(
-                    random.choice(string.ascii_letters) for _ in xrange(32))
+                s = ''.join(os.urandom(32))
+                return binascii.hexlify(s)
+
+    def _make_tree(self, challenges, data):
+        """
+        Make a Storj MerkleTree built from the specified challeng
+
+        Arguments:
+        challenges (list[str]): A list of random challenges
+        data (str): The data to be audited
+
+        Returns:
+        tree (MerkleTree): An audit tree from the specified
+
+        """
+        leaves = []
+        for challenge in challenges:
+            leaves.append['%s%s' % (challenge, data)]
+        for leaf in leaves:
+            leaf = self._hash(leaf)
+
+        tree = MerkleTree(leaves)
+
+        return tree
 
 
 class Token(Object):

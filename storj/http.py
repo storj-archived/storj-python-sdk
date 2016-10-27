@@ -26,6 +26,14 @@ class Client(object):
         self.email = email
         self.password = sha256(password.encode('ascii')).hexdigest()
 
+    def _get_signature(self, method, path, data, params):
+        if method in ['POST', 'PATCH', 'PUT']:
+            payload = json.dumps(data)
+        elif method in ['GET', 'DELETE', 'OPTIONS']:
+            payload = "&".join(["=".join(i) for i in params.items()])
+        sigmessage = "\n".join([method, path, payload])
+        return keys.sign_sha256(self.privkey, sigmessage)
+
     def call(self, method=None, path=None, headers=None,
              data=None, params=None):
         # TODO doc string
@@ -35,10 +43,8 @@ class Client(object):
 
         if self.privkey:
             pubkey = keys.pubkey_from_privkey(self.privkey)
-            headers.update({
-                "x-pubkey": pubkey,
-                "x-signature": "invalid"  # FIXME create valid signature
-            })
+            signature = self._get_signature(method, path, data, params)
+            headers.update({"x-pubkey": pubkey, "x-signature": signature})
 
         # basic auth
         elif self.email and self.password:

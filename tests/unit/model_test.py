@@ -5,6 +5,7 @@ import mock
 import os
 import pytest
 import shutil
+import six
 import strict_rfc3339
 import tempfile
 
@@ -163,6 +164,10 @@ class ShardManagerTestCase(AbstractTestCase):
         self._assert_shard_manager(
             content, 'w+t', mock_tree, mock_challenges)
 
+        content = b'1234567890'
+        self._assert_shard_manager(
+            content, 'w+b', mock_tree, mock_challenges)
+
     def _assert_shard_manager(self, content, mode, mock_tree, mock_challenges):
         tmpfile = tempfile.NamedTemporaryFile(mode, delete=False)
         try:
@@ -183,8 +188,12 @@ class ShardManagerTestCase(AbstractTestCase):
             os.remove(tmpfile.name)
 
         mock_challenges.assert_called_once_with(nchallenges)
-        mock_tree.assert_called_once_with(
-            mock_challenges.return_value, content)
+        if isinstance(content, six.binary_type):
+            mock_tree.assert_called_once_with(
+                mock_challenges.return_value, content)
+        else:
+            mock_tree.assert_called_once_with(
+                mock_challenges.return_value, bytes(content.encode('utf-8')))
 
         mock_tree.reset_mock()
         mock_challenges.reset_mock()
@@ -221,7 +230,7 @@ class ShardManagerTestCase(AbstractTestCase):
     @mock.patch('storj.model.hashlib')
     def test_ripemd160_binary(self, mock_hashlib):
         """Test ShardManager._ripemd160"""
-        test_data = bytearray('ab')
+        test_data = b'ab'
 
         output = ShardManager._ripemd160(test_data)
 
@@ -246,7 +255,7 @@ class ShardManagerTestCase(AbstractTestCase):
     @mock.patch('storj.model.hashlib')
     def test_sha256_binary(self, mock_hashlib):
         """Test ShardManager._sha256"""
-        test_data = bytearray('ab')
+        test_data = b'ab'
 
         output = ShardManager._ripemd160(test_data)
 

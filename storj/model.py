@@ -284,9 +284,9 @@ class ShardManager:
 
     def _make_challenges(self, challenges=12):
         challenges = [
-            self._getRandomChallengeString() for _ in xrange(challenges)]
+            self._make_challenge_string() for _ in xrange(challenges)]
 
-    def _getRandomChallengeString(self):
+    def _make_challenge_string(self):
         s = ''.join(os.urandom(32))
         return binascii.hexlify(s)
 

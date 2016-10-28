@@ -306,10 +306,12 @@ class ShardManager(Object):
         Returns:
             (str): the ripemd160 of sha256 digest.
         """
-        data = data.encode('utf-8')
-        data = bytes(data)
-        output = binascii.hexlify(ShardManager._ripemd160(ShardManager._sha256(data)))
-        return output.decode('utf-8')
+        if not isinstance(data, six.binary_type):
+            data = bytes(data.encode('utf-8'))
+
+        return binascii.hexlify(
+            ShardManager._ripemd160(ShardManager._sha256(data))
+        ).decode('utf-8')
 
     @staticmethod
     def _ripemd160(b):

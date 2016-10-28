@@ -35,7 +35,8 @@ class Bucket(Object):
 
     def __init__(
             self, id=None, name=None, status=None, user=None,
-            created=None, storage=None, transfer=None, pubkeys=None):
+            created=None, storage=None, transfer=None, pubkeys=None,
+            publicPermissions=None, encryptionKey=None):
         self.id = id
         self.name = name
         self.status = status
@@ -43,6 +44,8 @@ class Bucket(Object):
         self.storage = storage
         self.transfer = transfer
         self.pubkeys = pubkeys
+        self.publicPermissions = publicPermissions
+        self.encryptionKey = encryptionKey
 
         # self.files = FileManager(bucket_id=self.id)
         # self.pubkeys = BucketKeyManager(

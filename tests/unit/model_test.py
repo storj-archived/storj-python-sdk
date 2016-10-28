@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 """Test cases for the storj.model module."""
 
+import mock
+import os
+import pytest
+import shutil
 import strict_rfc3339
+import tempfile
 
 
 from datetime import datetime
 
-from storj.model import Bucket, Frame, Shard, Token, MerkleTree
-import mock
+from storj.model import Bucket, Frame, MerkleTree, Shard, ShardManager, Token
+
 
 from .. import AbstractTestCase
 
@@ -130,7 +135,53 @@ class ShardTestCase(AbstractTestCase):
 
 
 class ShardManagerTestCase(AbstractTestCase):
-    pass
+    """Test case for the ShardManager class."""
+
+    @mock.patch.object(ShardManager, '_make_challenges', return_value=[])
+    @mock.patch.object(ShardManager, '_make_tree', return_value=[])
+    def test_property_filepath(self, mock_tree, mock_challenges):
+        """Test filepath property."""
+
+        # filepath is not a str
+        with pytest.raises(ValueError):
+            ShardManager(1, 1)
+
+        # filepath does not exist
+        with pytest.raises(ValueError):
+            ShardManager('/dev/nowhere', 1)
+
+        # file path is a directory
+        tmpdir = tempfile.mkdtemp()
+        try:
+            with pytest.raises(ValueError):
+                ShardManager(tmpdir, 1)
+        finally:
+            shutil.rmtree(tmpdir)
+
+        # file path is a file
+        content = '1234567890'
+        tmpfile = tempfile.NamedTemporaryFile('w+b', delete=False)
+        try:
+            tmpfile.write(content)
+            tmpfile.close()
+
+            size = 10
+            nchallenges = 20
+            sm = ShardManager(tmpfile.name, size, nchallenges)
+
+            assert sm.filepath == tmpfile.name
+            assert sm.shard_size == size
+            assert len(sm.shards) > 0
+            assert len(sm.shards) == sm.index
+
+        finally:
+            if not tmpfile.close_called:
+                tmpfile.close()
+            os.remove(tmpfile.name)
+
+        mock_challenges.assert_called_once_with(nchallenges)
+        mock_tree.assert_called_once_with(
+            mock_challenges.return_value, content)
 
 
 class TokenTestCase(AbstractTestCase):

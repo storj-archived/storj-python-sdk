@@ -8,6 +8,7 @@ import os
 import os.path
 import random
 import strict_rfc3339
+import types
 
 from datetime import datetime
 from steenzout.object import Object
@@ -348,26 +349,16 @@ class ShardManager(Object):
         return binascii.hexlify(''.join(os.urandom(32)))
 
     def _make_tree(self, challenges, data):
-        """
-        Make a Storj MerkleTree built from the specified challeng
+        """Creates a Storj Merkle tree.
 
-        Arguments:
-        challenges (list[str]): A list of random challenges
-        data (str): The data to be audited
+        Args:
+            challenges (list[str]): A list of random challenges.
+            data (str): data to be audited.
 
         Returns:
-        tree (MerkleTree): An audit tree from the specified
-
+            (:py:class:`MerkleTree`): audit tree.
         """
-        leaves = []
-        for challenge in challenges:
-            leaves.append['%s%s' % (challenge, data)]
-        for leaf in leaves:
-            leaf = self._hash(leaf)
-
-        tree = MerkleTree(leaves)
-
-        return tree
+        return MerkleTree((self._hash('%s%s' % (c, data)) for c in challenges))
 
 
 class Token(Object):
@@ -397,52 +388,65 @@ class MerkleTree(Object):
     Row 0 is the root node, row 1 is its children, row 2 is their children, etc
 
     Arguments
-    leaves (list[str]): leaves of the tree, as hex digests
+        leaves (list[str]/types.generator[str]):
+            leaves of the tree, as hex digests
 
     Attributes:
-    leaves (list[str]): leaves of the tree, as hex digests
-    depth (int): the number of levels in the tree
-    count (int): the number of nodes in the tree
-    rows (list[list[str]]): the levels of the tree
+        leaves (list[str]): leaves of the tree, as hex digests
+        depth (int): the number of levels in the tree
+        count (int): the number of nodes in the tree
+        rows (list[list[str]]): the levels of the tree
     """
 
     def __init__(self, leaves, prehashed=True):
 
-        if not isinstance(leaves, list):
-            raise ValueError("Leaves should be a list.")
-        if len(leaves) < 1:
-            raise ValueError("Leaves should contain at least one entry.")
-        for leaf in leaves:
-            if not isinstance(leaf, str):
-                raise ValueError("Leaves should contain only strings.")
-
-        self.leaves = [leaf for leaf in leaves]
         self.prehashed = prehashed
+        self.leaves = leaves
         self.depth = self._calculate_depth()
         self.count = 0
         self._rows = []
 
         self._generate()
 
+    @property
+    def leaves(self):
+        """(list[str]/types.generator[str]): leaves of the tree."""
+        return self._leaves
+
+    @leaves.setter
+    def leaves(self, value):
+        if not isinstance(value, list) and \
+                not isinstance(value, types.GeneratorType):
+            raise ValueError('Leaves should be a list.')
+        if not len(value) > 0:
+            raise ValueError('Leaves must contain at least one entry.')
+        for leaf in value:
+            if not isinstance(leaf, basestring):
+                raise ValueError('Leaves should only contain strings.')
+
+        if self.prehashed:
+            # it will create a copy of list or
+            # it will create a new list based on the generator
+            self._leaves = list(value)
+        else:
+            self._leaves = [self._hash(leaf) for leaf in value]
+
     def _generate(self):
         """Generate the merkle tree from the leaves"""
         self._rows = [[] for _ in range(self.depth + 1)]
 
-        if not self.prehashed:
-            self.leaves = [self._hash(leaf) for leaf in self.leaves]
-
         # The number of leaves should be filled with hash of empty strings
         # until the number of leaves is a power of 2.
         # See https://storj.github.io/core/tutorial-protocol-spec.html
-        while len(self.leaves) < (2 ** self.depth):
-            self.leaves.append(self._hash(''))
+        while len(self._leaves) < (2 ** self.depth):
+            self._leaves.append(self._hash(''))
 
         leaf_row = self.depth
         next_branches = self.depth - 1
 
-        self._rows[leaf_row] = self.leaves
+        self._rows[leaf_row] = self._leaves
         if not self.prehashed:
-            self.count += len(self.leaves)
+            self.count += len(self._leaves)
 
         # Generate each row, starting from the bottom
 
@@ -482,7 +486,7 @@ class MerkleTree(Object):
         """Calculate the depth of the tree from the number of leaves"""
         pow = 0
 
-        while (2 ** pow) < len(self.leaves):
+        while (2 ** pow) < len(self._leaves):
             pow += 1
 
         return pow

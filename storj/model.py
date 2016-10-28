@@ -120,7 +120,7 @@ class Frame(Object):
             self.shards = shards
 
 
-class Keyring:
+class Keyring(Object):
 
     def __init__(self):
         self.password = None
@@ -166,7 +166,7 @@ class Keyring:
         return creds
 
 
-class Shard:
+class Shard(Object):
     """Shard.
 
     Attributes:
@@ -234,7 +234,7 @@ class Shard:
         pass
 
 
-class ShardManager:
+class ShardManager(Object):
     """File shard manager.
 
     Attributes:
@@ -270,6 +270,7 @@ class ShardManager:
 
     def _make_shards(self):
         """Populates the shard manager with shards."""
+        self.shards = []
 
         with open(self._filepath, 'rb') as fd:
 
@@ -390,7 +391,7 @@ class Token(Object):
             self.expires = None
 
 
-class MerkleTree:
+class MerkleTree(Object):
     """
     Simple merkle hash tree. Nodes are stored as strings in rows.
     Row 0 is the root node, row 1 is its children, row 2 is their children, etc

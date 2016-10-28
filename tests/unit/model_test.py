@@ -158,9 +158,13 @@ class ShardManagerTestCase(AbstractTestCase):
         finally:
             shutil.rmtree(tmpdir)
 
-        # file path is a file
+        # file path is a text file
         content = '1234567890'
-        tmpfile = tempfile.NamedTemporaryFile('w+b', delete=False)
+        self._assert_shard_manager(
+            content, 'w+t', mock_tree, mock_challenges)
+
+    def _assert_shard_manager(self, content, mode, mock_tree, mock_challenges):
+        tmpfile = tempfile.NamedTemporaryFile(mode, delete=False)
         try:
             tmpfile.write(content)
             tmpfile.close()
@@ -175,13 +179,89 @@ class ShardManagerTestCase(AbstractTestCase):
             assert len(sm.shards) == sm.index
 
         finally:
-            if not tmpfile.close_called:
-                tmpfile.close()
+            tmpfile.close()
             os.remove(tmpfile.name)
 
         mock_challenges.assert_called_once_with(nchallenges)
         mock_tree.assert_called_once_with(
             mock_challenges.return_value, content)
+
+        mock_tree.reset_mock()
+        mock_challenges.reset_mock()
+
+    @mock.patch.object(ShardManager, '_sha256')
+    @mock.patch.object(ShardManager, '_ripemd160')
+    @mock.patch('storj.model.bytes')
+    @mock.patch('storj.model.binascii')
+    def test_hash(self,
+                  mock_binascii, mock_bytes, mock_ripemd160, mock_sha256):
+        """Test ShardManager.hash()"""
+
+        hash_output = mock.MagicMock()
+        test_data = mock.MagicMock()
+        test_data.encode.return_value = test_data
+
+        mock_ripemd160.return_value = hash_output
+        mock_sha256.return_value = hash_output
+
+        mock_bytes.return_value = test_data
+        mock_binascii.hexlify.return_value = test_data
+
+        output = ShardManager.hash(test_data)
+
+        assert output is not None
+
+        test_data.encode.assert_called_with('utf-8')
+        mock_bytes.assert_called_with(test_data)
+        mock_sha256.assert_called_with(test_data)
+        mock_ripemd160.assert_called_with(hash_output)
+        mock_binascii.hexlify.assert_called_with(hash_output)
+        test_data.decode.assert_called_with('utf-8')
+
+    @mock.patch('storj.model.hashlib')
+    def test_ripemd160_binary(self, mock_hashlib):
+        """Test ShardManager._ripemd160"""
+        test_data = bytearray('ab')
+
+        output = ShardManager._ripemd160(test_data)
+
+        assert output is not None
+
+        mock_hashlib.new.assert_called_with('ripemd160', test_data)
+        mock_hashlib.new.return_value.digest.assert_called_once_with()
+
+    @mock.patch('storj.model.hashlib')
+    def test_ripemd160_text(self, mock_hashlib):
+        """Test ShardManager._ripemd160"""
+
+        test_data = 'ab'
+
+        output = ShardManager._ripemd160(test_data)
+
+        assert output is not None
+
+        mock_hashlib.new.assert_called_with('ripemd160', test_data)
+        mock_hashlib.new.return_value.digest.assert_called_once_with()
+
+    @mock.patch('storj.model.hashlib')
+    def test_sha256_binary(self, mock_hashlib):
+        """Test ShardManager._sha256"""
+        test_data = bytearray('ab')
+
+        output = ShardManager._ripemd160(test_data)
+
+        mock_hashlib.new.assert_called_with('ripemd160', test_data)
+        mock_hashlib.new.return_value.digest.assert_called_once_with()
+
+    @mock.patch('storj.model.hashlib')
+    def test_sha256_text(self, mock_hashlib):
+        """Test ShardManager._sha256"""
+        test_data = 'ab'
+
+        output = ShardManager._ripemd160(test_data)
+
+        mock_hashlib.new.assert_called_with('ripemd160', test_data)
+        mock_hashlib.new.return_value.digest.assert_called_once_with()
 
 
 class TokenTestCase(AbstractTestCase):
@@ -291,66 +371,20 @@ class MerkleTreeTestCase(AbstractTestCase):
         make_row_calls = [mock.call(1), mock.call(0)]
         self.tree._make_row.assert_has_calls(make_row_calls)
 
-    def test_make_row(self):
+    @mock.patch.object(ShardManager, 'hash', return_value='7')
+    def test_make_row(self, mock_hash):
         """Test MerkleTree._make_row()"""
 
         self.tree._rows = [[],
                            [],
                            ['a', 'b', 'c', 'd']]
-        self.tree._hash = mock.MagicMock()
-        self.tree._hash.return_value = '7'
 
         row = self.tree._make_row(1)
 
         calls = [mock.call('ab'),
                  mock.call('cd')]
-        self.tree._hash.assert_has_calls(calls)
+        mock_hash.assert_has_calls(calls)
         self.assertEqual(row, ['7', '7'])
-
-    @mock.patch('storj.model.bytes')
-    @mock.patch('storj.model.binascii')
-    def test_hash(self, mock_binascii, mock_bytes):
-        """Test MerkleTree._hash()"""
-
-        self.tree._ripemd160 = mock.MagicMock()
-        self.tree._sha256 = mock.MagicMock()
-        hash_output = mock.MagicMock()
-        test_data = mock.MagicMock()
-
-        test_data.encode.return_value = test_data
-        self.tree._ripemd160.return_value = hash_output
-        self.tree._sha256.return_value = hash_output
-        mock_bytes.return_value = test_data
-        mock_binascii.hexlify.return_value = test_data
-
-        output = self.tree._hash(test_data)
-
-        test_data.encode.assert_called_with('utf-8')
-        mock_bytes.assert_called_with(test_data)
-        self.tree._sha256.assert_called_with(test_data)
-        self.tree._ripemd160.assert_called_with(hash_output)
-        mock_binascii.hexlify.assert_called_with(hash_output)
-        test_data.decode.assert_called_with('utf-8')
-
-    @mock.patch('storj.model.hashlib')
-    def test_ripemd160(self, mock_hashlib):
-        """Test MerkleTree._ripemd160"""
-        test_data = 'ab'
-
-        output = self.tree._ripemd160(test_data)
-
-        mock_hashlib.new.assert_called_with('ripemd160', test_data)
-        mock_hashlib.new.return_value.digest.assert_called_once_with()
-
-    @mock.patch('storj.model.hashlib')
-    def test_sha256(self, mock_hashlib):
-        """Test MerkleTree._sha256"""
-        test_data = 'ab'
-
-        output = self.tree._ripemd160(test_data)
-
-        mock_hashlib.new.assert_called_with('ripemd160', test_data)
-        mock_hashlib.new.return_value.digest.assert_called_once_with()
 
     def test_property_depth(self):
         """Test depth property."""

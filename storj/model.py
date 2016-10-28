@@ -7,6 +7,7 @@ import hashlib
 import os
 import os.path
 import random
+import six
 import strict_rfc3339
 import types
 
@@ -258,7 +259,7 @@ class ShardManager(Object):
 
     @filepath.setter
     def filepath(self, value):
-        if not isinstance(value, (str, unicode)):
+        if not isinstance(value, six.string_types):
             raise ValueError('%s must be a string' % value)
         elif not os.path.exists(value):
             raise ValueError('%s must exist' % value)
@@ -446,7 +447,7 @@ class MerkleTree(Object):
             raise ValueError('Leaves must contain at least one entry.')
 
         for leaf in self._leaves:
-            if not isinstance(leaf, (str, unicode)):
+            if not isinstance(leaf, six.string_types):
                 raise ValueError('Leaves should only contain strings.')
 
     def _generate(self):

@@ -433,7 +433,7 @@ class MerkleTree(Object):
             raise ValueError('Leaves should be a list.')
         elif not isinstance(value, list) and \
                 not isinstance(value, types.GeneratorType):
-            raise ValueError('Leaves should be a list or a generator.')
+            raise ValueError('Leaves should be a list or a generator (%s).' % type(value))
 
         if self.prehashed:
             # it will create a copy of list or

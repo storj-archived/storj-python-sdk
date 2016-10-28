@@ -428,14 +428,22 @@ class MerkleTree(Object):
 
     @leaves.setter
     def leaves(self, value):
-        if not isinstance(value, list) and \
-                not isinstance(value, types.GeneratorType):
+
+        if value is None:
             raise ValueError('Leaves should be a list.')
-        if not len(value) > 0:
-            raise ValueError('Leaves must contain at least one entry.')
+        elif not isinstance(value, list) and \
+                not isinstance(value, types.GeneratorType):
+            raise ValueError('Leaves should be a list or a generator.')
+
+        at_least_one_entry = False
         for leaf in value:
             if not isinstance(leaf, basestring):
                 raise ValueError('Leaves should only contain strings.')
+            if not at_least_one_entry:
+                at_least_one_entry = True
+
+        if not at_least_one_entry:
+            raise ValueError('Leaves must contain at least one entry.')
 
         if self.prehashed:
             # it will create a copy of list or

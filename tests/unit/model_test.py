@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
 """Test cases for the storj.model module."""
 
+import mock
+import os
+import pytest
+import shutil
+import six
 import strict_rfc3339
+import tempfile
 
 
 from datetime import datetime
 
-from storj.model import Bucket, Frame, Shard, Token
+from storj.model import Bucket, Frame, MerkleTree, Shard, ShardManager, Token
+
 
 from .. import AbstractTestCase
 
@@ -121,6 +128,150 @@ class ShardTestCase(AbstractTestCase):
 
         assert shard.tree == ['node']
 
+    def test_get_public_record(self):
+        pass
+
+    def test_get_private_record(self):
+        pass
+
+
+class ShardManagerTestCase(AbstractTestCase):
+    """Test case for the ShardManager class."""
+
+    @mock.patch.object(ShardManager, '_make_challenges', return_value=[])
+    @mock.patch.object(ShardManager, '_make_tree', return_value=[])
+    def test_property_filepath(self, mock_tree, mock_challenges):
+        """Test filepath property."""
+
+        # filepath is not a str
+        with pytest.raises(ValueError):
+            ShardManager(1, 1)
+
+        # filepath does not exist
+        with pytest.raises(ValueError):
+            ShardManager('/dev/nowhere', 1)
+
+        # file path is a directory
+        tmpdir = tempfile.mkdtemp()
+        try:
+            with pytest.raises(ValueError):
+                ShardManager(tmpdir, 1)
+        finally:
+            shutil.rmtree(tmpdir)
+
+        # file path is a text file
+        content = '1234567890'
+        self._assert_shard_manager(
+            content, 'w+t', mock_tree, mock_challenges)
+
+        content = b'1234567890'
+        self._assert_shard_manager(
+            content, 'w+b', mock_tree, mock_challenges)
+
+    def _assert_shard_manager(self, content, mode, mock_tree, mock_challenges):
+        tmpfile = tempfile.NamedTemporaryFile(mode, delete=False)
+        try:
+            tmpfile.write(content)
+            tmpfile.close()
+
+            size = 10
+            nchallenges = 20
+            sm = ShardManager(tmpfile.name, size, nchallenges)
+
+            assert sm.filepath == tmpfile.name
+            assert sm.shard_size == size
+            assert len(sm.shards) > 0
+            assert len(sm.shards) == sm.index
+
+        finally:
+            tmpfile.close()
+            os.remove(tmpfile.name)
+
+        mock_challenges.assert_called_once_with(nchallenges)
+        if isinstance(content, six.binary_type):
+            mock_tree.assert_called_once_with(
+                mock_challenges.return_value, content)
+        else:
+            mock_tree.assert_called_once_with(
+                mock_challenges.return_value, bytes(content.encode('utf-8')))
+
+        mock_tree.reset_mock()
+        mock_challenges.reset_mock()
+
+    @mock.patch.object(ShardManager, '_sha256')
+    @mock.patch.object(ShardManager, '_ripemd160')
+    @mock.patch('storj.model.bytes')
+    @mock.patch('storj.model.binascii')
+    def test_hash(self,
+                  mock_binascii, mock_bytes, mock_ripemd160, mock_sha256):
+        """Test ShardManager.hash()"""
+
+        hash_output = mock.MagicMock()
+        test_data = mock.MagicMock()
+        test_data.encode.return_value = test_data
+
+        mock_ripemd160.return_value = hash_output
+        mock_sha256.return_value = hash_output
+
+        mock_bytes.return_value = test_data
+        mock_binascii.hexlify.return_value = test_data
+
+        output = ShardManager.hash(test_data)
+
+        assert output is not None
+
+        test_data.encode.assert_called_with('utf-8')
+        mock_bytes.assert_called_with(test_data)
+        mock_sha256.assert_called_with(test_data)
+        mock_ripemd160.assert_called_with(hash_output)
+        mock_binascii.hexlify.assert_called_with(hash_output)
+        test_data.decode.assert_called_with('utf-8')
+
+    @mock.patch('storj.model.hashlib')
+    def test_ripemd160_binary(self, mock_hashlib):
+        """Test ShardManager._ripemd160"""
+        test_data = b'ab'
+
+        output = ShardManager._ripemd160(test_data)
+
+        assert output is not None
+
+        mock_hashlib.new.assert_called_with('ripemd160', test_data)
+        mock_hashlib.new.return_value.digest.assert_called_once_with()
+
+    @mock.patch('storj.model.hashlib')
+    def test_ripemd160_text(self, mock_hashlib):
+        """Test ShardManager._ripemd160"""
+
+        test_data = 'ab'
+
+        output = ShardManager._ripemd160(test_data)
+
+        assert output is not None
+
+        mock_hashlib.new.assert_called_with('ripemd160', test_data)
+        mock_hashlib.new.return_value.digest.assert_called_once_with()
+
+    @mock.patch('storj.model.hashlib')
+    def test_sha256_binary(self, mock_hashlib):
+        """Test ShardManager._sha256"""
+        test_data = b'ab'
+
+        output = ShardManager._ripemd160(test_data)
+
+        mock_hashlib.new.assert_called_with('ripemd160', test_data)
+        mock_hashlib.new.return_value.digest.assert_called_once_with()
+
+    @mock.patch('storj.model.hashlib')
+    def test_sha256_text(self, mock_hashlib):
+        """Test ShardManager._sha256"""
+        test_data = 'ab'
+
+        output = ShardManager._ripemd160(test_data)
+
+        mock_hashlib.new.assert_called_with('ripemd160', test_data)
+        mock_hashlib.new.return_value.digest.assert_called_once_with()
+
 
 class TokenTestCase(AbstractTestCase):
     """Test case for the Token class."""
@@ -174,3 +325,116 @@ class TokenTestCase(AbstractTestCase):
             operation='unknown',
             token='510b23e9f63a77d939a72a77')
         self._assert_init(kwargs)
+
+
+class MerkleTreeTestCase(AbstractTestCase):
+    """Test case for the MerkleTree Class"""
+
+    def setUp(self):
+        super(AbstractTestCase, self).setUp()
+
+        self.leaves = ['a', 'b', 'c', 'd']
+        self.tree = MerkleTree(self.leaves)
+
+    def _assert_init(self, leaves, mock_generate, kwargs):
+        """Run init assertions for MerkleTree."""
+
+        tree = MerkleTree(leaves, **kwargs)
+
+        assert tree.leaves == ['a', 'b']
+
+        prehashed = kwargs['prehashed'] if 'prehashed' in kwargs else True
+        assert prehashed == tree.prehashed
+
+        assert tree.count == 0
+        assert tree._rows == []
+        assert tree.depth == 1
+
+        mock_generate.assert_called_once_with()
+        mock_generate.reset_mock()
+
+    @mock.patch.object(MerkleTree, '_generate')
+    def test_init(self, mock_generate):
+        """Test MerkleTree.__init__()."""
+
+        # success
+        for leaves, kwargs in (
+                (['a', 'b'], dict()),
+                (['a', 'b'], dict(prehashed=True)),
+                ((x for x in ['a', 'b']), dict())):
+            self._assert_init(leaves, mock_generate, kwargs)
+
+        # failure
+        for leaves in (None, 73, [], [1, 2]):
+            with self.assertRaises(ValueError):
+                self._assert_init(leaves, mock_generate, {})
+                assert not mock_generate.called
+
+    def test_generate(self):
+        """Test MerkleTree._generate()"""
+        self.tree._make_row = mock.MagicMock()
+        self.tree._make_row.return_value = ['a', 'b']
+
+        self.tree._generate()
+
+        make_row_calls = [mock.call(1), mock.call(0)]
+        self.tree._make_row.assert_has_calls(make_row_calls)
+
+    @mock.patch.object(ShardManager, 'hash', return_value='7')
+    def test_make_row(self, mock_hash):
+        """Test MerkleTree._make_row()"""
+
+        self.tree._rows = [[],
+                           [],
+                           ['a', 'b', 'c', 'd']]
+
+        row = self.tree._make_row(1)
+
+        calls = [mock.call('ab'),
+                 mock.call('cd')]
+        mock_hash.assert_has_calls(calls)
+        self.assertEqual(row, ['7', '7'])
+
+    def test_property_depth(self):
+        """Test depth property."""
+
+        self.tree._leaves = mock.MagicMock()
+        self.tree._leaves.__len__.return_value = 8
+
+        depth = self.tree.depth
+
+        self.assertEqual(self.tree.leaves.__len__.call_count, 4)
+        self.assertEqual(2 ** depth, 8)
+
+    def test_get_root(self):
+        """Test MerkleTree.get_root"""
+        root = self.tree.get_root()
+
+        self.assertEqual(root, self.tree._rows[0][0])
+
+    def test_get_level(self):
+        """Test MerkleTree.get_level"""
+        level = self.tree.get_level(1)
+
+        self.assertEqual(level, self.tree._rows[1])
+
+    def test_node_output(self):
+        """Test MerkleTree with output from the node client"""
+        leaves = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+        depth = 3
+        rows = [['2adf050f14bf6324bfd41577d0dc08e2e49766fa'],
+                ['39c096fc1b11e77f4347cfdb45ba9b03c0ad95d9',
+                 '47121e7ec10e7653f1262b1d3abb6f9a71b3de8b'],
+                ['e4973182d0c331ce8b083ffa2b28c8b4fc0f1d93',
+                 'c91b9f3b2937035cc07d3fcd258d7d8a1f0c4d3c',
+                 '8182daac9a266aa39328b835726f80a34835027d',
+                 '222025114b2d1374b4a354d1b4452f648c9b481d'],
+                ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']]
+        count = 7
+
+        tree = MerkleTree(leaves)
+
+        self.assertEqual(tree.leaves, leaves)
+        self.assertEqual(tree.depth, depth)
+        self.assertEqual(tree._rows, rows)
+        self.assertEqual(tree.count, count)

@@ -368,7 +368,7 @@ class MerkleTreeTestCase(AbstractTestCase):
         self.tree.leaves = mock.MagicMock()
         self.tree.leaves.__len__.return_value = 8
 
-        depth = self.tree._calculate_depth()
+        depth = self.tree.depth()
 
         self.assertEqual(self.tree.leaves.__len__.call_count, 4)
         self.assertEqual(2 ** depth, 8)

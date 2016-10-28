@@ -258,7 +258,7 @@ class ShardManager(Object):
 
     @filepath.setter
     def filepath(self, value):
-        if not isinstance(value, basestring):
+        if not isinstance(value, (str, unicode)):
             raise ValueError('%s must be a string' % value)
         elif not os.path.exists(value):
             raise ValueError('%s must exist' % value)
@@ -446,7 +446,7 @@ class MerkleTree(Object):
             raise ValueError('Leaves must contain at least one entry.')
 
         for leaf in self._leaves:
-            if not isinstance(leaf, basestring):
+            if not isinstance(leaf, (str, unicode)):
                 raise ValueError('Leaves should only contain strings.')
 
     def _generate(self):

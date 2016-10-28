@@ -247,37 +247,39 @@ class MerkleTreeTestCase(AbstractTestCase):
         self.leaves = ['a', 'b', 'c', 'd']
         self.tree = MerkleTree(self.leaves)
 
-    @mock.patch.object(MerkleTree, '_generate')
-    def _assert_init(self, kwargs, mock_generate):
+    def _assert_init(self, leaves, mock_generate, kwargs):
         """Run init assertions for MerkleTree."""
 
-        tree = MerkleTree(**kwargs)
+        tree = MerkleTree(leaves, **kwargs)
 
-        assert kwargs['leaves'] == tree.leaves
+        assert tree.leaves == ['a', 'b']
 
         prehashed = kwargs['prehashed'] if 'prehashed' in kwargs else True
         assert prehashed == tree.prehashed
+
         assert tree.count == 0
         assert tree._rows == []
+        assert tree.depth == 1
 
         mock_generate.assert_called_once_with()
+        mock_generate.reset_mock()
 
-    def test_init(self):
+    @mock.patch.object(MerkleTree, '_generate')
+    def test_init(self, mock_generate):
         """Test MerkleTree.__init__()."""
-        kwargs = dict(
-            leaves=['a', 'b'],
-        )
-        self._assert_init(kwargs)
 
-        kwargs = dict(
-            leaves=['a', 'b'],
-            prehashed=True
-        )
-        self._assert_init(kwargs)
+        # success
+        for leaves, kwargs in (
+                (['a', 'b'], dict()),
+                (['a', 'b'], dict(prehashed=True)),
+                ((x for x in ['a', 'b']), dict())):
+            self._assert_init(leaves, mock_generate, kwargs)
 
-        for kwargs in (73, [], [1, 2]):
+        # failure
+        for leaves in (None, 73, [], [1, 2]):
             with self.assertRaises(ValueError):
-                self._assert_init(**{'leaves': kwargs})
+                self._assert_init(leaves, mock_generate, {})
+                assert not mock_generate.called
 
     def test_generate(self):
         """Test MerkleTree._generate()"""

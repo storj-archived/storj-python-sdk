@@ -282,15 +282,13 @@ class ShardManager:
         """Returns the sha256 digest of bytes as bytes"""
         return hashlib.new('sha256', b).digest()
 
-    def _make_challenges(self, numberOfChallenges=12):
-        challenges = []
+    def _make_challenges(self, challenges=12):
+        challenges = [
+            self._getRandomChallengeString() for _ in xrange(challenges)]
 
-        for i in xrange(numberOfChallenges):
-            challenges.append(self.getRandomChallengeString())
-
-            def getRandomChallengeString(self):
-                s = ''.join(os.urandom(32))
-                return binascii.hexlify(s)
+    def _getRandomChallengeString(self):
+        s = ''.join(os.urandom(32))
+        return binascii.hexlify(s)
 
     def _make_tree(self, challenges, data):
         """

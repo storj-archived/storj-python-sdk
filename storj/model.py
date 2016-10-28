@@ -293,19 +293,43 @@ class ShardManager:
 
         self.index = len(self.shards)
 
-    def _hash(self, data):
-        """Returns ripemd160 of sha256 of a string as a string of hex"""
+    @staticmethod
+    def _hash(data):
+        """Returns ripemd160 of sha256 of a string as a string of hex.
+
+        Args:
+            data (str): content to be digested.
+
+        Returns:
+            (str): the ripemd160 of sha256 digest.
+        """
         data = data.encode('utf-8')
         data = bytes(data)
-        output = binascii.hexlify(self._ripemd160(self._sha256(data)))
+        output = binascii.hexlify(ShardManager._ripemd160(ShardManager._sha256(data)))
         return output.decode('utf-8')
 
-    def _ripemd160(self, b):
-        """Returns the ripemd160 digest of bytes as bytes"""
+    @staticmethod
+    def _ripemd160(b):
+        """Returns the ripemd160 digest of bytes as bytes.
+
+        Args:
+            b (str): content to be ripemd160 digested.
+
+        Returns:
+            (str): the ripemd160 digest.
+        """
         return hashlib.new('ripemd160', b).digest()
 
-    def _sha256(self, b):
-        """Returns the sha256 digest of bytes as bytes"""
+    @staticmethod
+    def _sha256(b):
+        """Returns the sha256 digest of bytes as bytes.
+
+        Args:
+            b (str): content to be sha256 digested.
+
+        Returns:
+            (str): the sha256 digest.
+        """
         return hashlib.new('sha256', b).digest()
 
     def _make_challenges(self, challenges=12):
@@ -320,8 +344,7 @@ class ShardManager:
         return [self._make_challenge_string() for _ in xrange(challenges)]
 
     def _make_challenge_string(self):
-        s = ''.join(os.urandom(32))
-        return binascii.hexlify(s)
+        return binascii.hexlify(''.join(os.urandom(32)))
 
     def _make_tree(self, challenges, data):
         """

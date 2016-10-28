@@ -252,7 +252,7 @@ class ShardManager:
 
     @property
     def filepath(self):
-        """"""
+        """(str): path to the file."""
         return self._filepath
 
     @filepath.setter

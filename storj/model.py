@@ -402,11 +402,24 @@ class MerkleTree(Object):
 
         self.prehashed = prehashed
         self.leaves = leaves
-        self.depth = self.depth()
         self.count = 0
         self._rows = []
 
         self._generate()
+
+    @property
+    def depth(self):
+        """Calculates the depth of the tree.
+
+        Returns:
+            (int): tree depth.
+        """
+        pow = 0
+
+        while (2 ** pow) < len(self._leaves):
+            pow += 1
+
+        return pow
 
     @property
     def leaves(self):
@@ -481,15 +494,6 @@ class MerkleTree(Object):
     def _sha256(self, b):
         """Returns the sha256 digest of bytes as bytes"""
         return hashlib.new('sha256', b).digest()
-
-    def depth(self):
-        """Calculate the depth of the tree from the number of leaves"""
-        pow = 0
-
-        while (2 ** pow) < len(self._leaves):
-            pow += 1
-
-        return pow
 
     def get_root(self):
         """Return the root of the tree"""

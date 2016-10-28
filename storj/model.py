@@ -287,7 +287,7 @@ class ShardManager(Object):
 
                 shard = Shard(size=self.shard_size,
                               index=index,
-                              hash=self._hash(chunk),
+                              hash=ShardManager.hash(chunk),
                               tree=self._make_tree(challenges, chunk),
                               challenges=challenges)
 
@@ -297,7 +297,7 @@ class ShardManager(Object):
         self.index = len(self.shards)
 
     @staticmethod
-    def _hash(data):
+    def hash(data):
         """Returns ripemd160 of sha256 of a string as a string of hex.
 
         Args:
@@ -359,7 +359,7 @@ class ShardManager(Object):
         Returns:
             (:py:class:`MerkleTree`): audit tree.
         """
-        return MerkleTree((self._hash('%s%s' % (c, data)) for c in challenges))
+        return MerkleTree((ShardManager.hash('%s%s' % (c, data)) for c in challenges))
 
 
 class Token(Object):
@@ -441,7 +441,7 @@ class MerkleTree(Object):
             # it will create a new list based on the generator
             self._leaves = list(value)
         else:
-            self._leaves = [self._hash(leaf) for leaf in value]
+            self._leaves = [ShardManager.hash(leaf) for leaf in value]
 
         if not len(self._leaves) > 0:
             raise ValueError('Leaves must contain at least one entry.')
@@ -458,7 +458,7 @@ class MerkleTree(Object):
         # until the number of leaves is a power of 2.
         # See https://storj.github.io/core/tutorial-protocol-spec.html
         while len(self._leaves) < (2 ** self.depth):
-            self._leaves.append(self._hash(''))
+            self._leaves.append(ShardManager.hash(''))
 
         leaf_row = self.depth
         next_branches = self.depth - 1
@@ -481,25 +481,10 @@ class MerkleTree(Object):
         prior = self._rows[depth + 1]
 
         for i in range(0, len(prior), 2):
-            entry = self._hash('%s%s' % (prior[i], prior[i + 1]))
+            entry = ShardManager.hash('%s%s' % (prior[i], prior[i + 1]))
             row.append(entry)
 
         return row
-
-    def _hash(self, data):
-        """Returns ripemd160 of sha256 of a string as a string of hex"""
-        data = data.encode('utf-8')
-        data = bytes(data)
-        output = binascii.hexlify(self._ripemd160(self._sha256(data)))
-        return output.decode('utf-8')
-
-    def _ripemd160(self, b):
-        """Returns the ripemd160 digest of bytes as bytes"""
-        return hashlib.new('ripemd160', b).digest()
-
-    def _sha256(self, b):
-        """Returns the sha256 digest of bytes as bytes"""
-        return hashlib.new('sha256', b).digest()
 
     def get_root(self):
         """Return the root of the tree"""

@@ -4,10 +4,10 @@
 import base64
 import binascii
 import hashlib
+import os
+import os.path
 import random
 import strict_rfc3339
-import string
-import os
 
 from datetime import datetime
 from steenzout.object import Object
@@ -235,37 +235,63 @@ class Shard:
 
 
 class ShardManager:
+    """File shard manager.
 
-    def __init__(self, filepath, shard_size):
-        self.shards = []
-        self.challenges = 8
+    Attributes:
+        filepath (str): path to the file.
+        index (int): number of shards for the given file.
+        nchallenges (int): number of challenges to be generated.
+        shard_size (int/long): split file in chunks of this size.
+        shards (list[:py:class:`Shard`]): list of shards
+    """
+
+    def __init__(self, filepath, shard_size, nchallenges=12):
+        self.nchallenges = nchallenges
         self.shard_size = shard_size
         self.filepath = filepath
 
-        file = open(filepath, "rb")
+    @property
+    def filepath(self):
+        """"""
+        return self._filepath
 
-        self._make_shards(file)
+    @filepath.setter
+    def filepath(self, value):
+        if not isinstance(value, basestring):
+            raise ValueError('%s must be a string' % value)
+        elif not os.path.exists(value):
+            raise ValueError('%s must exist' % value)
+        elif not os.path.isfile(value):
+            raise ValueError('%s must be a file' % value)
 
-    def _make_shards(file):
-        shard_index = 0
+        self._filepath = value
+        self.index = 0
+        self._make_shards()
 
-        while(True):
-            chunk = file.read(shard_size)
-            if not chunk:
-                break
+    def _make_shards(self):
+        """Populates the shard manager with shards."""
 
-            challenges = self._make_challenges()
-            tree = self._make_tree(challenges, chunk)
+        with open(self._filepath, 'rb') as fd:
 
-            shard = Shard(size=shard_size,
-                          index=shard_index,
-                          hash=_self._hash(chunk),
-                          tree=tree,
-                          challenges=challenges)
+            index = 0
+            while True:
+                chunk = fd.read(self.shard_size)
 
-            self.shards.append(shard)
+                if not chunk:
+                    break
 
-            shard_index += 1
+                challenges = self._make_challenges(self.nchallenges)
+
+                shard = Shard(size=self.shard_size,
+                              index=index,
+                              hash=self._hash(chunk),
+                              tree=self._make_tree(challenges, chunk),
+                              challenges=challenges)
+
+                self.shards.append(shard)
+                index += 1
+
+        self.index = len(self.shards)
 
     def _hash(self, data):
         """Returns ripemd160 of sha256 of a string as a string of hex"""
@@ -283,8 +309,15 @@ class ShardManager:
         return hashlib.new('sha256', b).digest()
 
     def _make_challenges(self, challenges=12):
-        challenges = [
-            self._make_challenge_string() for _ in xrange(challenges)]
+        """Generates the challenge strings.
+
+        Args:
+            challenges (int): number of challenges to be generated.
+
+        Returns:
+            (list[str]): list of challenges.
+        """
+        return [self._make_challenge_string() for _ in xrange(challenges)]
 
     def _make_challenge_string(self):
         s = ''.join(os.urandom(32))

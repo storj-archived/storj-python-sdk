@@ -247,23 +247,19 @@ class MerkleTreeTestCase(AbstractTestCase):
         self.leaves = ['a', 'b', 'c', 'd']
         self.tree = MerkleTree(self.leaves)
 
-    @mock.patch('storj.model.MerkleTree._calculate_depth')
-    @mock.patch('storj.model.MerkleTree._generate')
-    def _assert_init(self, kwargs, mock_generate, mock_depth):
-        """Run init assertions for MerkleTree"""
+    @mock.patch.object(MerkleTree, '_generate')
+    def _assert_init(self, kwargs, mock_generate):
+        """Run init assertions for MerkleTree."""
 
-        mock_depth.return_value = 7
         tree = MerkleTree(**kwargs)
 
         assert kwargs['leaves'] == tree.leaves
 
         prehashed = kwargs['prehashed'] if 'prehashed' in kwargs else True
         assert prehashed == tree.prehashed
-        assert tree.depth == mock_depth.return_value
         assert tree.count == 0
         assert tree._rows == []
 
-        mock_depth.assert_called_once_with()
         mock_generate.assert_called_once_with()
 
     def test_init(self):
@@ -279,17 +275,9 @@ class MerkleTreeTestCase(AbstractTestCase):
         )
         self._assert_init(kwargs)
 
-        kwargs = dict(leaves=73)
-        with self.assertRaises(ValueError):
-            self._assert_init(kwargs)
-
-        kwargs = dict(leaves=[])
-        with self.assertRaises(ValueError):
-            self._assert_init(kwargs)
-
-        kwargs = dict(leaves=[1, 2])
-        with self.assertRaises(ValueError):
-            self._assert_init(kwargs)
+        for kwargs in (73, [], [1, 2]):
+            with self.assertRaises(ValueError):
+                self._assert_init(**{'leaves': kwargs})
 
     def test_generate(self):
         """Test MerkleTree._generate()"""
@@ -362,13 +350,13 @@ class MerkleTreeTestCase(AbstractTestCase):
         mock_hashlib.new.assert_called_with('ripemd160', test_data)
         mock_hashlib.new.return_value.digest.assert_called_once_with()
 
-    def test_calculate_depth(self):
-        """Test MerkleTree.calculate_depth"""
+    def test_property_depth(self):
+        """Test depth property."""
 
-        self.tree.leaves = mock.MagicMock()
-        self.tree.leaves.__len__.return_value = 8
+        self.tree._leaves = mock.MagicMock()
+        self.tree._leaves.__len__.return_value = 8
 
-        depth = self.tree.depth()
+        depth = self.tree.depth
 
         self.assertEqual(self.tree.leaves.__len__.call_count, 4)
         self.assertEqual(2 ** depth, 8)

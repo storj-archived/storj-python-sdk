@@ -88,6 +88,8 @@ class ClientTestCase(AbstractTestCase):
 
     def test_bucket_list(self):
         """Test Client.bucket_list()."""
+
+        # see https://storj.github.io/bridge/#!/buckets/get_buckets
         test_response = [
             {'name': 'Test Bucket 1', 'storage': 25, 'transfer': 39},
             {'name': 'Test Bucket 2', 'storage': 19, 'transfer': 83},
@@ -107,6 +109,7 @@ class ClientTestCase(AbstractTestCase):
     def test_bucket_set_keys(self):
         """Test Client.bucket_set_keys()."""
 
+        # see https://storj.github.io/bridge/#!/buckets/patch_buckets_id
         test_bucket_id = '57fd385426adcf743b3d39c5'
         test_bucket_name = 'test'
         test_keys = ['key1', 'key2', 'key3']

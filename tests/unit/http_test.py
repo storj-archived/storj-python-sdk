@@ -221,6 +221,8 @@ class ClientTestCase(AbstractTestCase):
             path='/frames',
             json={})
 
+        assert response is None
+
     def test_frame_delete(self):
         """Test Client.frame_delete()."""
         test_frame_id = '314159265358979265'

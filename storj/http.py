@@ -683,6 +683,25 @@ class Client(object):
             path='/activations/%s' % token,
             json={})
 
+    def user_activation_email(self, email, token):
+        """Send user activation email.
+
+        See `API users: POST /activations/{token}
+        <https://storj.github.io/bridge/#!/users/post_activations_token>`_
+
+        Args:
+            email (str): user's email address.
+            token (str): activation token.
+       """
+        self.logger.info('user_activation_email(%s, %s)', email, token)
+
+        self._request(
+            method='GET',
+            path='/activations/%s' % token,
+            json={
+                'email': email,
+            })
+
     def user_create(self, email, password):
         """Create a new user with Storj bridge.
 

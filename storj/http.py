@@ -716,7 +716,7 @@ class Client(object):
         Args:
             email (str): user's email address.
         """
-        self.logger.info('user_delete(%s)', email)
+        self.logger.info('user_reset_password(%s)', email)
 
         self._request(
             method='PATCH',

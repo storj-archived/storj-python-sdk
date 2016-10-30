@@ -726,6 +726,22 @@ class Client(object):
 
         self.authenticate(email=email, password=password)
 
+    def user_deactivate(self, token):
+        """Discard activation token.
+
+        See `API users: GET /activations/{token}
+        <https://storj.github.io/bridge/#!/users/get_deactivations_token>`_
+
+        Args:
+            token (str): activation token.
+        """
+        self.logger.info('user_deactivate(%s)', token)
+
+        self._request(
+            method='DELETE',
+            path='/activations/%s' % token,
+            json={})
+
     def user_delete(self, email):
         """Delete user account.
 

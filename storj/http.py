@@ -237,17 +237,19 @@ class Client(object):
         Returns:
             (:py:class:`model.Bucket`): bucket.
         """
+        self.logger.info('bucket_get(%s)', bucket_id)
+
         try:
-            response = self._request(
+            return model.Bucket(**self._request(
                 method='GET',
-                path='/buckets/%s' % bucket_id)
-            return model.Bucket(**response)
+                path='/buckets/%s' % bucket_id))
 
         except requests.HTTPError as e:
             if e.response.status_code == requests.codes.not_found:
                 return None
             else:
-                raise e
+                self.logger.error('bucket_get() error=%s', e)
+                raise StorjBridgeApiError()
 
     def bucket_list(self):
         """List all of the buckets belonging to the user.

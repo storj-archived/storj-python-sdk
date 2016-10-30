@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 """Test cases for the storj.http module."""
 
-from .. import AbstractTestCase
+import datetime
 import mock
+
 
 from hashlib import sha256
 
+
 from storj import http
 from storj import model
+
+
+from .. import AbstractTestCase
 
 
 class ClientTestCase(AbstractTestCase):
@@ -47,14 +52,19 @@ class ClientTestCase(AbstractTestCase):
         test_json = {'name': 'Test Bucket', 'storage': 25, 'transfer': 39}
         self.client._request.return_value = test_json
 
-        bucket = self.client.bucket_create('Test Bucket', storage=25,
-                                           transfer=39)
+        bucket = self.client.bucket_create(
+            test_json['name'],
+            storage=test_json['storage'],
+            transfer=test_json['transfer']
+        )
 
         self.mock_request(
             method='POST',
             path='/buckets',
             json=test_json)
-        self.assertIsInstance(bucket, model.Bucket)
+
+        assert bucket is not None
+        assert isinstance(bucket, model.Bucket)
 
     def test_bucket_delete(self):
         """Test Client.bucket_delete()."""
@@ -214,14 +224,16 @@ class ClientTestCase(AbstractTestCase):
 
     def test_frame_create(self):
         """Test Client.frame_create()."""
-        response = self.client.frame_create()
+
+        frame = self.client.frame_create()
 
         self.mock_request(
             method='POST',
             path='/frames',
             json={})
 
-        assert response is None
+        assert frame is not None
+        assert isinstance(frame, model.Frame)
 
     def test_frame_delete(self):
         """Test Client.frame_delete()."""
@@ -251,22 +263,23 @@ class ClientTestCase(AbstractTestCase):
 
         self.client._request.return_value = test_json
 
-        response = self.client.frame_get(test_frame_id)
-
-        mock_frame.assert_called_with(
-            created='2016-03-04T17:01:02.629Z',
-            id='507f1f77bcf86cd799439011',
-            shards=[{
-                'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',
-                'size': 4096,
-                'index': 0}])
+        frame = self.client.frame_get(test_frame_id)
 
         self.mock_request(
             method='GET',
             path='/frames/%s' % test_frame_id,
             json={'frame_id': test_frame_id})
 
-        assert response is not None
+        assert frame is not None
+        assert isinstance(frame, model.Frame)
+
+        assert frame.id == '507f1f77bcf86cd799439011'
+        assert frame.created == datetime.datetime(2016, 3, 4, 17, 01, 02)
+        assert frame.shards == [{
+                'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',
+                'size': 4096,
+                'index': 0
+        }]
 
     def test_frame_list(self):
         """Test Client.frame_list()."""

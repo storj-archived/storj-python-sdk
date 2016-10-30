@@ -312,7 +312,7 @@ class Client(object):
         if response is not None:
             return response
 
-    def file_pointers(self, bucket_id, file_id, skip):
+    def file_pointers(self, bucket_id, file_id, skip=None, limit=None):
         """Get list of pointers associated with a file.
 
         See `API buckets: GET /buckets/{id}/files/{file_id}

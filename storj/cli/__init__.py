@@ -100,7 +100,7 @@ def get(bucket_id):
     bucket = get_client().bucket_get(bucket_id)
 
     for attr, value in sorted(bucket.__dict__.items()):
-        click.echo('%s : %s' % (attr.rjust(8), value))
+        click.echo('%s : %s' % (attr.rjust(18), value))
 
 
 @bucket.command()

@@ -127,14 +127,16 @@ class BucketTestCase(AbstractTestCase):
 
         assert result.exit_code == 0
         assert result.output == '\n'.join([
-            ' created : %s' % self.bucket.created,
-            '      id : %s' % self.bucket.id,
-            '    name : %s' % self.bucket.name,
-            ' pubkeys : %s' % self.bucket.pubkeys,
-            '  status : %s' % self.bucket.status,
-            ' storage : %u' % self.bucket.storage,
-            'transfer : %u' % self.bucket.transfer,
-            '    user : %s\n' % self.bucket.user,
+            '           created : %s' % self.bucket.created,
+            '     encryptionKey : %s' % self.bucket.encryptionKey,
+            '                id : %s' % self.bucket.id,
+            '              name : %s' % self.bucket.name,
+            '           pubkeys : %s' % self.bucket.pubkeys,
+            ' publicPermissions : %s' % self.bucket.publicPermissions,
+            '            status : %s' % self.bucket.status,
+            '           storage : %u' % self.bucket.storage,
+            '          transfer : %u' % self.bucket.transfer,
+            '              user : %s\n' % self.bucket.user,
         ])
 
         self.mock_action.assert_called_once_with(self.bucket.id)

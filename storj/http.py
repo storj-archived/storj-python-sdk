@@ -722,3 +722,19 @@ class Client(object):
             method='PATCH',
             path='/users/%s' % email,
             json={})
+
+    def user_reset_password_confirmation(self, token):
+        """Confirm a password reset request.
+
+        See `API users: GET /resets/{token}
+        <https://storj.github.io/bridge/#!/users/get_resets_token>`_
+
+        Args:
+            token (str): password reset token.
+        """
+        self.logger.info('user_reset_password_confirmation(%s)', token)
+
+        self._request(
+            method='GET',
+            path='/resets/%s' % token,
+            json={})

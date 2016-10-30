@@ -589,7 +589,7 @@ class Client(object):
             print('Local Private Key: %s' % self.private_key
                   + '\nLocal Public Key: %s' % self.public_key)
 
-        keys = self.key_get()
+        keys = self.key_list()
 
         if not keys:
             print('No keys associated with this account.')

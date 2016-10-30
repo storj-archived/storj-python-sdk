@@ -573,14 +573,17 @@ class Client(object):
             return response
 
     def token_create(self, bucket_id, operation):
-        """Create upload token.
+        """Creates a token for the specified operation.
+
+        See `API buckets: POST /buckets/{id}/tokens
+        <https://storj.github.io/bridge/#!/buckets/post_buckets_id_tokens>`
 
         Args:
             bucket_id (str): bucket unique identifier.
-            operation ():
+            operation (str): operation.
 
         Returns:
-            (dict[]):
+            (dict): ...
         """
         self.logger.info('create_token(%s, %s)', bucket_id, operation)
 

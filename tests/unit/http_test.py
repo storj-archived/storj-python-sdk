@@ -106,15 +106,23 @@ class ClientTestCase(AbstractTestCase):
 
     def test_bucket_set_keys(self):
         """Test Client.bucket_set_keys()."""
-        test_bucket_id = "57fd385426adcf743b3d39c5"
+
+        test_bucket_id = '57fd385426adcf743b3d39c5'
+        test_bucket_name = 'test'
         test_keys = ['key1', 'key2', 'key3']
 
-        self.client.bucket_set_keys(test_bucket_id, test_keys)
+        self.client.bucket_set_keys(
+            test_bucket_id, test_bucket_name, test_keys)
 
-        self.client._request.assert_called_with(
+        response = self.client._request.assert_called_once_with(
             method='PATCH',
             path='/buckets/%s' % test_bucket_id,
-            json={'pubkeys': test_keys})
+            json={
+                'name': test_bucket_name,
+                'pubkeys': test_keys
+            })
+
+        assert response is None
 
     def test_contacts_list(self):
         """Test Client.contact_list()."""
@@ -248,16 +256,22 @@ class ClientTestCase(AbstractTestCase):
 
     def test_frame_list(self):
         """Test Client.frame_list()."""
+
+        # see https://storj.github.io/bridge/#!/frames/get_frames
         self.client._request.return_value = [{
-            "created": "2016-03-04T17:01:02.629Z",
-            "id": "507f1f77bcf86cd799439011"}]
+            'created': '2016-03-04T17:01:02.629Z',
+            'id': '507f1f77bcf86cd799439011'
+        }]
 
         response = self.client.frame_list()
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='GET',
-            path='/frames',
-            json={})
+            path='/frames')
+
+        assert response is not None
+        for frame in response:
+            assert isinstance(frame, model.Frame)
 
     def test_key_delete(self):
         """Test Client.key_delete()."""

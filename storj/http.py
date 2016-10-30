@@ -564,9 +564,19 @@ class Client(object):
         if response is not None:
             return response
 
-    def key_delete(self, key_id):
-        self.logger.info('key_delete(%s)', key_id)
-        self._request(method='DELETE', path='/keys/%s' % key_id)
+    def key_delete(self, public_key):
+        """Removes a public ECDSA keys.
+
+        See `API keys: DELETE /keys/{pubkey}
+        <https://storj.github.io/bridge/#!/keys/delete_keys_pubkey>`_
+
+        Args:
+            public_key (str): key to be removed.
+        """
+        self.logger.info('key_delete(%s)', public_key)
+        self._request(
+            method='DELETE',
+            path='/keys/%s' % public_key)
 
     def key_dump(self):
         self.logger.info('key_dump()')

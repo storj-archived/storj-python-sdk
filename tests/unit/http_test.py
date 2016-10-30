@@ -115,8 +115,9 @@ class ClientTestCase(AbstractTestCase):
 
         buckets = self.client.bucket_list()
 
+        assert buckets is not None
         for bucket in buckets:
-            self.assertIsInstance(bucket, model.Bucket)
+            assert isinstance(bucket, model.Bucket)
 
         self.mock_request.assert_called_once_with(
             method='GET',

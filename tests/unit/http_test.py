@@ -58,7 +58,7 @@ class ClientTestCase(AbstractTestCase):
             transfer=test_json['transfer']
         )
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='POST',
             path='/buckets',
             json=test_json)
@@ -83,7 +83,7 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.bucket_files(test_bucket_id)
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='GET',
             path='/buckets/%s/files/' % (test_bucket_id))
 
@@ -98,7 +98,7 @@ class ClientTestCase(AbstractTestCase):
 
         bucket = self.client.bucket_get(test_bucket_id)
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='GET',
             path='/buckets/%s' % test_bucket_id)
         self.assertIsInstance(bucket, model.Bucket)
@@ -119,7 +119,7 @@ class ClientTestCase(AbstractTestCase):
         for bucket in buckets:
             self.assertIsInstance(bucket, model.Bucket)
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='GET',
             path='/buckets')
 
@@ -134,7 +134,7 @@ class ClientTestCase(AbstractTestCase):
         self.client.bucket_set_keys(
             test_bucket_id, test_bucket_name, test_keys)
 
-        response = self.mock_request(
+        response = self.mock_request.assert_called_once_with(
             method='PATCH',
             path='/buckets/%s' % test_bucket_id,
             json={
@@ -153,7 +153,7 @@ class ClientTestCase(AbstractTestCase):
 
         contacts = self.client.contacts_list()
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='GET',
             path='/contacts',
             json={})
@@ -169,7 +169,7 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.file_pointers(test_bucket_id, test_file_id)
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='GET',
             path='/buckets/%s/files/%s/' % (test_bucket_id, test_file_id),
             headers={'x-token': 'test_token'})
@@ -192,7 +192,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.file_remove(test_bucket_id, test_file_id)
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='DELETE',
             path='/buckets/%s/files/%s' % (test_bucket_id, test_file_id)
         )
@@ -217,7 +217,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.frame_add_shard(test_shard, test_frame_id)
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='PUT',
             path='/frames/%s' % test_frame_id,
             json=test_json)
@@ -227,7 +227,7 @@ class ClientTestCase(AbstractTestCase):
 
         frame = self.client.frame_create()
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='POST',
             path='/frames',
             json={})
@@ -243,7 +243,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.frame_delete(test_frame_id)
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='DELETE',
             path='/frames/%s' % test_frame_id,
             json=test_json
@@ -265,7 +265,7 @@ class ClientTestCase(AbstractTestCase):
 
         frame = self.client.frame_get(test_frame_id)
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='GET',
             path='/frames/%s' % test_frame_id,
             json={'frame_id': test_frame_id})
@@ -292,7 +292,7 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.frame_list()
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='GET',
             path='/frames')
 
@@ -306,7 +306,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.key_delete(test_key)
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='DELETE',
             path='/keys/%s' % test_key
         )
@@ -409,7 +409,7 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.key_list()
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='GET',
             path='/keys'
         )
@@ -428,7 +428,7 @@ class ClientTestCase(AbstractTestCase):
         response = self.client.key_register('key')
 
         mock_ecdsa.assert_called_once_with('key')
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='POST',
             path='/keys',
             json=test_json)
@@ -440,7 +440,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.token_create(test_bucket_id, 'PULL')
 
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='POST',
             path='/buckets/%s/tokens' % test_bucket_id,
             json=test_json)
@@ -460,7 +460,7 @@ class ClientTestCase(AbstractTestCase):
 
         mock_sha256.assert_called_once_with(test_password)
         mock_sha256.return_value.hexdigest.assert_called_once_with()
-        self.mock_request(
+        self.mock_request.assert_called_once_with(
             method='POST',
             path='/users',
             json={'email': test_email, 'password': test_hashed_password})

@@ -327,6 +327,27 @@ class Client(object):
         if response is not None:
             return response
 
+    def contact_lookup(self, node_id):
+        """Lookup for contact information of a node.
+
+        See `API contacts: GET /contacts/{nodeID}
+        <https://storj.github.io/bridge/#!/contacts/get_contacts_nodeID>`_
+
+        Args:
+            node_id (str): node unique identifier.
+
+        Returns:
+            (:py:class:`storj.model.Contact`): contact information
+        """
+
+        response = self._request(
+            method='GET',
+            path='/contacts/%s' % node_id,
+            json={})
+
+        if response is not None:
+            return model.Contact(**response)
+
     def file_pointers(self, bucket_id, file_id, skip=None, limit=None):
         """Get list of pointers associated with a file.
 

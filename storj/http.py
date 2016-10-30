@@ -304,7 +304,22 @@ class Client(object):
                 'redundancy': replica.redundancy
             }))
 
-    def contacts_list(self):
+    def contacts_list(self, page=1, address=None, protocol=None, user_agent=None, connected=None):
+        """Lists contacts.
+
+        See `API contacts: GET /contacts
+        <https://storj.github.io/bridge/#!/contacts/get_contacts>`_
+
+        Args:
+            page (str): pagination indicator.
+            address (str): hostname or IP address.
+            protocol (str): SemVer protocol tag.
+            user_agent (str): Storj user agent string for farming client.
+            connected (bool): filter results by connection status.
+
+        Returns:
+            (list[]): list of contacts
+        """
         self.logger.info('contacts_list()')
 
         response = self._request(method='GET', path='/contacts', json={})

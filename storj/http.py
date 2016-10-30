@@ -655,15 +655,20 @@ class Client(object):
             yield model.Key(**kwargs)
 
     def key_register(self, public_key):
+        """Register an ECDSA public key.
+
+        See `API keys: POST /keys
+        <https://storj.github.io/bridge/#!/keys/post_keys>`_
+
+        Returns:
+            (list[:py:class:`storj.model.Key`]): public keys.
+        """
         self.logger.info('key_register(%s)', public_key)
 
-        response = self._request(
+        self._request(
             method='POST',
             path='/keys',
             json={'key': ecdsa_to_hex(public_key)})
-
-        if response is not None:
-            return response
 
     def token_create(self, bucket_id, operation):
         """Creates a token for the specified operation.

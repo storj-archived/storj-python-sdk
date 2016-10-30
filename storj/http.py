@@ -667,6 +667,22 @@ class Client(object):
             path='/buckets/%s/tokens' % bucket_id,
             json={'operation': operation})
 
+    def user_activate(self, token):
+        """Activate user.
+
+        See `API users: GET /activations/{token}
+        <https://storj.github.io/bridge/#!/users/get_activations_token>`_
+
+        Args:
+            token (str): activation token.
+        """
+        self.logger.info('user_activate(%s)', token)
+
+        self._request(
+            method='GET',
+            path='/activations/%s' % token,
+            json={})
+
     def user_create(self, email, password):
         """Create a new user with Storj bridge.
 

@@ -564,7 +564,8 @@ class Client(object):
             path='/frames')
 
         if response is not None:
-            yield model.Frame(**response)
+            for kwargs in response:
+                yield model.Frame(**kwargs)
 
     def key_delete(self, public_key):
         """Removes a public ECDSA keys.

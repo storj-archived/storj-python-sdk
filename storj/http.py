@@ -312,15 +312,25 @@ class Client(object):
         if response is not None:
             return response
 
-    def file_pointers(self, bucket_id, file_id):
-        """Get a list of pointers associated with a file.
+    def file_pointers(self, bucket_id, file_id, skip):
+        """Get list of pointers associated with a file.
+
+        See `API buckets: GET /buckets/{id}/files/{file_id}
+        <https://storj.github.io/bridge/#!/buckets/get_buckets_id_files_file_id>`_
 
         Args:
-            bucket_id (string): unique identifier.
+            bucket_id (str): bucket unique identifier.
+            file_id (str): file unique identifier.
+            skip (str): pointer index to start the file slice.
+            limit (str): number of pointers to resolve tokens for.
+
+        Returns:
+            (generator[:py:class:`storj.model.FilePointer`]): file pointers.
         """
         self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
 
         pull_token = self.token_create(bucket_id, operation='PULL')
+
         return self._request(
             method='GET',
             path='/buckets/%s/files/%s/' % (bucket_id, file_id),

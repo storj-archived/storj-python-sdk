@@ -164,6 +164,9 @@ class Client(object):
     def bucket_create(self, name, storage=None, transfer=None):
         """Create storage bucket.
 
+        See `API buckets: POST /buckets
+        <https://storj.github.io/bridge/#!/buckets/post_buckets>`_
+
         Args:
             name (str): name.
             storage (int): storage limit (in GB).
@@ -180,11 +183,13 @@ class Client(object):
         if transfer:
             data['transfer'] = transfer
 
-        response = self._request(method='POST', path='/buckets', json=data)
-        return model.Bucket(**response)
+        return model.Bucket(**self._request(method='POST', path='/buckets', json=data))
 
     def bucket_delete(self, bucket_id):
-        """Delete a storage bucket.
+        """Destroy a storage bucket.
+
+        See `API buckets: DELETE /buckets/{id}
+        <https://storj.github.io/bridge/#!/buckets/delete_buckets_id>`
 
         Args:
             bucket_id (string): unique identifier.
@@ -193,10 +198,16 @@ class Client(object):
         self._request(method='DELETE', path='/buckets/%s' % bucket_id)
 
     def bucket_files(self, bucket_id):
-        """
+        """List all the file metadata stored in the bucket.
+
+        See `API buckets: GET /buckets/{id}/files
+        <https://storj.github.io/bridge/#!/buckets/get_buckets_id_files>`
 
         Args:
             bucket_id (string): unique identifier.
+
+        Returns:
+            (dict): to be changed to model in the future.
         """
         self.logger.info('bucket_files(%s)', bucket_id)
 
@@ -205,7 +216,10 @@ class Client(object):
             path='/buckets/%s/files/' % (bucket_id),)
 
     def bucket_get(self, bucket_id):
-        """Returns buckets.
+        """Return the bucket object.
+
+        See `API buckets: GET /buckets
+        <https://storj.github.io/bridge/#!/buckets/get_buckets_id>`
 
         Args:
             bucket_id (str): bucket unique identifier.
@@ -226,7 +240,10 @@ class Client(object):
                 raise e
 
     def bucket_list(self):
-        """Returns buckets.
+        """List all of the buckets belonging to the user.
+
+        See `API buckets: GET /buckets
+        <https://storj.github.io/bridge/#!/buckets/get_buckets>`
 
         Returns:
             (generator[:py:class:`model.Bucket`]): buckets.
@@ -241,13 +258,28 @@ class Client(object):
         else:
             raise StopIteration
 
-    def bucket_set_keys(self, bucket_id, keys):
-        self.logger.info('bucket_set_keys()', bucket_id, keys)
+    def bucket_set_keys(self, bucket_id, bucket_name, keys):
+        """Update the bucket with the given public keys.
 
-        self._request(
+        See `API buckets: PATCH /buckets/{bucket_id}
+        <https://storj.github.io/bridge/#!/buckets/patch_buckets_id>`
+
+        Args:
+            bucket_id (str): bucket unique identifier.
+            bucket_name (str): bucket name.
+            keys (list[str]): public keys.
+
+        Returns:
+            (:py:class:`storj.model.Bucket`): updated bucket information.
+        """
+        self.logger.info('bucket_set_keys(%s, %s)', bucket_name, keys)
+
+        return model.Bucket(**self._request(
             method='PATCH',
             path='/buckets/%s' % bucket_id,
-            json={'pubkeys': keys})
+            json={
+                'name': bucket_name,
+                'pubkeys': keys}))
 
     def contacts_list(self):
         self.logger.info('contacts_list()')

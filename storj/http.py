@@ -647,12 +647,10 @@ class Client(object):
         """
         self.logger.info('key_list()')
 
-        for kwargs in self._request(
+        return [kwargs['key'] for kwargs in self._request(
             method='GET',
-            path='/keys',
-            json={}
-        ):
-            yield kwargs['key']
+            path='/keys'
+        )]
 
     def key_register(self, public_key):
         """Register an ECDSA public key.

@@ -354,24 +354,27 @@ class ClientTestCase(AbstractTestCase):
         """Test Client.key_generate()."""
         pass
 
-    def test_key_get(self):
-        """Test Client.key_get()."""
-        test_key_dict = [
-            {'id': '7', 'user': 'cats@storj.io'},
-            {'id': 'a8939', 'user': 'dnr@dnr.com', 'key': 'test_key'}]
-
-        self.client._request.return_value = test_key_dict
-
-        response = self.client.key_get()
-
-        self.client._request.assert_called_once_with(
-            method='GET',
-            path='/keys')
-        self.assertIsNotNone(response)
-
     def test_key_import(self):
         """Test Client.key_import()."""
         pass
+
+    def test_key_list(self):
+        """Test Client.key_list()."""
+
+        self.client._request.return_value = [
+            # see https://storj.github.io/bridge/#!/keys/get_keys
+            {'user': 'dnr@dnr.com', 'key': 'test_key'}
+        ]
+
+        response = self.client.key_list()
+
+        self.client._request.assert_called_once_with(
+            method='GET',
+            path='/keys'
+        )
+
+        assert response is not None
+        assert response == ['test_key']
 
     @mock.patch('storj.http.ecdsa_to_hex')
     def test_key_register(self, mock_ecdsa):

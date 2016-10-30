@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Test cases for the storj.http module."""
 
-import datetime
 import mock
 
 

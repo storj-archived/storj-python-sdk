@@ -45,7 +45,7 @@ class ClientTestCase(AbstractTestCase):
         bucket = self.client.bucket_create('Test Bucket', storage=25,
                                            transfer=39)
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='POST',
             path='/buckets',
             json=test_json)
@@ -56,7 +56,7 @@ class ClientTestCase(AbstractTestCase):
         bucket_id = '57fd385426adcf743b3d39c5'
         self.client.bucket_delete(bucket_id)
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='DELETE',
             path='/buckets/%s' % bucket_id)
 
@@ -66,7 +66,7 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.bucket_files(test_bucket_id)
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='GET',
             path='/buckets/%s/files/' % (test_bucket_id))
 
@@ -81,7 +81,7 @@ class ClientTestCase(AbstractTestCase):
 
         bucket = self.client.bucket_get(test_bucket_id)
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='GET',
             path='/buckets/%s' % test_bucket_id)
         self.assertIsInstance(bucket, model.Bucket)
@@ -136,7 +136,7 @@ class ClientTestCase(AbstractTestCase):
 
         contacts = self.client.contacts_list()
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='GET',
             path='/contacts',
             json={})
@@ -152,7 +152,7 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.file_pointers(test_bucket_id, test_file_id)
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='GET',
             path='/buckets/%s/files/%s/' % (test_bucket_id, test_file_id),
             headers={'x-token': 'test_token'})
@@ -175,7 +175,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.file_remove(test_bucket_id, test_file_id)
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='DELETE',
             path='/buckets/%s/files/%s' % (test_bucket_id, test_file_id)
         )
@@ -200,7 +200,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.frame_add_shard(test_shard, test_frame_id)
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='PUT',
             path='/frames/%s' % test_frame_id,
             json=test_json)
@@ -209,7 +209,7 @@ class ClientTestCase(AbstractTestCase):
         """Test Client.frame_create()."""
         response = self.client.frame_create()
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='POST',
             path='/frames',
             json={})
@@ -222,7 +222,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.frame_delete(test_frame_id)
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='DELETE',
             path='/frames/%s' % test_frame_id,
             json=test_json
@@ -251,7 +251,7 @@ class ClientTestCase(AbstractTestCase):
                 'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',
                 'size': 4096,
                 'index': 0}])
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='GET',
             path='/frames/%s' % test_frame_id,
             json={'frame_id': test_frame_id})
@@ -282,7 +282,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.key_delete(test_key)
 
-        self.client._request.assert_called_with(
+        self.client._request.assert_called_once_with(
             method='DELETE',
             path='/keys/%s' % test_key
         )

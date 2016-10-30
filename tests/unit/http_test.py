@@ -302,19 +302,22 @@ class ClientTestCase(AbstractTestCase):
             path='/keys/%s' % test_key
         )
 
+    @mock.patch.object(http.Client, 'key_list')
     @mock.patch('sys.stdout', autospec=True)
-    def test_key_dump(self, mock_stdout):
+    def test_key_dump(self, mock_stdout, mock_key_list):
         """Test Client.key_dump()."""
         self.client.private_key = '1234'
         self.client.public_key = '5678'
         test_keys = [
             {'id': 7},
-            {'id': 8}]
+            {'id': 8}
+        ]
 
-        self.client.key_get = mock.MagicMock()
-        self.client.key_get.return_value = test_keys
+        mock_key_list.return_value = test_keys
 
         self.client.key_dump()
+
+        mock_key_list.assert_called_once_with()
 
         calls = [
             mock.call("Local Private Key: %s" % self.client.private_key
@@ -326,18 +329,15 @@ class ClientTestCase(AbstractTestCase):
             mock.call("\n")]
         mock_stdout.write.assert_has_calls(calls)
 
+    @mock.patch.object(http.Client, 'key_list', return_value=[])
     @mock.patch('sys.stdout', autospec=True)
-    def test_key_dump_2(self, mock_stdout):
+    def test_key_dump_missing_keys(self, mock_stdout, mock_key_list):
         """Test Client.key_dump() with missing keys."""
         self.client.private_key = None
 
-        self.client.key_get = mock.MagicMock()
-        self.client.key_get.return_value = []
-
         self.client.key_dump()
 
-        self.client.key_get.assert_called_once_with()
-
+        mock_key_list.assert_called_once_with()
         self.client.logger.info(mock_stdout.write.call_args_list)
 
         calls = [

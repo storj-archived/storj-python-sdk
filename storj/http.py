@@ -105,6 +105,16 @@ class Client(object):
             })
 
     def _prepare_request(self, **kwargs):
+        """Prepares a HTTP request.
+
+        Args:
+            kwargs (dict): keyword arguments for the authentication function
+                (``_add_ecdsa_signature()`` or ``_add_basic_auth()``) and
+                :py:class:`requests.Request` class.
+
+        Raises:
+            AssertionError: in case ``kwargs['path']`` doesn't start with ``/``.
+        """
 
         kwargs.setdefault('headers', {})
 

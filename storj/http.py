@@ -351,6 +351,29 @@ class Client(object):
 
         return file_contents
 
+    def file_metadata(self, bucket_id, file_id):
+        """Get file metadata.
+
+        See `API buckets: GET /buckets/{id}/files/{file_id}/info
+        <https://storj.github.io/bridge/#!/buckets/get_buckets_id_files_file_id_info>`_
+
+        Args:
+            bucket_id (str): bucket unique identifier.
+            file_id (str): file unique identifier.
+
+        Returns:
+            (:py:class:`storj.model.File`): file metadata.
+        """
+
+        self.logger.info('file_metadata(%s, %s, %s)', bucket_id, file_id)
+
+        response = self._request(
+            method='GET',
+            path='/buckets/%s/files/%s/info' % (bucket_id, file_id))
+
+        if response is not None:
+            return model.File(**response)
+
     def file_upload(self, bucket_id, file, frame):
         """Upload file.
 

@@ -609,19 +609,6 @@ class Client(object):
 
         self.key_register(self.public_key)
 
-    def key_get(self):
-        """Gets all public keys associated with the authenticated account
-
-        Returns:
-            (list[dict]): a list of keys
-        """
-        self.logger.info('key_get()')
-
-        response = self._request(method='GET', path='/keys')
-
-        if response is not None:
-            return response
-
     def key_import(self, private_keyfile_path, public_keyfile_path):
         self.logger.info(
             'key_import(%s, %s)',

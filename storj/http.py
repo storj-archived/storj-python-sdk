@@ -674,8 +674,8 @@ class Client(object):
         <https://storj.github.io/bridge/#!/users/post_users>`_
 
         Args:
-            email (str): The new user's email address.
-            password (str): The new user's password
+            email (str): user's email address.
+            password (str): user's password.
         """
         self.logger.info('user_create(%s, %s)', email, password)
 
@@ -690,3 +690,19 @@ class Client(object):
             })
 
         self.authenticate(email=email, password=password)
+
+    def user_delete(self, email):
+        """Delete user account.
+
+        See `API users: DELETE /users/{email}
+        <https://storj.github.io/bridge/#!/users/post_users>`_
+
+        Args:
+            email (str): user's email address.
+        """
+        self.logger.info('user_delete(%s)', email)
+
+        self._request(
+            method='DELETE',
+            path='/users/%s' % email,
+            json={})

@@ -706,3 +706,19 @@ class Client(object):
             method='DELETE',
             path='/users/%s' % email,
             json={})
+
+    def user_reset_password(self, email):
+        """Request a password reset.
+
+        See `API users: PATCH /users/{email}
+        <https://storj.github.io/bridge/#!/users/patch_users_email>`_
+
+        Args:
+            email (str): user's email address.
+        """
+        self.logger.info('user_delete(%s)', email)
+
+        self._request(
+            method='PATCH',
+            path='/users/%s' % email,
+            json={})

@@ -382,11 +382,14 @@ class Client(object):
             })
 
     def file_remove(self, bucket_id, file_id):
-        """Delete a file pointer from a specified bucket
+        """Delete a file pointer from a specified bucket.
+
+        See `API buckets: DELETE /buckets/{id}/files/{file_id}
+        <https://storj.github.io/bridge/#!/buckets/delete_buckets_id_files_file_id>`_
 
         Args:
-            bucket_id (str): The ID of the bucket containing the file
-            file_id (str): The ID of the file
+            bucket_id (str): bucket unique identifier.
+            file_id (str): file unique identifier.
         """
         self.logger.info('file_remove(%s, %s)', bucket_id, file_id)
 

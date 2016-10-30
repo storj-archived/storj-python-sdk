@@ -365,18 +365,14 @@ class Client(object):
             return response
 
     def frame_create(self):
-        """Create a file staging frame.
+        """Creates a file staging frame.
 
-        See `API frames:
-        Creates a new file staging frame
-        <https://storj.io/api.html#staging>`
-
-        Returns:
-
+        See `API frames: POST /frames
+        <https://storj.github.io/bridge/#!/frames/post_frames>`
         """
         self.logger.info('frame_create()')
 
-        return self._request(method='POST', path='/frames', json={})
+        self._request(method='POST', path='/frames', json={})
 
     def frame_delete(self, frame_id):
         """

@@ -253,7 +253,7 @@ class ClientTestCase(AbstractTestCase):
         """Test Client.frame_get()."""
         test_frame_id = '1234'
         test_json = {
-            'created': '2016-03-04T17:01:02.629Z00:00',
+            'created': '2016-03-04T17:01:02.629Z',
             'id': '507f1f77bcf86cd799439011',
             'shards': [{
                 'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',

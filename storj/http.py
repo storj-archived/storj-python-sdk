@@ -369,17 +369,22 @@ class Client(object):
 
         See `API frames: POST /frames
         <https://storj.github.io/bridge/#!/frames/post_frames>`
+
+        Returns:
+            (:py:class:`storj.model.Frame`): the frame.
         """
         self.logger.info('frame_create()')
 
-        self._request(method='POST', path='/frames', json={})
+        response = self._request(method='POST', path='/frames', json={})
+
+        if response is not None:
+            return model.Frame(**response)
 
     def frame_delete(self, frame_id):
         """Destroys the file staging frame by it's unique ID.
 
         See `API frames: DELETE	/frames/{frame_id}
         <https://storj.github.io/bridge/#!/frames/delete_frames_frame_id>`_
-
 
         Args:
             frame_id (str): unique identifier.
@@ -392,17 +397,16 @@ class Client(object):
             json={'frame_id': frame_id})
 
     def frame_get(self, frame_id):
-        """Return a frame.
+        """Fetches the file staging frame by it's unique ID.
 
-        See `API frame:
-        Fetches the file staging frame by it's unique ID
-        <https://storj.io/api.html>`_
+        See `API frame: GET /frames/{frame_id}
+        <https://storj.github.io/bridge/#!/frames/get_frames_frame_id>`_
 
         Args:
             frame_id (str): unique identifier.
 
         Returns:
-            (?):
+            (:py:class:`storj.model.Frame`): a frame.
         """
         self.logger.info('frame_get(%s)', frame_id)
 

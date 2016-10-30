@@ -50,7 +50,7 @@ class ClientTestCase(AbstractTestCase):
     def test_bucket_create(self):
         """Test Client.bucket_create()."""
         test_json = {'name': 'Test Bucket', 'storage': 25, 'transfer': 39}
-        self.client._request.return_value = test_json
+        self.mock_request.return_value = test_json
 
         bucket = self.client.bucket_create(
             test_json['name'],
@@ -94,7 +94,7 @@ class ClientTestCase(AbstractTestCase):
         test_bucket_id = "57fd385426adcf743b3d39c5"
         test_json = {'name': 'Test Bucket', 'storage': 25, 'transfer': 39}
 
-        self.client._request.return_value = test_json
+        self.mock_request.return_value = test_json
 
         bucket = self.client.bucket_get(test_bucket_id)
 
@@ -112,7 +112,7 @@ class ClientTestCase(AbstractTestCase):
             {'name': 'Test Bucket 2', 'storage': 19, 'transfer': 83},
             {'name': 'Test Bucket 3', 'storage': 86, 'transfer': 193}]
 
-        self.client._request.return_value = test_response
+        self.mock_request.return_value = test_response
 
         buckets = self.client.bucket_list()
 
@@ -149,7 +149,7 @@ class ClientTestCase(AbstractTestCase):
         test_response = [{'protocol': '0.9.0', 'userAgent': '4.0.2'},
                          {'protocol': '0.8.0', 'userAgent': '4.0.3'}]
 
-        self.client._request.return_value = test_response
+        self.mock_request.return_value = test_response
 
         contacts = self.client.contacts_list()
 
@@ -260,7 +260,7 @@ class ClientTestCase(AbstractTestCase):
                 'size': 4096,
                 'index': 0}]}
 
-        self.client._request.return_value = test_json
+        self.mock_request.return_value = test_json
 
         frame = self.client.frame_get(test_frame_id)
 
@@ -276,7 +276,7 @@ class ClientTestCase(AbstractTestCase):
         """Test Client.frame_list()."""
 
         # see https://storj.github.io/bridge/#!/frames/get_frames
-        self.client._request.return_value = [{
+        self.mock_request.return_value = [{
             'created': '2016-03-04T17:01:02.629Z',
             'id': '507f1f77bcf86cd799439011'
         }]
@@ -393,7 +393,7 @@ class ClientTestCase(AbstractTestCase):
     def test_key_list(self):
         """Test Client.key_list()."""
 
-        self.client._request.return_value = [
+        self.mock_request.return_value = [
             # see https://storj.github.io/bridge/#!/keys/get_keys
             {'user': 'dnr@dnr.com', 'key': 'test_key'}
         ]

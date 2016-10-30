@@ -283,6 +283,21 @@ class MerkleTree(Object):
         return self._rows[depth]
 
 
+class Mirror(Object):
+    """Mirror or file replica settings.
+
+    Attributes:
+        hash (str):
+        mirrors (int): number of file replicas.
+        status (str): current file replica status.
+    """
+
+    def __init__(self, hash=None, mirrors=None, status=None):
+        self.hash = hash
+        self.mirrors = mirrors
+        self.status = status
+
+
 class Shard(Object):
     """Shard.
 

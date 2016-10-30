@@ -12,7 +12,8 @@ import tempfile
 
 from datetime import datetime
 
-from storj.model import Bucket, Frame, MerkleTree, Shard, ShardManager, Token
+from storj.model import \
+    Bucket, Frame, MerkleTree, Mirror, Shard, ShardManager, Token
 
 
 from .. import AbstractTestCase
@@ -64,6 +65,25 @@ class FrameTestCase(AbstractTestCase):
                 '2016-10-13T04:23:48.183Z'))
         assert frame.id == '510b23e9f63a77d939a72a77'
         assert frame.shards == []
+
+
+class MirrorTestCase(AbstractTestCase):
+    """Test case for the Mirror class."""
+
+    def test_init(self):
+        """Test Mirror.__init__()."""
+
+        kwargs = dict(
+            hash='fde400fe0b6a5488e10d7317274a096aaa57914d',
+            mirrors=3,
+            status='pending'
+        )
+
+        mirror = Mirror(**kwargs)
+
+        assert mirror.hash == kwargs['hash']
+        assert mirror.mirrors == kwargs['mirrors']
+        assert mirror.status == kwargs['status']
 
 
 class ShardTestCase(AbstractTestCase):

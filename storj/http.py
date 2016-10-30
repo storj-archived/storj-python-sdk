@@ -561,8 +561,7 @@ class Client(object):
 
         response = self._request(
             method='GET',
-            path='/frames',
-            json={})
+            path='/frames')
 
         if response is not None:
             yield model.Frame(**response)

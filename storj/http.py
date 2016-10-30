@@ -189,7 +189,7 @@ class Client(object):
         """Destroy a storage bucket.
 
         See `API buckets: DELETE /buckets/{id}
-        <https://storj.github.io/bridge/#!/buckets/delete_buckets_id>`
+        <https://storj.github.io/bridge/#!/buckets/delete_buckets_id>`_
 
         Args:
             bucket_id (string): unique identifier.
@@ -201,7 +201,7 @@ class Client(object):
         """List all the file metadata stored in the bucket.
 
         See `API buckets: GET /buckets/{id}/files
-        <https://storj.github.io/bridge/#!/buckets/get_buckets_id_files>`
+        <https://storj.github.io/bridge/#!/buckets/get_buckets_id_files>`_
 
         Args:
             bucket_id (string): unique identifier.
@@ -219,7 +219,7 @@ class Client(object):
         """Return the bucket object.
 
         See `API buckets: GET /buckets
-        <https://storj.github.io/bridge/#!/buckets/get_buckets_id>`
+        <https://storj.github.io/bridge/#!/buckets/get_buckets_id>`_
 
         Args:
             bucket_id (str): bucket unique identifier.
@@ -243,7 +243,7 @@ class Client(object):
         """List all of the buckets belonging to the user.
 
         See `API buckets: GET /buckets
-        <https://storj.github.io/bridge/#!/buckets/get_buckets>`
+        <https://storj.github.io/bridge/#!/buckets/get_buckets>`_
 
         Returns:
             (generator[:py:class:`model.Bucket`]): buckets.
@@ -262,7 +262,7 @@ class Client(object):
         """Update the bucket with the given public keys.
 
         See `API buckets: PATCH /buckets/{bucket_id}
-        <https://storj.github.io/bridge/#!/buckets/patch_buckets_id>`
+        <https://storj.github.io/bridge/#!/buckets/patch_buckets_id>`_
 
         Args:
             bucket_id (str): bucket unique identifier.
@@ -285,7 +285,7 @@ class Client(object):
         """Establishes a series of mirrors for the given file.
 
         See `API buckets: POST /buckets/{id}/mirrors
-        <https://storj.github.io/bridge/#!/buckets/post_buckets_id_mirrors>`
+        <https://storj.github.io/bridge/#!/buckets/post_buckets_id_mirrors>`_
 
         Args:
             bucket_id (str): bucket unique identifier.
@@ -344,12 +344,15 @@ class Client(object):
     def file_upload(self, bucket_id, file, frame):
         """Upload file.
 
+        See `API buckets: POST /buckets/{id}/files
+        <https://storj.github.io/bridge/#!/buckets/post_buckets_id_files>`_
+
         Args:
-            bucket_id (str):
-            file ():
-            frame ():
+            bucket_id (str): bucket unique identifier.
+            file (:py:class:`storj.model.File`): file to be uploaded.
+            frame (:py:class:`storj.model.Frame`): frame used to stage file.
         """
-        self.logger.info('upload_file(%s, %s, %s)', bucket_id, file, frame)
+        self.logger.info('file_upload(%s, %s, %s)', bucket_id, file, frame)
 
         def get_size(file_like_object):
             return os.stat(file_like_object.name).st_size
@@ -362,7 +365,7 @@ class Client(object):
 
         push_token = self.token_create(bucket_id, "PUSH")
 
-        self.logger.debug('upload_file() push_token=%s', push_token)
+        self.logger.debug('file_upload() push_token=%s', push_token)
 
         # upload shards to frame
         # delete encrypted file
@@ -373,9 +376,9 @@ class Client(object):
             headers={
                 #    'x-token': push_token['token'],
                 #    'x-filesize': str(file_size)}
-                "frame": frame['id'],
-                "mimetype": "text",
-                "filename": file.name,
+                'frame': frame.id,
+                'mimetype': file.mimetype,
+                'filename': file.filename,
             })
 
     def file_remove(self, bucket_id, file_id):
@@ -423,7 +426,7 @@ class Client(object):
         """Creates a file staging frame.
 
         See `API frames: POST /frames
-        <https://storj.github.io/bridge/#!/frames/post_frames>`
+        <https://storj.github.io/bridge/#!/frames/post_frames>`_
 
         Returns:
             (:py:class:`storj.model.Frame`): the frame.
@@ -576,7 +579,7 @@ class Client(object):
         """Creates a token for the specified operation.
 
         See `API buckets: POST /buckets/{id}/tokens
-        <https://storj.github.io/bridge/#!/buckets/post_buckets_id_tokens>`
+        <https://storj.github.io/bridge/#!/buckets/post_buckets_id_tokens>`_
 
         Args:
             bucket_id (str): bucket unique identifier.

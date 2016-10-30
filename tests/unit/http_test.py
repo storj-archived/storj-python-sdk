@@ -2,13 +2,14 @@
 """Test cases for the storj.http module."""
 
 import mock
+import pytest
+import requests
 
 
 from hashlib import sha256
 
 
-from storj import http
-from storj import model
+from storj import exception, http, model
 
 
 from .. import AbstractTestCase
@@ -101,6 +102,39 @@ class ClientTestCase(AbstractTestCase):
             method='GET',
             path='/buckets/%s' % test_bucket_id)
         self.assertIsInstance(bucket, model.Bucket)
+
+    def test_bucket_get_not_found(self):
+        """Test Client.bucket_get() when bucket does not exist."""
+
+        mock_error = requests.HTTPError()
+        mock_error.response = mock.Mock()
+        mock_error.response.status_code = 404
+
+        self.mock_request.side_effect = mock_error
+
+        bucket = self.client.bucket_get('inexistent')
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/buckets/inexistent')
+
+        assert bucket is None
+
+    def test_bucket_get_error(self):
+        """Test Client.bucket_get() when a bridge error occursr."""
+
+        mock_error = requests.HTTPError()
+        mock_error.response = mock.Mock()
+        mock_error.response.status_code = 500
+
+        self.mock_request.side_effect = mock_error
+
+        with pytest.raises(exception.StorjBridgeApiError):
+            self.client.bucket_get('error')
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/buckets/error')
 
     def test_bucket_list(self):
         """Test Client.bucket_list()."""

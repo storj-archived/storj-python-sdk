@@ -551,8 +551,11 @@ class Client(object):
     def frame_list(self):
         """Returns all open file staging frames.
 
+        See `API frame: GET /frames
+        < https://storj.github.io/bridge/#!/frames/get_frames>`_
+
         Returns:
-            (): all open file staging frames.
+            (generator[:py:class:`storj.model.Frame`]): all open file staging frames.
         """
         self.logger.info('frame_list()')
 
@@ -562,7 +565,7 @@ class Client(object):
             json={})
 
         if response is not None:
-            return response
+            yield model.Frame(**response)
 
     def key_delete(self, public_key):
         """Removes a public ECDSA keys.

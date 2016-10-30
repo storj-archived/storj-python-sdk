@@ -260,11 +260,13 @@ class ClientTestCase(AbstractTestCase):
                 'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',
                 'size': 4096,
                 'index': 0}])
+
         self.mock_request(
             method='GET',
             path='/frames/%s' % test_frame_id,
             json={'frame_id': test_frame_id})
-        self.assertIsNotNone(response)
+
+        assert response is not None
 
     def test_frame_list(self):
         """Test Client.frame_list()."""

@@ -229,8 +229,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.mock_request.assert_called_once_with(
             method='POST',
-            path='/frames',
-            json={})
+            path='/frames')
 
         assert frame is not None
         assert isinstance(frame, model.Frame)

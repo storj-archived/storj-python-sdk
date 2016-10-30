@@ -505,7 +505,9 @@ class Client(object):
         """
         self.logger.info('frame_create()')
 
-        response = self._request(method='POST', path='/frames', json={})
+        response = self._request(
+            method='POST',
+            path='/frames')
 
         if response is not None:
             return model.Frame(**response)

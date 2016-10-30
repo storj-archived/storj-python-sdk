@@ -337,6 +337,15 @@ class Client(object):
             path='/buckets/%s/files/%s' % (bucket_id, file_id))
 
     def frame_add_shard(self, shard, frame_id):
+        """Adds a shard item to the staging frame and negotiates a storage contract.
+
+        Args:
+            shard (:py:class:`storj.models.Shard`): the shard.
+            frame_id (str): the frame unique identifier.
+
+        See:
+            https://storj.github.io/bridge/#!/frames/put_frames_frame_id
+        """
         self.logger.info('frame_add_shard(%s, %s)', shard, frame_id)
 
         data = {

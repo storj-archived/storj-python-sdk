@@ -424,6 +424,8 @@ class ClientTestCase(AbstractTestCase):
             path='/keys',
             json=test_json)
 
+        assert response is None
+
     def test_token_create(self):
         """Test Client.token_create()."""
         test_bucket_id = '1234'

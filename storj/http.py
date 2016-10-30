@@ -643,7 +643,7 @@ class Client(object):
         <https://storj.github.io/bridge/#!/keys/get_keys>`_
 
         Returns:
-            (list[:py:class:`storj.model.Key`]): public keys.
+            (list[str]): public keys.
         """
         self.logger.info('key_list()')
 
@@ -652,7 +652,7 @@ class Client(object):
             path='/keys',
             json={}
         ):
-            yield model.Key(**kwargs)
+            yield kwargs['key']
 
     def key_register(self, public_key):
         """Register an ECDSA public key.

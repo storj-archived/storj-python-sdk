@@ -636,6 +636,24 @@ class Client(object):
 
         self.key_register(self.public_key)
 
+    def key_list(self):
+        """Lists the public ECDSA keys associated with the user.
+
+        See `API keys: GET /keys
+        <https://storj.github.io/bridge/#!/keys/get_keys>`_
+
+        Returns:
+            (list[:py:class:`storj.model.Key`]): public keys.
+        """
+        self.logger.info('key_list()')
+
+        for kwargs in self._request(
+            method='GET',
+            path='/keys',
+            json={}
+        ):
+            yield model.Key(**kwargs)
+
     def key_register(self, public_key):
         self.logger.info('key_register(%s)', public_key)
 

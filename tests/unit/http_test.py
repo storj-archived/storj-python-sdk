@@ -249,8 +249,7 @@ class ClientTestCase(AbstractTestCase):
             json=test_json
         )
 
-    @mock.patch('storj.http.model.Frame', autospec=True)
-    def test_frame_get(self, mock_frame):
+    def test_frame_get(self):
         """Test Client.frame_get()."""
         test_frame_id = '1234'
         test_json = {

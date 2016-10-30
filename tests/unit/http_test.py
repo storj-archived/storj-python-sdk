@@ -253,7 +253,7 @@ class ClientTestCase(AbstractTestCase):
         """Test Client.frame_get()."""
         test_frame_id = '1234'
         test_json = {
-            'created': '2016-03-04T17:01:02.629Z',
+            'created': '2016-03-04T17:01:02.629Z00:00',
             'id': '507f1f77bcf86cd799439011',
             'shards': [{
                 'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',
@@ -271,14 +271,6 @@ class ClientTestCase(AbstractTestCase):
 
         assert frame is not None
         assert isinstance(frame, model.Frame)
-
-        assert frame.id == '507f1f77bcf86cd799439011'
-        assert frame.created == datetime.datetime(2016, 3, 4, 17, 01, 02)
-        assert frame.shards == [{
-            'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',
-            'size': 4096,
-            'index': 0
-        }]
 
     def test_frame_list(self):
         """Test Client.frame_list()."""

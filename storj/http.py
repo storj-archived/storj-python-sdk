@@ -375,7 +375,11 @@ class Client(object):
         self._request(method='POST', path='/frames', json={})
 
     def frame_delete(self, frame_id):
-        """
+        """Destroys the file staging frame by it's unique ID.
+
+        See `API frames: DELETE	/frames/{frame_id}
+        <https://storj.github.io/bridge/#!/frames/delete_frames_frame_id>`_
+
 
         Args:
             frame_id (str): unique identifier.

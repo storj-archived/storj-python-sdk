@@ -668,7 +668,10 @@ class Client(object):
             json={'operation': operation})
 
     def user_create(self, email, password):
-        """Create a new user with specified email and password.
+        """Create a new user with Storj bridge.
+
+        See `API users: POST /users
+        <https://storj.github.io/bridge/#!/users/post_users>`_
 
         Args:
             email (str): The new user's email address.
@@ -681,6 +684,9 @@ class Client(object):
         self._request(
             method='POST',
             path='/users',
-            json={'email': email, 'password': password})
+            json={
+                'email': email,
+                'password': password
+            })
 
         self.authenticate(email=email, password=password)

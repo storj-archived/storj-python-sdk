@@ -282,13 +282,13 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.frame_list()
 
-        self.mock_request.assert_called_once_with(
-            method='GET',
-            path='/frames')
-
         assert response is not None
         for frame in response:
             assert isinstance(frame, model.Frame)
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/frames')
 
     def test_key_delete(self):
         """Test Client.key_delete()."""

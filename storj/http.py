@@ -293,7 +293,7 @@ class Client(object):
                 'name': bucket_name,
                 'pubkeys': keys}))
 
-    def bucket_set_mirrors(self, bucket_id, replica):
+    def bucket_set_mirrors(self, bucket_id, file_id, redundancy):
         """Establishes a series of mirrors for the given file.
 
         See `API buckets: POST /buckets/{id}/mirrors
@@ -301,19 +301,20 @@ class Client(object):
 
         Args:
             bucket_id (str): bucket unique identifier.
-            replica (:py:class:`storj.model.FileReplica`: file replication settings.
+            file_id (str): file unique identitifer.
+            redundancy (int): number of replicas.
 
         Returns:
             (:py:class:`storj.model.Mirror`): the mirror settings.
         """
-        self.logger.info('bucket_set_mirrors(%s, %s)', bucket_id, replica)
+        self.logger.info('bucket_set_mirrors(%s, %s, %s)', bucket_id, file_id, redundancy)
 
         return model.Mirror(**self._request(
             method='POST',
             path='/buckets/%s/mirrors' % bucket_id,
             json={
-                'file': replica.id,
-                'redundancy': replica.redundancy
+                'file': file_id,
+                'redundancy': redundancy
             }))
 
     def contacts_list(self, page=1, address=None, protocol=None, user_agent=None, connected=None):

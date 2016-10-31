@@ -263,6 +263,31 @@ class ClientTestCase(AbstractTestCase):
         """Test Client.file_download()."""
         pass
 
+    def test_file_metadata(self):
+        """Test Client.file_metadata()."""
+        test_bucket_id = 'lkh39d'
+        test_file_id = '72393'
+
+        # https://storj.github.io/bridge/#!/buckets/get_buckets_id_files_file_id_info
+        self.mock_request.return_value = {
+            'bucket': '507f1f77bcf86cd799439011',
+            'mimetype': 'video/mpeg',
+            'filename': 'big_buck_bunny.mp4',
+            'frame': '507f1f77bcf86cd799439191',
+            'id': '507f1f77bcf86cd799430909',
+            'size': 5071076
+        }
+
+        metadata = self.client.file_metadata(test_bucket_id, test_file_id)
+
+        assert metadata is not None
+        assert isinstance(metadata, model.File)
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/buckets/%s/files/%s/info' % (test_bucket_id, test_file_id)
+        )
+
     def test_file_upload(self):
         """Test Client.file_upload()."""
         # file_upload is still TODO

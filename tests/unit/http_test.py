@@ -545,6 +545,17 @@ class ClientTestCase(AbstractTestCase):
             path='/buckets/%s/tokens' % test_bucket_id,
             json=test_json)
 
+    def test_user_activate(self):
+        """Test Client.user_activate()."""
+
+        self.mock_request.return_value = None
+
+        self.client.user_activate('token')
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/activations/token')
+
     @mock.patch.object(http.Client, 'authenticate', return_value=None)
     @mock.patch('storj.http.sha256')
     def test_user_create(self, mock_sha256, mock_authenticate):

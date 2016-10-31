@@ -636,3 +636,16 @@ class ClientTestCase(AbstractTestCase):
         self.mock_request.assert_called_once_with(
             method='PATCH',
             path='/users/email')
+
+    def test_user_reset_password_confirmation(self):
+        """Test Client.user_reset_password_confirmation()."""
+
+        self.mock_request.return_value = None
+
+        response = self.client.user_reset_password_confirmation('token')
+
+        assert response is None
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/resets/token')

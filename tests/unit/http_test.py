@@ -206,20 +206,41 @@ class ClientTestCase(AbstractTestCase):
         assert mirror is not None
         assert isinstance(mirror, model.Mirror)
 
-    def test_contacts_list(self):
+    def test_contact_list(self):
         """Test Client.contact_list()."""
-        test_response = [{'protocol': '0.9.0', 'userAgent': '4.0.2'},
-                         {'protocol': '0.8.0', 'userAgent': '4.0.3'}]
+        test_response = [
+            {'protocol': '0.9.0', 'userAgent': '4.0.2'},
+            {'protocol': '0.8.0', 'userAgent': '4.0.3'}
+        ]
 
         self.mock_request.return_value = test_response
 
-        contacts = self.client.contacts_list()
+        contacts = self.client.contact_list()
+
+        assert contacts is not None
+        for contact in contacts:
+            assert isinstance(contact, model.Contact)
 
         self.mock_request.assert_called_once_with(
             method='GET',
-            path='/contacts',
-            json={})
-        self.assertEqual(contacts, test_response)
+            path='/contacts')
+
+    def test_contact_lookup(self):
+        """Test Client.contact_lookup()."""
+        test_response = {
+            'protocol': '0.8.0', 'userAgent': '4.0.3'
+        }
+
+        self.mock_request.return_value = test_response
+
+        contact = self.client.contact_lookup('node_id')
+
+        assert contact is not None
+        assert isinstance(contact, model.Contact)
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/contacts/%s' % 'node_id')
 
     def test_file_pointers(self):
         """Test Client.file_pointers()."""

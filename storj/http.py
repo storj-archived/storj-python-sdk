@@ -317,7 +317,7 @@ class Client(object):
                 'redundancy': redundancy
             }))
 
-    def contacts_list(self, page=1, address=None, protocol=None, user_agent=None, connected=None):
+    def contact_list(self, page=1, address=None, protocol=None, user_agent=None, connected=None):
         """Lists contacts.
 
         See `API contacts: GET /contacts

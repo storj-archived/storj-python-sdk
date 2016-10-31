@@ -108,7 +108,8 @@ class FilePointerTestCase(AbstractTestCase):
         # https://storj.github.io/bridge/#!/buckets/get_buckets_id_files_file_id
         kwargs = dict(
             hash='ba084d3f143f2896809d3f1d7dffed472b39d8de',
-            token='99cf1af00b552113a856f8ef44f58d22269389e8009d292bafd10af7cc30dcfa',
+            token='99cf1af00b552113a856f8ef44f58d22269389e8'
+                  '009d292bafd10af7cc30dcfa',
             operation='PULL',
             channel='ws://farmer.hostname:4000'
         )

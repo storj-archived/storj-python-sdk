@@ -380,10 +380,14 @@ class Client(object):
 
         pull_token = self.token_create(bucket_id, operation='PULL')
 
-        return self._request(
+        response = self._request(
             method='GET',
             path='/buckets/%s/files/%s/' % (bucket_id, file_id),
             headers={'x-token': pull_token.id})
+
+        if response is not None:
+            for kwargs in response:
+                yield model.FilePointer(**kwargs)
 
     def file_download(self, bucket_id, file_id):
         self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)

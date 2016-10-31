@@ -59,7 +59,8 @@ class ContactTestCase(AbstractTestCase):
             port=8443,
             nodeID='32033d2dc11b877df4b1caefbffba06495ae6b18',
             lastSeen='2016-05-24T15:16:01.139Z',
-            protocol='0.7.0'
+            protocol='0.7.0',
+            userAgent='4.0.3'
         )
 
         contact = Contact(**kwargs)
@@ -70,6 +71,7 @@ class ContactTestCase(AbstractTestCase):
         assert contact.lastSeen == datetime.fromtimestamp(
             strict_rfc3339.rfc3339_to_timestamp(kwargs['lastSeen']))
         assert contact.protocol == kwargs['protocol']
+        assert contact.userAgent == kwargs['userAgent']
 
 
 class FrameTestCase(AbstractTestCase):

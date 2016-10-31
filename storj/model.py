@@ -71,17 +71,19 @@ class Contact(Object):
         nodeID (str): node unique identifier.
         lastSeen (str): .
         protocol (str): SemVer protocol tag.
+        userAgent (str):
     """
 
     def __init__(
             self, address=None, port=None, nodeID=None,
-            lastSeen=None, protocol=None
+            lastSeen=None, protocol=None, userAgent=None
     ):
         self.address = address
         self.port = port
         self.nodeID = nodeID
         self.lastSeen = lastSeen
         self.protocol = protocol
+        self.userAgent = userAgent
 
     @property
     def lastSeen(self):

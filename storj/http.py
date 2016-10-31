@@ -790,8 +790,7 @@ class Client(object):
 
         self._request(
             method='DELETE',
-            path='/users/%s' % email,
-            json={})
+            path='/users/%s' % email)
 
     def user_reset_password(self, email):
         """Request a password reset.

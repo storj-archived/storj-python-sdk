@@ -697,7 +697,7 @@ class Client(object):
         Returns:
             (dict): ...
         """
-        self.logger.info('create_token(%s, %s)', bucket_id, operation)
+        self.logger.info('token_create(%s, %s)', bucket_id, operation)
 
         return self._request(
             method='POST',

@@ -775,8 +775,7 @@ class Client(object):
 
         self._request(
             method='DELETE',
-            path='/activations/%s' % token,
-            json={})
+            path='/activations/%s' % token)
 
     def user_delete(self, email):
         """Delete user account.

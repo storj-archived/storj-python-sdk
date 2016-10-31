@@ -13,7 +13,7 @@ import tempfile
 from datetime import datetime
 
 from storj.model import \
-    Bucket, Frame, MerkleTree, Mirror, Shard, ShardManager, Token
+    Bucket, Contact, Frame, MerkleTree, Mirror, Shard, ShardManager, Token
 
 
 from .. import AbstractTestCase
@@ -46,6 +46,30 @@ class BucketTestCase(AbstractTestCase):
         assert bucket.storage == 0
         assert bucket.transfer == 0
         assert bucket.user == 'steenzout@ymail.com'
+
+
+class ContactTestCase(AbstractTestCase):
+    """Test case for the Contact class."""
+
+    def test_init(self):
+        """Test Contact.__init__()."""
+
+        kwargs = dict(
+            address='api.storj.io',
+            port=8443,
+            nodeID='32033d2dc11b877df4b1caefbffba06495ae6b18',
+            lastSeen='2016-05-24T15:16:01.139Z',
+            protocol='0.7.0'
+        )
+
+        contact = Contact(**kwargs)
+
+        assert contact.address == kwargs['address']
+        assert contact.port == kwargs['port']
+        assert contact.nodeID == kwargs['nodeID']
+        assert contact.lastSeen == datetime.fromtimestamp(
+            strict_rfc3339.rfc3339_to_timestamp(kwargs['lastSeen']))
+        assert contact.protocol == kwargs['protocol']
 
 
 class FrameTestCase(AbstractTestCase):

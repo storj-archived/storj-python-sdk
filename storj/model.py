@@ -62,6 +62,41 @@ class Bucket(Object):
         BucketManager.delete(bucket_id=self.id)
 
 
+class Contact(Object):
+    """Contact.
+
+    Attributes:
+        address (str): hostname or IP address.
+        port (str): .
+        nodeID (str): node unique identifier.
+        lastSeen (str): .
+        protocol (str): SemVer protocol tag.
+    """
+
+    def __init__(
+            self, address=None, port=None, nodeID=None,
+            lastSeen=None, protocol=None
+    ):
+        self.address = address
+        self.port = port
+        self.nodeID = nodeID
+        self.lastSeen = lastSeen
+        self.protocol = protocol
+
+    @property
+    def lastSeen(self):
+        return self._last_seen
+
+    @lastSeen.setter
+    def lastSeen(self, value):
+
+        if value is not None:
+            self._last_seen = datetime.fromtimestamp(
+                strict_rfc3339.rfc3339_to_timestamp(value))
+        else:
+            self._last_seen = None
+
+
 class File(Object):
     """
     Attributes:

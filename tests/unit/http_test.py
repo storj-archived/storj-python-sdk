@@ -622,4 +622,17 @@ class ClientTestCase(AbstractTestCase):
 
         self.mock_request.assert_called_once_with(
             method='DELETE',
-            path='/usrs/email')
+            path='/users/email')
+
+    def test_user_reset_password(self):
+        """Test Client.user_reset_password()."""
+
+        self.mock_request.return_value = None
+
+        response = self.client.user_reset_password('email')
+
+        assert response is None
+
+        self.mock_request.assert_called_once_with(
+            method='PATCH',
+            path='/users/email')

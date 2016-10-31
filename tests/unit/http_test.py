@@ -4,7 +4,6 @@
 import mock
 import pytest
 import requests
-import six
 
 
 from hashlib import sha256
@@ -536,13 +535,23 @@ class ClientTestCase(AbstractTestCase):
 
     def test_token_create(self):
         """Test Client.token_create()."""
+
         test_bucket_id = '1234'
         test_json = {'operation': 'PULL'}
+
+        # https://storj.github.io/bridge/#!/buckets/post_buckets_id_tokens
+        self.mock_request.return_value = dict(
+            token='string',
+            bucket='string',
+            expires='2016-10-13T04:23:48.183Z',
+            operation='string',
+            encryptionKey='string'
+        )
 
         response = self.client.token_create(test_bucket_id, 'PULL')
 
         assert response is not None
-        assert isinstance(response, six.string_types)
+        assert isinstance(response, model.Token)
 
         self.mock_request.assert_called_once_with(
             method='POST',

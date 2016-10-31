@@ -717,8 +717,7 @@ class Client(object):
 
         self._request(
             method='GET',
-            path='/activations/%s' % token,
-            json={})
+            path='/activations/%s' % token)
 
     def user_activation_email(self, email, token):
         """Send user activation email.

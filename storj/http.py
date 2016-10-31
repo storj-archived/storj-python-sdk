@@ -805,8 +805,7 @@ class Client(object):
 
         self._request(
             method='PATCH',
-            path='/users/%s' % email,
-            json={})
+            path='/users/%s' % email)
 
     def user_reset_password_confirmation(self, token):
         """Confirm a password reset request.
@@ -821,5 +820,4 @@ class Client(object):
 
         self._request(
             method='GET',
-            path='/resets/%s' % token,
-            json={})
+            path='/resets/%s' % token)

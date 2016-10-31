@@ -13,7 +13,7 @@ import tempfile
 from datetime import datetime
 
 from storj.model import \
-    Bucket, Contact, File, Frame, MerkleTree, Mirror, \
+    Bucket, Contact, File, FilePointer, Frame, MerkleTree, Mirror, \
     Shard, ShardManager, Token
 
 
@@ -97,6 +97,28 @@ class FileTestCase(AbstractTestCase):
         assert f.filename == kwargs['filename']
         assert f.frame == Frame(id=kwargs['frame'])
         assert f.shard_manager is None
+
+
+class FilePointerTestCase(AbstractTestCase):
+    """Test case for the FilePointer class."""
+
+    def test_init(self):
+        """Test File.__init__()."""
+
+        # https://storj.github.io/bridge/#!/buckets/get_buckets_id_files_file_id
+        kwargs = dict(
+            hash='ba084d3f143f2896809d3f1d7dffed472b39d8de',
+            token='99cf1af00b552113a856f8ef44f58d22269389e8009d292bafd10af7cc30dcfa',
+            operation='PULL',
+            channel='ws://farmer.hostname:4000'
+        )
+
+        fp = FilePointer(**kwargs)
+
+        assert fp.hash == kwargs['hash']
+        assert fp.token == Token(token=kwargs['token'])
+        assert fp.operation == kwargs['operation']
+        assert fp.channel == kwargs['channel']
 
 
 class FrameTestCase(AbstractTestCase):

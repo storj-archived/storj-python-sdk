@@ -139,6 +139,29 @@ class File(Object):
         bucket_files.delete(self.id)
 
 
+class FilePointer(Object):
+    """File pointer.
+
+    Args:
+        hash (str):
+        token (str): token unique identifier.
+        operation (str):
+        channel (str):
+
+    Attributes:
+        hash (str):
+        token (:py:class:`storj.model.Token`): token.
+        operation (str):
+        channel (str):
+    """
+
+    def __init__(self, hash=None, token=None, operation=None, channel=None):
+        self.hash = hash
+        self.token = Token(token=token)
+        self.operation = operation
+        self.channel = channel
+
+
 class Frame(Object):
     """File staging frame.
 

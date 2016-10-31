@@ -525,20 +525,22 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.key_register('key')
 
+        assert response is None
+
         mock_ecdsa.assert_called_once_with('key')
         self.mock_request.assert_called_once_with(
             method='POST',
             path='/keys',
             json=test_json)
 
-        assert response is None
-
     def test_token_create(self):
         """Test Client.token_create()."""
         test_bucket_id = '1234'
         test_json = {'operation': 'PULL'}
 
-        self.client.token_create(test_bucket_id, 'PULL')
+        response = self.client.token_create(test_bucket_id, 'PULL')
+
+        assert response is None
 
         self.mock_request.assert_called_once_with(
             method='POST',
@@ -550,7 +552,9 @@ class ClientTestCase(AbstractTestCase):
 
         self.mock_request.return_value = None
 
-        self.client.user_activate('token')
+        response = self.client.user_activate('token')
+
+        assert response is None
 
         self.mock_request.assert_called_once_with(
             method='GET',

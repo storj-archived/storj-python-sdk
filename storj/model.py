@@ -534,12 +534,20 @@ class ShardManager(Object):
 
 
 class Token(Object):
-    """
-    Attributes:
-        token (str):
+    """Token.
+
+    Args:
+        token (str): token unique identifier.
         bucket (str): bucket unique identifier.
         operation ():
-        expires (str):
+        expires (str): expiration date, in the RFC3339 format.
+        encryptionKey (str):
+
+    Attributes:
+        id (str): token unique identifier.
+        bucket (:py:class:`storj.model.Bucket`): bucket.
+        operation (str):
+        expires (datetime.datetime): expiration date, in UTC.
         encryptionKey (str):
     """
 

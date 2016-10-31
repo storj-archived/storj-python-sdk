@@ -352,14 +352,11 @@ class Client(object):
         Returns:
             (:py:class:`storj.model.Contact`): contact information
         """
+        self.logger.info('contact_lookup(%s)', node_id)
 
-        response = self._request(
+        return model.Contact(**self._request(
             method='GET',
-            path='/contacts/%s' % node_id,
-            json={})
-
-        if response is not None:
-            return model.Contact(**response)
+            path='/contacts/%s' % node_id))
 
     def file_pointers(self, bucket_id, file_id, skip=None, limit=None):
         """Get list of pointers associated with a file.

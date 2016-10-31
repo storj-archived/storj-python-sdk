@@ -342,6 +342,8 @@ class Client(object):
         if response is not None:
             for kwargs in response:
                 yield model.Contact(**kwargs)
+        else:
+            raise StopIteration
 
     def contact_lookup(self, node_id):
         """Lookup for contact information of a node.
@@ -388,6 +390,8 @@ class Client(object):
         if response is not None:
             for kwargs in response:
                 yield model.FilePointer(**kwargs)
+        else:
+            raise StopIteration
 
     def file_download(self, bucket_id, file_id):
         self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)
@@ -585,6 +589,8 @@ class Client(object):
         if response is not None:
             for kwargs in response:
                 yield model.Frame(**kwargs)
+        else:
+            raise StopIteration
 
     def key_delete(self, public_key):
         """Removes a public ECDSA keys.

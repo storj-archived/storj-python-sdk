@@ -597,3 +597,16 @@ class ClientTestCase(AbstractTestCase):
             method='POST',
             path='/users',
             json={'email': test_email, 'password': test_hashed_password})
+
+    def test_user_deactivate(self):
+        """Test Client.user_deactivate()."""
+
+        self.mock_request.return_value = None
+
+        response = self.client.user_deactivate('token')
+
+        assert response is None
+
+        self.mock_request.assert_called_once_with(
+            method='DELETE',
+            path='/activations/token')

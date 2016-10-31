@@ -331,14 +331,17 @@ class Client(object):
             connected (bool): filter results by connection status.
 
         Returns:
-            (list[]): list of contacts
+            (list[:py:class:`storj.model.Contact`]): list of contacts.
         """
         self.logger.info('contacts_list()')
 
-        response = self._request(method='GET', path='/contacts', json={})
+        response = self._request(
+            method='GET',
+            path='/contacts')
 
         if response is not None:
-            return response
+            for kwargs in response:
+                yield model.Contact(**kwargs)
 
     def contact_lookup(self, node_id):
         """Lookup for contact information of a node.

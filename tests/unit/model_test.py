@@ -509,3 +509,28 @@ class MerkleTreeTestCase(AbstractTestCase):
         self.assertEqual(tree.depth, depth)
         self.assertEqual(tree._rows, rows)
         self.assertEqual(tree.count, count)
+
+
+class TokenTestCase(AbstractTestCase):
+    """Test case for the Token class."""
+
+    def test_init(self):
+        """Test Token.__init__()."""
+
+        kwargs = dict(
+            token='token',
+            bucket='bucket_id',
+            operation='operation',
+            expires='2016-10-13T04:23:48.183Z',
+            encryptionKey='key_id',
+        )
+
+        token = Token(**kwargs)
+
+        assert token.id == kwargs['token']
+        assert token.bucket == Bucket(id=kwargs['bucket'])
+        assert token.operation == kwargs['operation']
+        assert token.expires == datetime.fromtimestamp(
+            strict_rfc3339.rfc3339_to_timestamp(
+                kwargs['expires']))
+        assert token.encryptionKey == kwargs['encryptionKey']

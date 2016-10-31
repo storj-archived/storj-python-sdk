@@ -536,15 +536,19 @@ class ShardManager(Object):
 class Token(Object):
     """
     Attributes:
-        token ():
-        bucket ():
+        token (str):
+        bucket (str): bucket unique identifier.
         operation ():
-        expires ():
+        expires (str):
+        encryptionKey (str):
     """
 
-    def __init__(self, token=None, bucket=None, operation=None, expires=None):
+    def __init__(
+            self, token=None, bucket=None, operation=None, expires=None,
+            encryptionKey=None
+    ):
         self.id = token
-        self.bucket_id = bucket
+        self.bucket = Bucket(id=bucket)
         self.operation = operation
 
         if expires is not None:
@@ -552,3 +556,5 @@ class Token(Object):
                 strict_rfc3339.rfc3339_to_timestamp(expires))
         else:
             self.expires = None
+
+        self.encryptionKey = encryptionKey

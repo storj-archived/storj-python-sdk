@@ -106,19 +106,21 @@ class File(Object):
         hash ():
         mimetype ():
         filename ():
+        frame (:py:class:`storj.model.Frame`): file frame.
         size ():
-        shardManager ():
+        shard_manager ():
     """
 
     def __init__(self, bucket=None, hash=None, mimetype=None,
-                 filename=None, size=None, id=None):
+                 filename=None, size=None, id=None, frame=None):
         self.bucket = Bucket(id=bucket)
         self.hash = hash
         self.mimetype = mimetype
         self.filename = filename
         self.size = size
-        self.shardManager = ShardManager()
+        self.shard_manager = None
         self.id = id
+        self.frame = Frame(id=frame)
 
     @property
     def content_type(self):

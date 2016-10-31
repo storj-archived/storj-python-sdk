@@ -13,7 +13,8 @@ import tempfile
 from datetime import datetime
 
 from storj.model import \
-    Bucket, Contact, Frame, MerkleTree, Mirror, Shard, ShardManager, Token
+    Bucket, Contact, File, Frame, MerkleTree, Mirror, \
+    Shard, ShardManager, Token
 
 
 from .. import AbstractTestCase
@@ -72,6 +73,30 @@ class ContactTestCase(AbstractTestCase):
             strict_rfc3339.rfc3339_to_timestamp(kwargs['lastSeen']))
         assert contact.protocol == kwargs['protocol']
         assert contact.userAgent == kwargs['userAgent']
+
+
+class FileTestCase(AbstractTestCase):
+    """Test case for the File class."""
+
+    def test_init(self):
+        """Test File.__init__()."""
+
+        kwargs = dict(
+            bucket='bucket_id',
+            hash='hash',
+            mimetype='mimetype',
+            filename='filename',
+            frame='frame_id'
+        )
+
+        f = File(**kwargs)
+
+        assert f.bucket == Bucket(id=kwargs['bucket'])
+        assert f.hash == kwargs['hash']
+        assert f.mimetype == kwargs['mimetype']
+        assert f.filename == kwargs['filename']
+        assert f.frame == Frame(id=kwargs['frame'])
+        assert f.shard_manager is None
 
 
 class FrameTestCase(AbstractTestCase):

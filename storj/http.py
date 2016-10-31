@@ -445,7 +445,7 @@ class Client(object):
         # encrypt file
         # shard file
 
-        push_token = self.token_create(bucket_id, "PUSH")
+        push_token = self.token_create(bucket_id, 'PUSH')
 
         self.logger.debug('file_upload() push_token=%s', push_token)
 

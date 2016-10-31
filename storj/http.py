@@ -383,7 +383,7 @@ class Client(object):
         return self._request(
             method='GET',
             path='/buckets/%s/files/%s/' % (bucket_id, file_id),
-            headers={'x-token': pull_token['token']})
+            headers={'x-token': pull_token.id})
 
     def file_download(self, bucket_id, file_id):
         self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)
@@ -456,7 +456,7 @@ class Client(object):
             method='POST', path='/buckets/%s/files' % bucket_id,
             # files={'file' : file},
             headers={
-                #    'x-token': push_token['token'],
+                #    'x-token': push_token.id,
                 #    'x-filesize': str(file_size)}
                 'frame': frame.id,
                 'mimetype': file.mimetype,

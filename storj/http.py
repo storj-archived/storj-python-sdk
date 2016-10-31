@@ -699,10 +699,10 @@ class Client(object):
         """
         self.logger.info('token_create(%s, %s)', bucket_id, operation)
 
-        return self._request(
+        return model.Token(**self._request(
             method='POST',
             path='/buckets/%s/tokens' % bucket_id,
-            json={'operation': operation})
+            json={'operation': operation}))
 
     def user_activate(self, token):
         """Activate user.

@@ -62,6 +62,43 @@ class Bucket(Object):
         BucketManager.delete(bucket_id=self.id)
 
 
+class Contact(Object):
+    """Contact.
+
+    Attributes:
+        address (str): hostname or IP address.
+        port (str): .
+        nodeID (str): node unique identifier.
+        lastSeen (str): .
+        protocol (str): SemVer protocol tag.
+        userAgent (str):
+    """
+
+    def __init__(
+            self, address=None, port=None, nodeID=None,
+            lastSeen=None, protocol=None, userAgent=None
+    ):
+        self.address = address
+        self.port = port
+        self.nodeID = nodeID
+        self.lastSeen = lastSeen
+        self.protocol = protocol
+        self.userAgent = userAgent
+
+    @property
+    def lastSeen(self):
+        return self._last_seen
+
+    @lastSeen.setter
+    def lastSeen(self, value):
+
+        if value is not None:
+            self._last_seen = datetime.fromtimestamp(
+                strict_rfc3339.rfc3339_to_timestamp(value))
+        else:
+            self._last_seen = None
+
+
 class File(Object):
     """
     Attributes:
@@ -69,19 +106,21 @@ class File(Object):
         hash ():
         mimetype ():
         filename ():
+        frame (:py:class:`storj.model.Frame`): file frame.
         size ():
-        shardManager ():
+        shard_manager ():
     """
 
     def __init__(self, bucket=None, hash=None, mimetype=None,
-                 filename=None, size=None, id=None):
+                 filename=None, size=None, id=None, frame=None):
         self.bucket = Bucket(id=bucket)
         self.hash = hash
         self.mimetype = mimetype
         self.filename = filename
         self.size = size
-        self.shardManager = ShardManager()
+        self.shard_manager = None
         self.id = id
+        self.frame = Frame(id=frame)
 
     @property
     def content_type(self):
@@ -98,6 +137,29 @@ class File(Object):
     def delete(self):
         bucket_files = FileManager(bucket_id=self.bucket)
         bucket_files.delete(self.id)
+
+
+class FilePointer(Object):
+    """File pointer.
+
+    Args:
+        hash (str):
+        token (str): token unique identifier.
+        operation (str):
+        channel (str):
+
+    Attributes:
+        hash (str):
+        token (:py:class:`storj.model.Token`): token.
+        operation (str):
+        channel (str):
+    """
+
+    def __init__(self, hash=None, token=None, operation=None, channel=None):
+        self.hash = hash
+        self.token = Token(token=token)
+        self.operation = operation
+        self.channel = channel
 
 
 class Frame(Object):
@@ -169,6 +231,133 @@ class Keyring(Object):
         self.password = creds['pass']
         self.salt = creds['salt']
         return creds
+
+
+class MerkleTree(Object):
+    """
+    Simple merkle hash tree. Nodes are stored as strings in rows.
+    Row 0 is the root node, row 1 is its children, row 2 is their children, etc
+
+    Arguments
+        leaves (list[str]/types.generator[str]):
+            leaves of the tree, as hex digests
+
+    Attributes:
+        leaves (list[str]): leaves of the tree, as hex digests
+        depth (int): the number of levels in the tree
+        count (int): the number of nodes in the tree
+        rows (list[list[str]]): the levels of the tree
+    """
+
+    def __init__(self, leaves, prehashed=True):
+
+        self.prehashed = prehashed
+        self.leaves = leaves
+        self.count = 0
+        self._rows = []
+
+        self._generate()
+
+    @property
+    def depth(self):
+        """Calculates the depth of the tree.
+
+        Returns:
+            (int): tree depth.
+        """
+        pow = 0
+
+        while (2 ** pow) < len(self._leaves):
+            pow += 1
+
+        return pow
+
+    @property
+    def leaves(self):
+        """(list[str]/types.generator[str]): leaves of the tree."""
+        return self._leaves
+
+    @leaves.setter
+    def leaves(self, value):
+
+        if value is None:
+            raise ValueError('Leaves should be a list.')
+        elif not isinstance(value, list) and \
+                not isinstance(value, types.GeneratorType):
+            raise ValueError('Leaves should be a list or a generator (%s).' % type(value))
+
+        if self.prehashed:
+            # it will create a copy of list or
+            # it will create a new list based on the generator
+            self._leaves = list(value)
+        else:
+            self._leaves = [ShardManager.hash(leaf) for leaf in value]
+
+        if not len(self._leaves) > 0:
+            raise ValueError('Leaves must contain at least one entry.')
+
+        for leaf in self._leaves:
+            if not isinstance(leaf, six.string_types):
+                raise ValueError('Leaves should only contain strings.')
+
+    def _generate(self):
+        """Generate the merkle tree from the leaves"""
+        self._rows = [[] for _ in range(self.depth + 1)]
+
+        # The number of leaves should be filled with hash of empty strings
+        # until the number of leaves is a power of 2.
+        # See https://storj.github.io/core/tutorial-protocol-spec.html
+        while len(self._leaves) < (2 ** self.depth):
+            self._leaves.append(ShardManager.hash(''))
+
+        leaf_row = self.depth
+        next_branches = self.depth - 1
+
+        self._rows[leaf_row] = self._leaves
+        if not self.prehashed:
+            self.count += len(self._leaves)
+
+        # Generate each row, starting from the bottom
+
+        while next_branches >= 0:
+            self._rows[next_branches] = self._make_row(next_branches)
+            self.count += len(self._rows[next_branches])
+            next_branches -= 1
+
+    def _make_row(self, depth):
+        """Generate the row at the specified depth"""
+        row = []
+
+        prior = self._rows[depth + 1]
+
+        for i in range(0, len(prior), 2):
+            entry = ShardManager.hash('%s%s' % (prior[i], prior[i + 1]))
+            row.append(entry)
+
+        return row
+
+    def get_root(self):
+        """Return the root of the tree"""
+        return self._rows[0][0]
+
+    def get_level(self, depth):
+        """Returns the tree row at the specified depth"""
+        return self._rows[depth]
+
+
+class Mirror(Object):
+    """Mirror or file replica settings.
+
+    Attributes:
+        hash (str):
+        mirrors (int): number of file replicas.
+        status (str): current file replica status.
+    """
+
+    def __init__(self, hash=None, mirrors=None, status=None):
+        self.hash = hash
+        self.mirrors = mirrors
+        self.status = status
 
 
 class Shard(Object):
@@ -368,17 +557,29 @@ class ShardManager(Object):
 
 
 class Token(Object):
-    """
-    Attributes:
-        token ():
-        bucket ():
+    """Token.
+
+    Args:
+        token (str): token unique identifier.
+        bucket (str): bucket unique identifier.
         operation ():
-        expires ():
+        expires (str): expiration date, in the RFC3339 format.
+        encryptionKey (str):
+
+    Attributes:
+        id (str): token unique identifier.
+        bucket (:py:class:`storj.model.Bucket`): bucket.
+        operation (str):
+        expires (datetime.datetime): expiration date, in UTC.
+        encryptionKey (str):
     """
 
-    def __init__(self, token=None, bucket=None, operation=None, expires=None):
+    def __init__(
+            self, token=None, bucket=None, operation=None, expires=None,
+            encryptionKey=None
+    ):
         self.id = token
-        self.bucket_id = bucket
+        self.bucket = Bucket(id=bucket)
         self.operation = operation
 
         if expires is not None:
@@ -387,114 +588,4 @@ class Token(Object):
         else:
             self.expires = None
 
-
-class MerkleTree(Object):
-    """
-    Simple merkle hash tree. Nodes are stored as strings in rows.
-    Row 0 is the root node, row 1 is its children, row 2 is their children, etc
-
-    Arguments
-        leaves (list[str]/types.generator[str]):
-            leaves of the tree, as hex digests
-
-    Attributes:
-        leaves (list[str]): leaves of the tree, as hex digests
-        depth (int): the number of levels in the tree
-        count (int): the number of nodes in the tree
-        rows (list[list[str]]): the levels of the tree
-    """
-
-    def __init__(self, leaves, prehashed=True):
-
-        self.prehashed = prehashed
-        self.leaves = leaves
-        self.count = 0
-        self._rows = []
-
-        self._generate()
-
-    @property
-    def depth(self):
-        """Calculates the depth of the tree.
-
-        Returns:
-            (int): tree depth.
-        """
-        pow = 0
-
-        while (2 ** pow) < len(self._leaves):
-            pow += 1
-
-        return pow
-
-    @property
-    def leaves(self):
-        """(list[str]/types.generator[str]): leaves of the tree."""
-        return self._leaves
-
-    @leaves.setter
-    def leaves(self, value):
-
-        if value is None:
-            raise ValueError('Leaves should be a list.')
-        elif not isinstance(value, list) and \
-                not isinstance(value, types.GeneratorType):
-            raise ValueError('Leaves should be a list or a generator (%s).' % type(value))
-
-        if self.prehashed:
-            # it will create a copy of list or
-            # it will create a new list based on the generator
-            self._leaves = list(value)
-        else:
-            self._leaves = [ShardManager.hash(leaf) for leaf in value]
-
-        if not len(self._leaves) > 0:
-            raise ValueError('Leaves must contain at least one entry.')
-
-        for leaf in self._leaves:
-            if not isinstance(leaf, six.string_types):
-                raise ValueError('Leaves should only contain strings.')
-
-    def _generate(self):
-        """Generate the merkle tree from the leaves"""
-        self._rows = [[] for _ in range(self.depth + 1)]
-
-        # The number of leaves should be filled with hash of empty strings
-        # until the number of leaves is a power of 2.
-        # See https://storj.github.io/core/tutorial-protocol-spec.html
-        while len(self._leaves) < (2 ** self.depth):
-            self._leaves.append(ShardManager.hash(''))
-
-        leaf_row = self.depth
-        next_branches = self.depth - 1
-
-        self._rows[leaf_row] = self._leaves
-        if not self.prehashed:
-            self.count += len(self._leaves)
-
-        # Generate each row, starting from the bottom
-
-        while next_branches >= 0:
-            self._rows[next_branches] = self._make_row(next_branches)
-            self.count += len(self._rows[next_branches])
-            next_branches -= 1
-
-    def _make_row(self, depth):
-        """Generate the row at the specified depth"""
-        row = []
-
-        prior = self._rows[depth + 1]
-
-        for i in range(0, len(prior), 2):
-            entry = ShardManager.hash('%s%s' % (prior[i], prior[i + 1]))
-            row.append(entry)
-
-        return row
-
-    def get_root(self):
-        """Return the root of the tree"""
-        return self._rows[0][0]
-
-    def get_level(self, depth):
-        """Returns the tree row at the specified depth"""
-        return self._rows[depth]
+        self.encryptionKey = encryptionKey

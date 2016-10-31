@@ -2,13 +2,14 @@
 """Test cases for the storj.http module."""
 
 import mock
+import pytest
+import requests
 
 
 from hashlib import sha256
 
 
-from storj import http
-from storj import model
+from storj import exception, http, model
 
 
 from .. import AbstractTestCase
@@ -102,6 +103,39 @@ class ClientTestCase(AbstractTestCase):
             path='/buckets/%s' % test_bucket_id)
         self.assertIsInstance(bucket, model.Bucket)
 
+    def test_bucket_get_not_found(self):
+        """Test Client.bucket_get() when bucket does not exist."""
+
+        mock_error = requests.HTTPError()
+        mock_error.response = mock.Mock()
+        mock_error.response.status_code = 404
+
+        self.mock_request.side_effect = mock_error
+
+        bucket = self.client.bucket_get('inexistent')
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/buckets/inexistent')
+
+        assert bucket is None
+
+    def test_bucket_get_error(self):
+        """Test Client.bucket_get() when a bridge error occursr."""
+
+        mock_error = requests.HTTPError()
+        mock_error.response = mock.Mock()
+        mock_error.response.status_code = 500
+
+        self.mock_request.side_effect = mock_error
+
+        with pytest.raises(exception.StorjBridgeApiError):
+            self.client.bucket_get('error')
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/buckets/error')
+
     def test_bucket_list(self):
         """Test Client.bucket_list()."""
 
@@ -144,41 +178,120 @@ class ClientTestCase(AbstractTestCase):
 
         assert response is None
 
-    def test_contacts_list(self):
+    def test_bucket_set_mirrors(self):
+        """Test Client.bucket_set_mirrors()."""
+
+        # see https://storj.github.io/bridge/#!/buckets/post_buckets_id_mirrors
+        test_bucket_id = '57fd385426adcf743b3d39c5'
+        test_file_id = '507f1f77bcf86cd799439011'
+
+        mock_response = {
+            'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',
+            'mirrors': 3,
+            'status': 'pending'
+        }
+
+        self.mock_request.return_value = mock_response
+
+        mirror = self.client.bucket_set_mirrors(
+            test_bucket_id, test_file_id, 3)
+
+        self.mock_request.assert_called_once_with(
+            method='POST',
+            path='/buckets/%s/mirrors' % test_bucket_id,
+            json={
+                'file': test_file_id,
+                'redundancy': 3})
+
+        assert mirror is not None
+        assert isinstance(mirror, model.Mirror)
+
+    def test_contact_list(self):
         """Test Client.contact_list()."""
-        test_response = [{'protocol': '0.9.0', 'userAgent': '4.0.2'},
-                         {'protocol': '0.8.0', 'userAgent': '4.0.3'}]
+        test_response = [
+            {'protocol': '0.9.0', 'userAgent': '4.0.2'},
+            {'protocol': '0.8.0', 'userAgent': '4.0.3'}
+        ]
 
         self.mock_request.return_value = test_response
 
-        contacts = self.client.contacts_list()
+        contacts = self.client.contact_list()
+
+        assert contacts is not None
+        for contact in contacts:
+            assert isinstance(contact, model.Contact)
 
         self.mock_request.assert_called_once_with(
             method='GET',
-            path='/contacts',
-            json={})
-        self.assertEqual(contacts, test_response)
+            path='/contacts')
 
-    def test_file_pointers(self):
+    def test_contact_lookup(self):
+        """Test Client.contact_lookup()."""
+        test_response = {
+            'protocol': '0.8.0', 'userAgent': '4.0.3'
+        }
+
+        self.mock_request.return_value = test_response
+
+        contact = self.client.contact_lookup('node_id')
+
+        assert contact is not None
+        assert isinstance(contact, model.Contact)
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/contacts/%s' % 'node_id')
+
+    @mock.patch.object(http.Client, 'token_create')
+    def test_file_pointers(self, mock_token_create):
         """Test Client.file_pointers()."""
         test_bucket_id = '1234'
         test_file_id = '5678'
 
-        self.client.token_create = mock.MagicMock()
-        self.client.token_create.return_value = {'token': 'test_token'}
+        mock_token_create.return_value = model.Token(token='test_token')
 
         response = self.client.file_pointers(test_bucket_id, test_file_id)
+
+        assert response is not None
+        for pointer in response:
+            assert isinstance(pointer, model.FilePointer)
 
         self.mock_request.assert_called_once_with(
             method='GET',
             path='/buckets/%s/files/%s/' % (test_bucket_id, test_file_id),
             headers={'x-token': 'test_token'})
 
-        self.assertIsNotNone(response)
+        mock_token_create.assert_called_once_with(
+            test_bucket_id, operation='PULL')
 
     def test_file_download(self):
         """Test Client.file_download()."""
         pass
+
+    def test_file_metadata(self):
+        """Test Client.file_metadata()."""
+        test_bucket_id = 'lkh39d'
+        test_file_id = '72393'
+
+        # https://storj.github.io/bridge/#!/buckets/get_buckets_id_files_file_id_info
+        self.mock_request.return_value = {
+            'bucket': '507f1f77bcf86cd799439011',
+            'mimetype': 'video/mpeg',
+            'filename': 'big_buck_bunny.mp4',
+            'frame': '507f1f77bcf86cd799439191',
+            'id': '507f1f77bcf86cd799430909',
+            'size': 5071076
+        }
+
+        metadata = self.client.file_metadata(test_bucket_id, test_file_id)
+
+        assert metadata is not None
+        assert isinstance(metadata, model.File)
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/buckets/%s/files/%s/info' % (test_bucket_id, test_file_id)
+        )
 
     def test_file_upload(self):
         """Test Client.file_upload()."""
@@ -417,25 +530,65 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.key_register('key')
 
+        assert response is None
+
         mock_ecdsa.assert_called_once_with('key')
         self.mock_request.assert_called_once_with(
             method='POST',
             path='/keys',
             json=test_json)
 
-        assert response is None
-
     def test_token_create(self):
         """Test Client.token_create()."""
+
         test_bucket_id = '1234'
         test_json = {'operation': 'PULL'}
 
-        self.client.token_create(test_bucket_id, 'PULL')
+        # https://storj.github.io/bridge/#!/buckets/post_buckets_id_tokens
+        self.mock_request.return_value = dict(
+            token='string',
+            bucket='string',
+            expires='2016-10-13T04:23:48.183Z',
+            operation='string',
+            encryptionKey='string'
+        )
+
+        response = self.client.token_create(test_bucket_id, 'PULL')
+
+        assert response is not None
+        assert isinstance(response, model.Token)
 
         self.mock_request.assert_called_once_with(
             method='POST',
             path='/buckets/%s/tokens' % test_bucket_id,
             json=test_json)
+
+    def test_user_activate(self):
+        """Test Client.user_activate()."""
+
+        self.mock_request.return_value = None
+
+        response = self.client.user_activate('token')
+
+        assert response is None
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/activations/token')
+
+    def test_user_activation_email(self):
+        """Test Client.user_activation_email()."""
+
+        self.mock_request.return_value = None
+
+        response = self.client.user_activation_email('email', 'token')
+
+        assert response is None
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/activations/token',
+            json={'email': 'email'})
 
     @mock.patch.object(http.Client, 'authenticate', return_value=None)
     @mock.patch('storj.http.sha256')
@@ -460,3 +613,55 @@ class ClientTestCase(AbstractTestCase):
             method='POST',
             path='/users',
             json={'email': test_email, 'password': test_hashed_password})
+
+    def test_user_deactivate(self):
+        """Test Client.user_deactivate()."""
+
+        self.mock_request.return_value = None
+
+        response = self.client.user_deactivate('token')
+
+        assert response is None
+
+        self.mock_request.assert_called_once_with(
+            method='DELETE',
+            path='/activations/token')
+
+    def test_user_delete(self):
+        """Test Client.user_delete()."""
+
+        self.mock_request.return_value = None
+
+        response = self.client.user_delete('email')
+
+        assert response is None
+
+        self.mock_request.assert_called_once_with(
+            method='DELETE',
+            path='/users/email')
+
+    def test_user_reset_password(self):
+        """Test Client.user_reset_password()."""
+
+        self.mock_request.return_value = None
+
+        response = self.client.user_reset_password('email')
+
+        assert response is None
+
+        self.mock_request.assert_called_once_with(
+            method='PATCH',
+            path='/users/email')
+
+    def test_user_reset_password_confirmation(self):
+        """Test Client.user_reset_password_confirmation()."""
+
+        self.mock_request.return_value = None
+
+        response = self.client.user_reset_password_confirmation('token')
+
+        assert response is None
+
+        self.mock_request.assert_called_once_with(
+            method='GET',
+            path='/resets/token')

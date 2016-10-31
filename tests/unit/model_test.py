@@ -12,7 +12,9 @@ import tempfile
 
 from datetime import datetime
 
-from storj.model import Bucket, Frame, MerkleTree, Shard, ShardManager, Token
+from storj.model import \
+    Bucket, Contact, File, FilePointer, Frame, MerkleTree, Mirror, \
+    Shard, ShardManager, Token
 
 
 from .. import AbstractTestCase
@@ -47,6 +49,79 @@ class BucketTestCase(AbstractTestCase):
         assert bucket.user == 'steenzout@ymail.com'
 
 
+class ContactTestCase(AbstractTestCase):
+    """Test case for the Contact class."""
+
+    def test_init(self):
+        """Test Contact.__init__()."""
+
+        kwargs = dict(
+            address='api.storj.io',
+            port=8443,
+            nodeID='32033d2dc11b877df4b1caefbffba06495ae6b18',
+            lastSeen='2016-05-24T15:16:01.139Z',
+            protocol='0.7.0',
+            userAgent='4.0.3'
+        )
+
+        contact = Contact(**kwargs)
+
+        assert contact.address == kwargs['address']
+        assert contact.port == kwargs['port']
+        assert contact.nodeID == kwargs['nodeID']
+        assert contact.lastSeen == datetime.fromtimestamp(
+            strict_rfc3339.rfc3339_to_timestamp(kwargs['lastSeen']))
+        assert contact.protocol == kwargs['protocol']
+        assert contact.userAgent == kwargs['userAgent']
+
+
+class FileTestCase(AbstractTestCase):
+    """Test case for the File class."""
+
+    def test_init(self):
+        """Test File.__init__()."""
+
+        kwargs = dict(
+            bucket='bucket_id',
+            hash='hash',
+            mimetype='mimetype',
+            filename='filename',
+            frame='frame_id'
+        )
+
+        f = File(**kwargs)
+
+        assert f.bucket == Bucket(id=kwargs['bucket'])
+        assert f.hash == kwargs['hash']
+        assert f.mimetype == kwargs['mimetype']
+        assert f.filename == kwargs['filename']
+        assert f.frame == Frame(id=kwargs['frame'])
+        assert f.shard_manager is None
+
+
+class FilePointerTestCase(AbstractTestCase):
+    """Test case for the FilePointer class."""
+
+    def test_init(self):
+        """Test File.__init__()."""
+
+        # https://storj.github.io/bridge/#!/buckets/get_buckets_id_files_file_id
+        kwargs = dict(
+            hash='ba084d3f143f2896809d3f1d7dffed472b39d8de',
+            token='99cf1af00b552113a856f8ef44f58d22269389e8'
+                  '009d292bafd10af7cc30dcfa',
+            operation='PULL',
+            channel='ws://farmer.hostname:4000'
+        )
+
+        fp = FilePointer(**kwargs)
+
+        assert fp.hash == kwargs['hash']
+        assert fp.token == Token(token=kwargs['token'])
+        assert fp.operation == kwargs['operation']
+        assert fp.channel == kwargs['channel']
+
+
 class FrameTestCase(AbstractTestCase):
     """Test case for the Frame class."""
 
@@ -64,6 +139,25 @@ class FrameTestCase(AbstractTestCase):
                 '2016-10-13T04:23:48.183Z'))
         assert frame.id == '510b23e9f63a77d939a72a77'
         assert frame.shards == []
+
+
+class MirrorTestCase(AbstractTestCase):
+    """Test case for the Mirror class."""
+
+    def test_init(self):
+        """Test Mirror.__init__()."""
+
+        kwargs = dict(
+            hash='fde400fe0b6a5488e10d7317274a096aaa57914d',
+            mirrors=3,
+            status='pending'
+        )
+
+        mirror = Mirror(**kwargs)
+
+        assert mirror.hash == kwargs['hash']
+        assert mirror.mirrors == kwargs['mirrors']
+        assert mirror.status == kwargs['status']
 
 
 class ShardTestCase(AbstractTestCase):
@@ -438,3 +532,28 @@ class MerkleTreeTestCase(AbstractTestCase):
         self.assertEqual(tree.depth, depth)
         self.assertEqual(tree._rows, rows)
         self.assertEqual(tree.count, count)
+
+
+class TokenTestCase(AbstractTestCase):
+    """Test case for the Token class."""
+
+    def test_init(self):
+        """Test Token.__init__()."""
+
+        kwargs = dict(
+            token='token',
+            bucket='bucket_id',
+            operation='operation',
+            expires='2016-10-13T04:23:48.183Z',
+            encryptionKey='key_id',
+        )
+
+        token = Token(**kwargs)
+
+        assert token.id == kwargs['token']
+        assert token.bucket == Bucket(id=kwargs['bucket'])
+        assert token.operation == kwargs['operation']
+        assert token.expires == datetime.fromtimestamp(
+            strict_rfc3339.rfc3339_to_timestamp(
+                kwargs['expires']))
+        assert token.encryptionKey == kwargs['encryptionKey']

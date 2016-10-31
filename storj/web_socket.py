@@ -7,9 +7,16 @@ from ws4py.client.threadedclient import WebSocketClient
 
 
 class Client(WebSocketClient):
+    """Web socket client.
+
+    Attributes:
+        json (generator[:py:class:`storj.model.FilePointer`]): file pointers.
+    """
 
     def __init__(self, pointer, file_contents):
         assert isinstance(pointer, dict)
+
+        # according to docs it's channel
         URI = "ws://" + pointer.get('farmer')['address']
         URI += ":" + str(pointer.get('farmer')['port'])
         self.json = pointer

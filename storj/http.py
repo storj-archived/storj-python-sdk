@@ -237,17 +237,19 @@ class Client(object):
         Returns:
             (:py:class:`model.Bucket`): bucket.
         """
+        self.logger.info('bucket_get(%s)', bucket_id)
+
         try:
-            response = self._request(
+            return model.Bucket(**self._request(
                 method='GET',
-                path='/buckets/%s' % bucket_id)
-            return model.Bucket(**response)
+                path='/buckets/%s' % bucket_id))
 
         except requests.HTTPError as e:
             if e.response.status_code == requests.codes.not_found:
                 return None
             else:
-                raise e
+                self.logger.error('bucket_get() error=%s', e)
+                raise StorjBridgeApiError()
 
     def bucket_list(self):
         """List all of the buckets belonging to the user.
@@ -291,7 +293,7 @@ class Client(object):
                 'name': bucket_name,
                 'pubkeys': keys}))
 
-    def bucket_set_mirrors(self, bucket_id, replica):
+    def bucket_set_mirrors(self, bucket_id, file_id, redundancy):
         """Establishes a series of mirrors for the given file.
 
         See `API buckets: POST /buckets/{id}/mirrors
@@ -299,22 +301,23 @@ class Client(object):
 
         Args:
             bucket_id (str): bucket unique identifier.
-            replica (:py:class:`storj.model.FileReplica`: file replication settings.
+            file_id (str): file unique identitifer.
+            redundancy (int): number of replicas.
 
         Returns:
             (:py:class:`storj.model.Mirror`): the mirror settings.
         """
-        self.logger.info('bucket_set_mirrors(%s, %s)', bucket_id, replica)
+        self.logger.info('bucket_set_mirrors(%s, %s, %s)', bucket_id, file_id, redundancy)
 
         return model.Mirror(**self._request(
             method='POST',
             path='/buckets/%s/mirrors' % bucket_id,
             json={
-                'file': replica.id,
-                'redundancy': replica.redundancy
+                'file': file_id,
+                'redundancy': redundancy
             }))
 
-    def contacts_list(self, page=1, address=None, protocol=None, user_agent=None, connected=None):
+    def contact_list(self, page=1, address=None, protocol=None, user_agent=None, connected=None):
         """Lists contacts.
 
         See `API contacts: GET /contacts
@@ -328,14 +331,19 @@ class Client(object):
             connected (bool): filter results by connection status.
 
         Returns:
-            (list[]): list of contacts
+            (list[:py:class:`storj.model.Contact`]): list of contacts.
         """
         self.logger.info('contacts_list()')
 
-        response = self._request(method='GET', path='/contacts', json={})
+        response = self._request(
+            method='GET',
+            path='/contacts')
 
         if response is not None:
-            return response
+            for kwargs in response:
+                yield model.Contact(**kwargs)
+        else:
+            raise StopIteration
 
     def contact_lookup(self, node_id):
         """Lookup for contact information of a node.
@@ -349,14 +357,11 @@ class Client(object):
         Returns:
             (:py:class:`storj.model.Contact`): contact information
         """
+        self.logger.info('contact_lookup(%s)', node_id)
 
-        response = self._request(
+        return model.Contact(**self._request(
             method='GET',
-            path='/contacts/%s' % node_id,
-            json={})
-
-        if response is not None:
-            return model.Contact(**response)
+            path='/contacts/%s' % node_id))
 
     def file_pointers(self, bucket_id, file_id, skip=None, limit=None):
         """Get list of pointers associated with a file.
@@ -377,10 +382,16 @@ class Client(object):
 
         pull_token = self.token_create(bucket_id, operation='PULL')
 
-        return self._request(
+        response = self._request(
             method='GET',
             path='/buckets/%s/files/%s/' % (bucket_id, file_id),
-            headers={'x-token': pull_token['token']})
+            headers={'x-token': pull_token.id})
+
+        if response is not None:
+            for kwargs in response:
+                yield model.FilePointer(**kwargs)
+        else:
+            raise StopIteration
 
     def file_download(self, bucket_id, file_id):
         self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)
@@ -442,7 +453,7 @@ class Client(object):
         # encrypt file
         # shard file
 
-        push_token = self.token_create(bucket_id, "PUSH")
+        push_token = self.token_create(bucket_id, 'PUSH')
 
         self.logger.debug('file_upload() push_token=%s', push_token)
 
@@ -453,7 +464,7 @@ class Client(object):
             method='POST', path='/buckets/%s/files' % bucket_id,
             # files={'file' : file},
             headers={
-                #    'x-token': push_token['token'],
+                #    'x-token': push_token.id,
                 #    'x-filesize': str(file_size)}
                 'frame': frame.id,
                 'mimetype': file.mimetype,
@@ -578,6 +589,8 @@ class Client(object):
         if response is not None:
             for kwargs in response:
                 yield model.Frame(**kwargs)
+        else:
+            raise StopIteration
 
     def key_delete(self, public_key):
         """Removes a public ECDSA keys.
@@ -694,12 +707,12 @@ class Client(object):
         Returns:
             (dict): ...
         """
-        self.logger.info('create_token(%s, %s)', bucket_id, operation)
+        self.logger.info('token_create(%s, %s)', bucket_id, operation)
 
-        return self._request(
+        return model.Token(**self._request(
             method='POST',
             path='/buckets/%s/tokens' % bucket_id,
-            json={'operation': operation})
+            json={'operation': operation}))
 
     def user_activate(self, token):
         """Activate user.
@@ -714,8 +727,7 @@ class Client(object):
 
         self._request(
             method='GET',
-            path='/activations/%s' % token,
-            json={})
+            path='/activations/%s' % token)
 
     def user_activation_email(self, email, token):
         """Send user activation email.
@@ -773,8 +785,7 @@ class Client(object):
 
         self._request(
             method='DELETE',
-            path='/activations/%s' % token,
-            json={})
+            path='/activations/%s' % token)
 
     def user_delete(self, email):
         """Delete user account.
@@ -789,8 +800,7 @@ class Client(object):
 
         self._request(
             method='DELETE',
-            path='/users/%s' % email,
-            json={})
+            path='/users/%s' % email)
 
     def user_reset_password(self, email):
         """Request a password reset.
@@ -805,8 +815,7 @@ class Client(object):
 
         self._request(
             method='PATCH',
-            path='/users/%s' % email,
-            json={})
+            path='/users/%s' % email)
 
     def user_reset_password_confirmation(self, token):
         """Confirm a password reset request.
@@ -821,5 +830,4 @@ class Client(object):
 
         self._request(
             method='GET',
-            path='/resets/%s' % token,
-            json={})
+            path='/resets/%s' % token)

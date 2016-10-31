@@ -610,3 +610,16 @@ class ClientTestCase(AbstractTestCase):
         self.mock_request.assert_called_once_with(
             method='DELETE',
             path='/activations/token')
+
+    def test_user_delete(self):
+        """Test Client.user_delete()."""
+
+        self.mock_request.return_value = None
+
+        response = self.client.user_delete('email')
+
+        assert response is None
+
+        self.mock_request.assert_called_once_with(
+            method='DELETE',
+            path='/usrs/email')

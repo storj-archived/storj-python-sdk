@@ -4,6 +4,7 @@
 import mock
 import pytest
 import requests
+import six
 
 
 from hashlib import sha256
@@ -540,7 +541,8 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.token_create(test_bucket_id, 'PULL')
 
-        assert response is None
+        assert response is not None
+        assert isinstance(response, six.string_types)
 
         self.mock_request.assert_called_once_with(
             method='POST',

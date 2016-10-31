@@ -242,22 +242,27 @@ class ClientTestCase(AbstractTestCase):
             method='GET',
             path='/contacts/%s' % 'node_id')
 
-    def test_file_pointers(self):
+    @mock.patch.object(http.Client, 'token_create')
+    def test_file_pointers(self, mock_token_create):
         """Test Client.file_pointers()."""
         test_bucket_id = '1234'
         test_file_id = '5678'
 
-        self.client.token_create = mock.MagicMock()
-        self.client.token_create.return_value = {'token': 'test_token'}
+        mock_token_create.return_value = model.Token(token='test_token')
 
         response = self.client.file_pointers(test_bucket_id, test_file_id)
+
+        assert response is not None
+        for pointer in response:
+            assert isinstance(pointer, model.FilePointer)
 
         self.mock_request.assert_called_once_with(
             method='GET',
             path='/buckets/%s/files/%s/' % (test_bucket_id, test_file_id),
             headers={'x-token': 'test_token'})
 
-        self.assertIsNotNone(response)
+        mock_token_create.assert_called_once_with(
+            test_bucket_id, operation='PULL')
 
     def test_file_download(self):
         """Test Client.file_download()."""

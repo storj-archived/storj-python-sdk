@@ -178,6 +178,34 @@ class ClientTestCase(AbstractTestCase):
 
         assert response is None
 
+    def test_bucket_set_mirrors(self):
+        """Test Client.bucket_set_mirrors()."""
+
+        # see https://storj.github.io/bridge/#!/buckets/post_buckets_id_mirrors
+        test_bucket_id = '57fd385426adcf743b3d39c5'
+        test_file_id = '507f1f77bcf86cd799439011'
+
+        mock_response = {
+            'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',
+            'mirrors': 3,
+            'status': 'pending'
+        }
+
+        self.mock_request.return_value = mock_response
+
+        mirror = self.client.bucket_set_mirrors(
+            test_bucket_id, test_file_id, 3)
+
+        self.mock_request.assert_called_once_with(
+            method='POST',
+            path='/buckets/%s/mirrors' % test_bucket_id,
+            json={
+                'file': test_file_id,
+                'redundancy': 3})
+
+        assert mirror is not None
+        assert isinstance(mirror, model.Mirror)
+
     def test_contacts_list(self):
         """Test Client.contact_list()."""
         test_response = [{'protocol': '0.9.0', 'userAgent': '4.0.2'},

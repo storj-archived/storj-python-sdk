@@ -1,54 +1,15 @@
 # -*- coding: utf-8 -*-
 """Storj command-line interface package."""
 
-import os
 import logging
 
 import click
 
-from six.moves import configparser
 
-from storj.http import Client
-
-
-APP_NAME = 'storj'
-
-CFG_EMAIL = 'storj.email'
-CFG_PASSWORD = 'storj.password'
+from .. import get_client
 
 
 __logger = logging.getLogger(__name__)
-
-
-def get_client():
-    """Returns a pre-configured Storj HTTP client.
-
-    Returns:
-        (:py:class:`Client`): Storj HTTP client.
-    """
-    cfg = read_config()
-    return Client(cfg[CFG_EMAIL], cfg[CFG_PASSWORD])
-
-
-def read_config():
-    """Reads configuration for the command-line interface."""
-
-    # OSX: /Users/<username>/.storj
-    cfg = os.path.join(
-        click.get_app_dir(
-            APP_NAME,
-            force_posix=True),
-        'storj.ini')
-
-    parser = configparser.RawConfigParser()
-    parser.read([cfg])
-
-    rv = {}
-    for section in parser.sections():
-        for key, value in parser.items(section):
-            rv['%s.%s' % (section, key)] = value
-
-    return rv
 
 
 @click.group()

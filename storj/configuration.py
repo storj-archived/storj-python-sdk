@@ -7,10 +7,24 @@ from six.moves import configparser
 
 
 APP_NAME = 'storj'
+"""(str): the application name."""
 
 
 def read_config():
-    """Reads configuration for the command-line interface."""
+    """Reads configuration storj client configuration.
+
+    Mac OS X (POSIX):
+        ~/.foo-bar
+    Unix (POSIX):
+        ~/.foo-bar
+    Win XP (not roaming):
+        C:\Documents and Settings\<user>\Application Data\Foo Bar
+    Win 7 (not roaming):
+        C:\Users\<user>\AppData\Local\Foo Bar
+
+    Returns:
+        (dict): configuration.
+    """
 
     # OSX: /Users/<username>/.storj
     cfg = os.path.join(

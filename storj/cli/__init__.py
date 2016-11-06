@@ -33,7 +33,7 @@ def get_client():
 def read_config():
     """Reads configuration for the command-line interface."""
 
-    # OSX: /Users/<username>/Library/Application Support/storj
+    # OSX: /Users/<username>/.storj
     cfg = os.path.join(
         click.get_app_dir(
             APP_NAME,

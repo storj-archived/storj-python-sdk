@@ -97,6 +97,9 @@ class BucketKeyManager:
         bucket ():
     """
 
+    client = get_client()
+    """(:py:class:`storj.http.client`): HTTP client."""
+
     def __init__(self, bucket, authorized_public_keys):
         self.bucket = bucket
         self._authorized_public_keys = authorized_public_keys
@@ -111,14 +114,14 @@ class BucketKeyManager:
             key = ecdsa_to_hex(key)
 
         self._authorized_public_keys.append(key)
-        get_client().bucket_set_keys(
+        BucketKeyManager.client.bucket_set_keys(
             bucket_id=self.bucket.id,
             keys=self._authorized_public_keys)
 
     def clear(self):
         """"""
         self._authorized_public_keys = []
-        get_client().bucket_set_keys(bucket_id=self.bucket.id, keys=[])
+        BucketKeyManager.client.bucket_set_keys(bucket_id=self.bucket.id, keys=[])
 
     def remove(self, key):
         """"""
@@ -126,7 +129,7 @@ class BucketKeyManager:
             key = ecdsa_to_hex(key)
 
         self._authorized_public_keys.remove(key)
-        get_client().bucket_set_keys(
+        BucketKeyManager.client.bucket_set_keys(
             bucket_id=self.bucket.id,
             keys=self._authorized_public_keys)
 

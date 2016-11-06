@@ -145,8 +145,8 @@ class FileManager:
 
     def _upload(self, file, frame):
         """"""
-        FileManager.client.file_upload(bucket_id=self.bucket_id,
-                               file=file, frame=frame)
+        FileManager.client.file_upload(
+            bucket_id=self.bucket_id, file=file, frame=frame)
 
     def all(self):
         """"""

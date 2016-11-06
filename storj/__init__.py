@@ -4,6 +4,7 @@
 import io
 
 
+from abc import ABCMeta
 from hashlib import sha256
 from ecdsa import SigningKey, SECP256k1
 
@@ -47,10 +48,10 @@ def generate_new_key_pair():
     return private_key, private_key.get_verifying_key()
 
 
-class BucketManager:
+class BucketManager(ABCMeta):
     """Class to manage buckets."""
 
-    client = Client()
+    client = get_client()
 
     @staticmethod
     def all():
@@ -109,14 +110,14 @@ class BucketKeyManager:
             key = ecdsa_to_hex(key)
 
         self._authorized_public_keys.append(key)
-        api_client.bucket_set_keys(
+        get_client().bucket_set_keys(
             bucket_id=self.bucket.id,
             keys=self._authorized_public_keys)
 
     def clear(self):
         """"""
         self._authorized_public_keys = []
-        api_client.bucket_set_keys(bucket_id=self.bucket.id, keys=[])
+        get_client().bucket_set_keys(bucket_id=self.bucket.id, keys=[])
 
     def remove(self, key):
         """"""
@@ -124,7 +125,7 @@ class BucketKeyManager:
             key = ecdsa_to_hex(key)
 
         self._authorized_public_keys.remove(key)
-        api_client.bucket_set_keys(
+        get_client().bucket_set_keys(
             bucket_id=self.bucket.id,
             keys=self._authorized_public_keys)
 
@@ -137,21 +138,21 @@ class FileManager:
 
     def _upload(self, file, frame):
         """"""
-        api_client.file_upload(bucket_id=self.bucket_id,
+        get_client().file_upload(bucket_id=self.bucket_id,
                                file=file, frame=frame)
 
     def all(self):
         """"""
-        files_json = api_client.file_list(bucket_id=self.bucket_id)
+        files_json = get_client().file_list(bucket_id=self.bucket_id)
         return [File(payload) for payload in files_json]
 
     def delete(self, bucket_id, file_id):
         """"""
-        api_client.file_remove(self, bucket_id, file_id)
+        get_client().file_remove(self, bucket_id, file_id)
 
     def download(self, file_id):
         """"""
-        api_client.file_download(self, bucket_id, file_hash)
+        get_client().file_download(self, bucket_id, file_hash)
 
     def upload(self, file, frame):
         """"""
@@ -181,18 +182,20 @@ class TokenManager:
         """
         operation = operation.upper()
         assert(operation in ['PUSH', 'PULL'])
-        token_json = api_client.token_create(
+        token_json = get_client().token_create(
             bucket_id=self.bucket_id, operation=operation)
         return Token(token_json)
 
 
-class UserKeyManager:
+class UserKeyManager(ABCMeta):
     """"""
+
+    client = get_client()
 
     @staticmethod
     def all():
         """"""
-        keys_json = api_client.key_get()
+        keys_json = UserKeyManager.client.key_get()
         return [payload['key'] for payload in keys_json]
 
     @staticmethod
@@ -201,7 +204,7 @@ class UserKeyManager:
         if not isinstance(key, str):
             key = ecdsa_to_hex(key)
 
-        api_client.key_register(key)
+            UserKeyManager.client.key_register(key)
 
     @staticmethod
     def clear():
@@ -215,4 +218,4 @@ class UserKeyManager:
         if not isinstance(key, str):
             key = ecdsa_to_hex(key)
 
-        api_client.key_delete(key)
+        UserKeyManager.client.key_delete(key)

@@ -27,7 +27,7 @@ class BucketTestCase(AbstractTestCase):
             id='id-%s' % self.timestamp, name='bucket-%s' % self.timestamp,
             storage=100, transfer=100)
 
-        self.client_class_patch = mock.patch('storj.cli.Client', spec=True)
+        self.client_class_patch = mock.patch('storj.http.Client', spec=True)
         self.mock_client_class = self.client_class_patch.start()
         self.mock_client = self.mock_client_class()
 

@@ -171,6 +171,9 @@ class TokenManager:
         bucket_id (int): bucket unique identifier.
     """
 
+    client = get_client()
+    """(:py:class:`storj.http.client`): HTTP client."""
+
     def __init__(self, bucket_id):
         self.bucket_id = bucket_id
 
@@ -182,7 +185,7 @@ class TokenManager:
         """
         operation = operation.upper()
         assert(operation in ['PUSH', 'PULL'])
-        token_json = get_client().token_create(
+        token_json = TokenManager.client.token_create(
             bucket_id=self.bucket_id, operation=operation)
         return Token(token_json)
 

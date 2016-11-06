@@ -134,26 +134,29 @@ class BucketKeyManager:
 class FileManager:
     """"""
 
+    client = get_client()
+    """(:py:class:`storj.http.client`): HTTP client."""
+
     def __init__(self, bucket_id):
         self.bucket_id = bucket_id
 
     def _upload(self, file, frame):
         """"""
-        get_client().file_upload(bucket_id=self.bucket_id,
+        FileManager.client.file_upload(bucket_id=self.bucket_id,
                                file=file, frame=frame)
 
     def all(self):
         """"""
-        files_json = get_client().file_list(bucket_id=self.bucket_id)
+        files_json = FileManager.client.file_list(bucket_id=self.bucket_id)
         return [File(payload) for payload in files_json]
 
     def delete(self, bucket_id, file_id):
         """"""
-        get_client().file_remove(self, bucket_id, file_id)
+        FileManager.client.file_remove(self, bucket_id, file_id)
 
     def download(self, file_id):
         """"""
-        get_client().file_download(self, bucket_id, file_hash)
+        FileManager.client.file_download(self, bucket_id, file_hash)
 
     def upload(self, file, frame):
         """"""

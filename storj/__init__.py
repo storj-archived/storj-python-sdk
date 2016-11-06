@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """Storj package."""
+
 import io
+
 
 from ecdsa import SigningKey, SECP256k1
 from hashlib import sha256
 
-from storj import Bucket, ecdsa_to_hex
-from storj.api import ecdsa_to_hex
-from storj.http import Client
-from storj.model import Bucket, File, Token
+from .api import ecdsa_to_hex
+from .http import Client
+from .model import Bucket, File, Token
 
 from .metadata import __version__
 

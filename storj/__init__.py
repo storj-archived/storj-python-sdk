@@ -52,6 +52,7 @@ class BucketManager(ABCMeta):
     """Class to manage buckets."""
 
     client = get_client()
+    """(:py:class:`storj.http.client`): HTTP client."""
 
     @staticmethod
     def all():
@@ -194,6 +195,7 @@ class UserKeyManager(ABCMeta):
     """"""
 
     client = get_client()
+    """(:py:class:`storj.http.client`): HTTP client."""
 
     @staticmethod
     def all():

@@ -2,14 +2,14 @@
 """Storj package."""
 
 import io
-from hashlib import sha256
 
+
+from hashlib import sha256
 from ecdsa import SigningKey, SECP256k1
-from storj import Client
-from storj.cli import APP_NAME
-from storj.configuration import read_config
+
 
 from .api import ecdsa_to_hex
+from .configuration import read_config
 from .http import Client
 from .metadata import __version__
 from .model import Bucket, File, Token

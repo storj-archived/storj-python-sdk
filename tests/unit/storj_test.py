@@ -6,6 +6,8 @@ import storj
 
 
 from hashlib import sha256
+
+import storj.configuration
 from ecdsa import keys
 
 from .. import AbstractTestCase
@@ -28,12 +30,9 @@ class FunctionsTestCase(AbstractTestCase):
         self.assertEqual(key_pub, key.get_verifying_key())
         self.assertEqual(32, len(key.to_string()))
 
-    @mock.patch('storj.configuration.read_config')
+    @mock.patch('storj.read_config')
     def test_get_client(self, mock_read_config):
-        mock_read_config.return_value = {
-            storj.CFG_EMAIL: 'someone@example.com',
-            storj.CFG_PASSWORD: 'secret'
-        }
+        mock_read_config.return_value = ('someone@example.com', 'secret')
 
         client = storj.get_client()
 

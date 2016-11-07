@@ -46,17 +46,14 @@ def generate_new_key_pair():
 class BucketManager(ABCMeta):
     """Class to manage buckets."""
 
-    client = get_client()
-    """(:py:class:`storj.http.client`): HTTP client."""
-
     @staticmethod
     def all():
-        buckets_json = BucketManager.client.bucket_list()
+        buckets_json = get_client().bucket_list()
         return [Bucket(payload) for payload in buckets_json]
 
     @staticmethod
     def get(bucket_id):
-        bucket_json = BucketManager.client.bucket_get(bucket_id=bucket_id)
+        bucket_json = get_client().bucket_get(bucket_id=bucket_id)
         return Bucket(bucket_json)
 
     @staticmethod
@@ -68,7 +65,7 @@ class BucketManager(ABCMeta):
             storage_limit ():.
             transfer_limit ():.
         """
-        bucket_json = BucketManager.client.bucket_create(
+        bucket_json = get_client().bucket_create(
             name=name,
             storage=storage_limit,
             transfer=transfer_limit,
@@ -82,7 +79,7 @@ class BucketManager(ABCMeta):
         Args:
             bucket_id (int): bucket unique identifier.
         """
-        BucketManager.client.bucket_delete(bucket_id=bucket_id)
+        get_client().bucket_delete(bucket_id=bucket_id)
 
 
 class BucketKeyManager:
@@ -91,9 +88,6 @@ class BucketKeyManager:
     Attributes:
         bucket ():
     """
-
-    client = get_client()
-    """(:py:class:`storj.http.client`): HTTP client."""
 
     def __init__(self, bucket, authorized_public_keys):
         self.bucket = bucket
@@ -109,14 +103,14 @@ class BucketKeyManager:
             key = ecdsa_to_hex(key)
 
         self._authorized_public_keys.append(key)
-        BucketKeyManager.client.bucket_set_keys(
+        get_client().bucket_set_keys(
             bucket_id=self.bucket.id,
             keys=self._authorized_public_keys)
 
     def clear(self):
         """"""
         self._authorized_public_keys = []
-        BucketKeyManager.client.bucket_set_keys(bucket_id=self.bucket.id, keys=[])
+        get_client().bucket_set_keys(bucket_id=self.bucket.id, keys=[])
 
     def remove(self, key):
         """"""
@@ -124,7 +118,7 @@ class BucketKeyManager:
             key = ecdsa_to_hex(key)
 
         self._authorized_public_keys.remove(key)
-        BucketKeyManager.client.bucket_set_keys(
+        get_client().bucket_set_keys(
             bucket_id=self.bucket.id,
             keys=self._authorized_public_keys)
 
@@ -132,29 +126,26 @@ class BucketKeyManager:
 class FileManager:
     """"""
 
-    client = get_client()
-    """(:py:class:`storj.http.client`): HTTP client."""
-
     def __init__(self, bucket_id):
         self.bucket_id = bucket_id
 
     def _upload(self, file, frame):
         """"""
-        FileManager.client.file_upload(
+        get_client().file_upload(
             bucket_id=self.bucket_id, file=file, frame=frame)
 
     def all(self):
         """"""
-        files_json = FileManager.client.file_list(bucket_id=self.bucket_id)
+        files_json = get_client().file_list(bucket_id=self.bucket_id)
         return [File(payload) for payload in files_json]
 
     def delete(self, bucket_id, file_id):
         """"""
-        FileManager.client.file_remove(self, bucket_id, file_id)
+        get_client().file_remove(self, bucket_id, file_id)
 
     def download(self, file_id):
         """"""
-        FileManager.client.file_download(self, bucket_id, file_hash)
+        get_client().file_download(self, bucket_id, file_hash)
 
     def upload(self, file, frame):
         """"""
@@ -173,9 +164,6 @@ class TokenManager:
         bucket_id (int): bucket unique identifier.
     """
 
-    client = get_client()
-    """(:py:class:`storj.http.client`): HTTP client."""
-
     def __init__(self, bucket_id):
         self.bucket_id = bucket_id
 
@@ -187,7 +175,7 @@ class TokenManager:
         """
         operation = operation.upper()
         assert(operation in ['PUSH', 'PULL'])
-        token_json = TokenManager.client.token_create(
+        token_json = get_client().token_create(
             bucket_id=self.bucket_id, operation=operation)
         return Token(token_json)
 
@@ -195,13 +183,10 @@ class TokenManager:
 class UserKeyManager(ABCMeta):
     """"""
 
-    client = get_client()
-    """(:py:class:`storj.http.client`): HTTP client."""
-
     @staticmethod
     def all():
         """"""
-        keys_json = UserKeyManager.client.key_get()
+        keys_json = get_client().key_get()
         return [payload['key'] for payload in keys_json]
 
     @staticmethod
@@ -210,7 +195,7 @@ class UserKeyManager(ABCMeta):
         if not isinstance(key, str):
             key = ecdsa_to_hex(key)
 
-            UserKeyManager.client.key_register(key)
+            get_client().key_register(key)
 
     @staticmethod
     def clear():
@@ -224,4 +209,4 @@ class UserKeyManager(ABCMeta):
         if not isinstance(key, str):
             key = ecdsa_to_hex(key)
 
-        UserKeyManager.client.key_delete(key)
+        get_client().key_delete(key)

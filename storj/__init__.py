@@ -2,11 +2,12 @@
 """Storj package."""
 
 import io
+
+
 from abc import ABCMeta
 from hashlib import sha256
 
 from ecdsa import SigningKey, SECP256k1
-from storj.configuration import CFG_EMAIL, CFG_PASSWORD
 
 from .api import ecdsa_to_hex
 from .configuration import read_config

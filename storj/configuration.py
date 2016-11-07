@@ -9,6 +9,11 @@ from six.moves.configparser import RawConfigParser
 APP_NAME = 'storj'
 """(str): the application name."""
 
+CFG_EMAIL = 'email'
+"""(str): configuration parameter that holds the Storj account email address."""
+CFG_PASSWORD = 'password'
+"""(str): configuration parameter that holds the Storj account password."""
+
 
 def read_config():
     """Reads configuration storj client configuration.
@@ -23,7 +28,7 @@ def read_config():
         ``C:\\Users\<user>\AppData\Local\storj``
 
     Returns:
-        (dict): configuration.
+        (tuple[str, str]): storj account credentials (email, password).
     """
 
     # OSX: /Users/<username>/.storj
@@ -36,9 +41,4 @@ def read_config():
     parser = RawConfigParser()
     parser.read([cfg])
 
-    rv = {}
-    for section in parser.sections():
-        for key, value in parser.items(section):
-            rv['%s.%s' % (section, key)] = value
-
-    return rv
+    return parser.get(APP_NAME, CFG_EMAIL), parser.get(APP_NAME, CFG_PASSWORD)

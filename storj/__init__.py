@@ -2,12 +2,11 @@
 """Storj package."""
 
 import io
-
-
 from abc import ABCMeta
 from hashlib import sha256
-from ecdsa import SigningKey, SECP256k1
 
+from ecdsa import SigningKey, SECP256k1
+from storj.configuration import CFG_EMAIL, CFG_PASSWORD
 
 from .api import ecdsa_to_hex
 from .configuration import read_config
@@ -16,18 +15,13 @@ from .metadata import __version__
 from .model import Bucket, File, Token
 
 
-CFG_EMAIL = 'storj.email'
-CFG_PASSWORD = 'storj.password'
-
-
 def get_client():
     """Returns a pre-configured Storj HTTP client.
 
     Returns:
         (:py:class:`storj.http.Client`): Storj HTTP client.
     """
-    cfg = read_config()
-    return Client(cfg[CFG_EMAIL], cfg[CFG_PASSWORD])
+    return Client(*read_config())
 
 
 def generate_new_key_pair():

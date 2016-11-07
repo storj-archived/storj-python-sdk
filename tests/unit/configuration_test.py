@@ -4,7 +4,7 @@
 import mock
 
 import storj
-
+import storj.configuration
 
 from .. import AbstractTestCase
 
@@ -13,24 +13,27 @@ class FunctionsTestCase(AbstractTestCase):
     """Test case for the module functions."""
 
     @mock.patch('storj.configuration.click.get_app_dir')
-    @mock.patch('storj.configuration.configparser.RawConfigParser')
-    def test_read_config(self, mock_class_rawconfigparser, mock_app_dir):
+    @mock.patch.object(storj.configuration.RawConfigParser, 'read')
+    @mock.patch.object(storj.configuration.RawConfigParser, 'get')
+    def test_read_config(self, mock_get, mock_read, mock_app_dir):
         # mock instance for ConfigParser.RawConfigParser
-        mrcp = mock_class_rawconfigparser.return_value
-        mrcp.read.return_value = None
-        mrcp.sections.return_value = ['storj']
-        mrcp.items.return_value = {
-            'email': 'someone@example.com',
-            'password': 'secret'
-        }.items()
+        mock_read.return_value = None
+        mock_get.return_value = ['storj']
+        mock_get.side_effect = [
+            'someone@example.com',
+            'secret'
+        ]
 
         mock_app_dir.return_value = '/nowhere'
 
-        assert storj.configuration.read_config() == {
-            storj.CFG_EMAIL: 'someone@example.com',
-            storj.CFG_PASSWORD: 'secret'
-        }
+        assert storj.configuration.read_config() == (
+            'someone@example.com',
+            'secret'
+        )
 
-        mrcp.read.assert_called_once_with(['/nowhere/storj.ini'])
-        mrcp.sections.assert_called_once_with()
-        mrcp.items.assert_called_once_with('storj')
+        mock_read.assert_called_once_with(['/nowhere/storj.ini'])
+        calls = [
+            mock.call('storj', 'email'),
+            mock.call('storj', 'password'),
+        ]
+        mock_get.assert_has_calls(calls)

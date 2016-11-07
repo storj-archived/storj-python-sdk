@@ -3,7 +3,7 @@ import os
 import click
 
 
-from six.moves import configparser
+from six.moves.configparser import RawConfigParser
 
 
 APP_NAME = 'storj'
@@ -18,9 +18,9 @@ def read_config():
     Unix (POSIX):
         ~/.foo-bar
     Win XP (not roaming):
-        C:\Documents and Settings\<user>\Application Data\Foo Bar
+        ``C:\Documents and Settings\<user>\Application Data\storj``
     Win 7 (not roaming):
-        C:\Users\<user>\AppData\Local\Foo Bar
+        ``C:\\Users\<user>\AppData\Local\storj``
 
     Returns:
         (dict): configuration.
@@ -33,7 +33,7 @@ def read_config():
             force_posix=True),
         'storj.ini')
 
-    parser = configparser.RawConfigParser()
+    parser = RawConfigParser()
     parser.read([cfg])
 
     rv = {}

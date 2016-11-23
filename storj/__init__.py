@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Storj package."""
 
-<<<<<<< HEAD
 import io
 
 
@@ -211,6 +210,3 @@ class UserKeyManager(ABCMeta):
             key = ecdsa_to_hex(key)
 
         get_client().key_delete(key)
-=======
-from .metadata import __version__
->>>>>>> 337f217addbabf4152983ad53190379abc5061ba

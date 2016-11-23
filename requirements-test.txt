@@ -1,6 +1,4 @@
 autopep8
-pudb
-jsonschema
 mock
 pylint
 pytest

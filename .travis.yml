@@ -34,7 +34,7 @@ install:
   - pip install tox
 
 script:
-  - tox -- --ignore=tests/integration
+  - tox -- --ignore=tests/integration/bucket_test.py
   - "find ${HOME}/.pip -name log -type d | xargs -I {} rm -rf {}"
 
 after_success:

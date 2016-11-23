@@ -6,6 +6,7 @@ import pytest
 import requests
 
 
+<<<<<<< HEAD
 from hashlib import sha256
 
 
@@ -13,6 +14,16 @@ from storj import exception, http, model
 
 
 from .. import AbstractTestCase
+=======
+from storj import http
+from storj import model
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
+
+
+PRIVKEY = "45c6efba90601d9ff8f6f46550cc4661b940f39761963d82529e555ead8e915b"
+PUBKEY = "0200802cc451fa39b0730bb5f37a3670e96e9e8e8ea479381f077ff4730fe2ed0b"
+PASSWORD = "s3CR3cy"
+PW_DIGEST = "67f1a7a10045d97a03312c9332d2c98195408abfb132be141194d8a75898d6da"
 
 
 class ClientTestCase(AbstractTestCase):
@@ -26,9 +37,18 @@ class ClientTestCase(AbstractTestCase):
 
         self.email = 'email@example.com'
         self.password = 's3CR3cy'
+<<<<<<< HEAD
         self.client = http.Client(self.email, self.password)
         self.password_digest = sha256(
             self.password.encode('ascii')).hexdigest()
+=======
+        self.privkey = PRIVKEY
+        self.client = http.Client(email=self.email, password=self.password,
+                                  privkey=self.privkey)
+
+        # FIXME doesnt interacts with bridge, how is it a valid test?
+        self.client.call = mock.MagicMock()
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
 
     def tearDown(self):
         self.patcher_request.stop()
@@ -36,21 +56,31 @@ class ClientTestCase(AbstractTestCase):
     def test_init(self):
         """Test Client.__init__()."""
         assert self.email == self.client.email
-        assert self.password_digest == self.client.password
+        assert PW_DIGEST == self.client.password
 
-    def test_add_basic_auth(self):
-        """Test Client._add_basic_auth()."""
-        request_kwargs = dict(headers={})
-        self.client._add_basic_auth(request_kwargs)
+    def test_call(self):
+        pass
 
-        assert 'Authorization' in request_kwargs['headers']
-        assert request_kwargs['headers']['Authorization'].startswith(b'Basic ')
-        assert request_kwargs['headers']['Authorization'].endswith(b'==')
+    def test_user_register(self):
+        self.client.user_register()
+        self.client.call.assert_called_with(
+            data={
+                'password': PW_DIGEST,
+                'pubkey': PUBKEY,
+                'email': 'email@example.com'
+            },
+            method='POST',
+            path='/users'
+        )
 
     def test_bucket_create(self):
         """Test Client.bucket_create()."""
         test_json = {'name': 'Test Bucket', 'storage': 25, 'transfer': 39}
+<<<<<<< HEAD
         self.mock_request.return_value = test_json
+=======
+        self.client.call.return_value = test_json
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
 
         bucket = self.client.bucket_create(
             test_json['name'],
@@ -58,6 +88,7 @@ class ClientTestCase(AbstractTestCase):
             transfer=test_json['transfer']
         )
 
+<<<<<<< HEAD
         self.mock_request.assert_called_once_with(
             method='POST',
             path='/buckets',
@@ -65,13 +96,25 @@ class ClientTestCase(AbstractTestCase):
 
         assert bucket is not None
         assert isinstance(bucket, model.Bucket)
+=======
+        self.client.call.assert_called_with(
+            method='POST',
+            path='/buckets',
+            data=test_json
+        )
+        self.assertIsInstance(bucket, model.Bucket)
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
 
     def test_bucket_delete(self):
         """Test Client.bucket_delete()."""
         bucket_id = '57fd385426adcf743b3d39c5'
         self.client.bucket_delete(bucket_id)
 
+<<<<<<< HEAD
         response = self.mock_request.assert_called_once_with(
+=======
+        self.client.call.assert_called_with(
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
             method='DELETE',
             path='/buckets/%s' % bucket_id)
 
@@ -80,12 +123,22 @@ class ClientTestCase(AbstractTestCase):
     def test_bucket_files(self):
         """Test Client.bucket_files()."""
         test_bucket_id = "57fd385426adcf743b3d39c5"
+        self.client.token_create = mock.MagicMock()
+        self.client.token_create.return_value = {'token': 'test_token'}
 
         response = self.client.bucket_files(test_bucket_id)
 
+<<<<<<< HEAD
         self.mock_request.assert_called_once_with(
+=======
+        self.client.token_create.assert_called_with(
+            test_bucket_id,
+            operation='PULL')
+        self.client.call.assert_called_with(
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
             method='GET',
-            path='/buckets/%s/files/' % (test_bucket_id))
+            path='/buckets/%s/files/' % (test_bucket_id),
+            headers={'x-token': 'test_token'})
 
         self.assertIsNotNone(response)
 
@@ -94,11 +147,19 @@ class ClientTestCase(AbstractTestCase):
         test_bucket_id = "57fd385426adcf743b3d39c5"
         test_json = {'name': 'Test Bucket', 'storage': 25, 'transfer': 39}
 
+<<<<<<< HEAD
         self.mock_request.return_value = test_json
 
         bucket = self.client.bucket_get(test_bucket_id)
 
         self.mock_request.assert_called_once_with(
+=======
+        self.client.call.return_value = test_json
+
+        bucket = self.client.bucket_get(test_bucket_id)
+
+        self.client.call.assert_called_with(
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
             method='GET',
             path='/buckets/%s' % test_bucket_id)
         self.assertIsInstance(bucket, model.Bucket)
@@ -145,7 +206,11 @@ class ClientTestCase(AbstractTestCase):
             {'name': 'Test Bucket 2', 'storage': 19, 'transfer': 83},
             {'name': 'Test Bucket 3', 'storage': 86, 'transfer': 193}]
 
+<<<<<<< HEAD
         self.mock_request.return_value = test_response
+=======
+        self.client.call.return_value = test_response
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
 
         buckets = self.client.bucket_list()
 
@@ -153,7 +218,11 @@ class ClientTestCase(AbstractTestCase):
         for bucket in buckets:
             assert isinstance(bucket, model.Bucket)
 
+<<<<<<< HEAD
         self.mock_request.assert_called_once_with(
+=======
+        self.client.call.assert_called_once_with(
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
             method='GET',
             path='/buckets')
 
@@ -168,6 +237,7 @@ class ClientTestCase(AbstractTestCase):
         self.client.bucket_set_keys(
             test_bucket_id, test_bucket_name, test_keys)
 
+<<<<<<< HEAD
         response = self.mock_request.assert_called_once_with(
             method='PATCH',
             path='/buckets/%s' % test_bucket_id,
@@ -190,6 +260,12 @@ class ClientTestCase(AbstractTestCase):
             'mirrors': 3,
             'status': 'pending'
         }
+=======
+        self.client.call.assert_called_with(
+            method='PATCH',
+            path='/buckets/%s' % test_bucket_id,
+            data={'pubkeys': test_keys})
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
 
         self.mock_request.return_value = mock_response
 
@@ -217,9 +293,13 @@ class ClientTestCase(AbstractTestCase):
 
         contacts = self.client.contact_list()
 
+<<<<<<< HEAD
         assert contacts is not None
         for contact in contacts:
             assert isinstance(contact, model.Contact)
+=======
+        self.client.call.return_value = test_response
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
 
         self.mock_request.assert_called_once_with(
             method='GET',
@@ -235,12 +315,21 @@ class ClientTestCase(AbstractTestCase):
 
         contact = self.client.contact_lookup('node_id')
 
+<<<<<<< HEAD
         assert contact is not None
         assert isinstance(contact, model.Contact)
 
         self.mock_request.assert_called_once_with(
             method='GET',
             path='/contacts/%s' % 'node_id')
+=======
+        self.client.call.assert_called_with(
+            method='GET',
+            path='/contacts',
+            params={}
+        )
+        self.assertEqual(contacts, test_response)
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
 
     @mock.patch.object(http.Client, 'token_create')
     def test_file_pointers(self, mock_token_create):
@@ -252,11 +341,15 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.file_pointers(test_bucket_id, test_file_id)
 
+<<<<<<< HEAD
         assert response is not None
         for pointer in response:
             assert isinstance(pointer, model.FilePointer)
 
         self.mock_request.assert_called_once_with(
+=======
+        self.client.call.assert_called_with(
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
             method='GET',
             path='/buckets/%s/files/%s/' % (test_bucket_id, test_file_id),
             headers={'x-token': 'test_token'})
@@ -305,7 +398,11 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.file_remove(test_bucket_id, test_file_id)
 
+<<<<<<< HEAD
         self.mock_request.assert_called_once_with(
+=======
+        self.client.call.assert_called_with(
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
             method='DELETE',
             path='/buckets/%s/files/%s' % (test_bucket_id, test_file_id)
         )
@@ -330,14 +427,19 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.frame_add_shard(test_shard, test_frame_id)
 
+<<<<<<< HEAD
         self.mock_request.assert_called_once_with(
+=======
+        self.client.call.assert_called_with(
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
             method='PUT',
             path='/frames/%s' % test_frame_id,
-            json=test_json)
+            data=test_json)
 
     def test_frame_create(self):
         """Test Client.frame_create()."""
 
+<<<<<<< HEAD
         frame = self.client.frame_create()
 
         self.mock_request.assert_called_once_with(
@@ -346,6 +448,12 @@ class ClientTestCase(AbstractTestCase):
 
         assert frame is not None
         assert isinstance(frame, model.Frame)
+=======
+        self.client.call.assert_called_with(
+            method='POST',
+            path='/frames',
+            data={})
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
 
     def test_frame_delete(self):
         """Test Client.frame_delete()."""
@@ -355,10 +463,14 @@ class ClientTestCase(AbstractTestCase):
 
         self.client.frame_delete(test_frame_id)
 
+<<<<<<< HEAD
         self.mock_request.assert_called_once_with(
+=======
+        self.client.call.assert_called_with(
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
             method='DELETE',
             path='/frames/%s' % test_frame_id,
-            json=test_json
+            data=test_json
         )
 
     def test_frame_get(self):
@@ -372,10 +484,15 @@ class ClientTestCase(AbstractTestCase):
                 'size': 4096,
                 'index': 0}]}
 
+<<<<<<< HEAD
         self.mock_request.return_value = test_json
+=======
+        self.client.call.return_value = test_json
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
 
         frame = self.client.frame_get(test_frame_id)
 
+<<<<<<< HEAD
         self.mock_request.assert_called_once_with(
             method='GET',
             path='/frames/%s' % test_frame_id,
@@ -402,18 +519,50 @@ class ClientTestCase(AbstractTestCase):
         self.mock_request.assert_called_once_with(
             method='GET',
             path='/frames')
+=======
+        mock_frame.assert_called_with(
+            created='2016-03-04T17:01:02.629Z',
+            id='507f1f77bcf86cd799439011',
+            shards=[{
+                'hash': 'fde400fe0b6a5488e10d7317274a096aaa57914d',
+                'size': 4096,
+                'index': 0}])
+        self.client.call.assert_called_with(
+            method='GET',
+            path='/frames/%s' % test_frame_id,
+            data={'frame_id': test_frame_id})
+        self.assertIsNotNone(response)
 
-    def test_key_delete(self):
-        """Test Client.key_delete()."""
+    def test_frame_list(self):
+        """Test Client.frame_list()."""
+        self.client.call.return_value = [{
+            "created": "2016-03-04T17:01:02.629Z",
+            "id": "507f1f77bcf86cd799439011"}]
+
+        response = self.client.frame_list()
+
+        self.client.call.assert_called_with(
+            method='GET',
+            path='/frames',
+            data={})
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
+
+    def test_keys_delete(self):
+        """Test Client.keys_delete()."""
         test_key = '39ddkakdi'
 
-        self.client.key_delete(test_key)
+        self.client.keys_delete(test_key)
 
+<<<<<<< HEAD
         self.mock_request.assert_called_once_with(
+=======
+        self.client.call.assert_called_with(
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
             method='DELETE',
             path='/keys/%s' % test_key
         )
 
+<<<<<<< HEAD
     @mock.patch.object(http.Client, 'key_list')
     @mock.patch('sys.stdout', autospec=True)
     def test_key_dump(self, mock_stdout, mock_key_list):
@@ -513,6 +662,19 @@ class ClientTestCase(AbstractTestCase):
         response = self.client.key_list()
 
         self.mock_request.assert_called_once_with(
+=======
+    def test_keys_list(self):
+        """Test Client.keys_list()."""
+        test_key_dict = [
+            {'id': '7', 'user': 'cats@storj.io'},
+            {'id': 'a8939', 'user': 'dnr@dnr.com', 'key': 'test_key'}]
+
+        self.client.call.return_value = test_key_dict
+
+        response = self.client.keys_list()
+
+        self.client.call.assert_called_once_with(
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
             method='GET',
             path='/keys'
         )
@@ -520,6 +682,7 @@ class ClientTestCase(AbstractTestCase):
         assert response is not None
         assert response == ['test_key']
 
+<<<<<<< HEAD
     @mock.patch('storj.http.ecdsa_to_hex')
     def test_key_register(self, mock_ecdsa):
         """Test Client.key_register()."""
@@ -538,6 +701,8 @@ class ClientTestCase(AbstractTestCase):
             path='/keys',
             json=test_json)
 
+=======
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba
     def test_token_create(self):
         """Test Client.token_create()."""
 
@@ -555,6 +720,7 @@ class ClientTestCase(AbstractTestCase):
 
         response = self.client.token_create(test_bucket_id, 'PULL')
 
+<<<<<<< HEAD
         assert response is not None
         assert isinstance(response, model.Token)
 
@@ -665,3 +831,9 @@ class ClientTestCase(AbstractTestCase):
         self.mock_request.assert_called_once_with(
             method='GET',
             path='/resets/token')
+=======
+        self.client.call.assert_called_once_with(
+            method='POST',
+            path='/buckets/%s/tokens' % test_bucket_id,
+            data=test_json)
+>>>>>>> 337f217addbabf4152983ad53190379abc5061ba

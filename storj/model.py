@@ -7,11 +7,18 @@ import hashlib
 import os
 import os.path
 import random
+
 import six
 import strict_rfc3339
 import types
 
+from os import urandom
 from datetime import datetime
+
+from pycoin.key.Key import Key
+from pycoin.serialize import b2h
+from pycoin.key.BIP32Node import BIP32Node
+
 from steenzout.object import Object
 
 
@@ -185,6 +192,62 @@ class Frame(Object):
             self.shards = []
         else:
             self.shards = shards
+
+
+class KeyPair(object):
+    """
+    ECDSA key pair.
+
+    Args:
+        pkey (str): hexadecimal representation of the private key (secret exponent).
+        secret (str): master password.
+
+    Attributes:
+        keypair (:py:class:`pycoin.key.Key.Key`): BIP0032-style hierarchical wallet.
+
+    Raises:
+        NotImplementedError when
+            a randomness source is not found.
+    """
+
+    def __init__(self, pkey=None, secret=None):
+
+        if secret is not None:
+            pkey = format(
+                BIP32Node.from_master_secret(
+                    secret
+                ).secret_exponent(), "064x")
+
+        elif pkey is None:
+            try:
+                pkey = format(
+                    BIP32Node.from_master_secret(
+                        urandom(4096)
+                    ).secret_exponent(), '064x')
+            except NotImplementedError as e:
+                raise ValueError('No randomness source found: %s' % e)
+
+        self.keypair = Key(secret_exponent=int(pkey, 16))
+
+    @property
+    def node_id(self):
+        """(str): NodeID derived from the public key (RIPEMD160 hash of public key)."""
+        return b2h(self.keypair.hash160())
+
+    @property
+    def public_key(self):
+        """(str): public key."""
+        return b2h(self.keypair.sec(use_uncompressed=False))
+
+    @property
+    def private_key(self):
+        """(str): private key."""
+        return format(self.keypair.secret_exponent(), '064x')
+
+    @property
+    def address(self):
+        """(): base58 encoded bitcoin address version of the nodeID."""
+        return self.keypair.address(use_uncompressed=False)
 
 
 class Keyring(Object):

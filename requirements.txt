@@ -7,3 +7,4 @@ steenzout.object>=1.0.8
 steenzout.serialization.json>=1.0.2
 strict_rfc3339>=0.7
 ws4py>=0.3.4
+pycoin>=0.62

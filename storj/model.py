@@ -212,19 +212,23 @@ class KeyPair(object):
 
     def __init__(self, pkey=None, secret=None):
 
-        if pkey is not None:
-            self.keypair = Key(secret_exponent=int(pkey, 16))
+        if secret is not None:
+            pkey = format(
+                BIP32Node.from_master_secret(
+                    secret
+                ).secret_exponent(), "064x")
 
-        elif secret:
-            # generate a wallet from a master password
-            self.keypair = BIP32Node.from_master_secret(secret)
-
-        else:
+        elif pkey is None:
             try:
-                # generate a wallet from a random password
-                self.keypair = BIP32Node.from_master_secret(urandom(4096))
+                pkey = format(
+                    BIP32Node.from_master_secret(
+                        urandom(4096)
+                    ).secret_exponent(), '064x')
             except NotImplementedError as e:
                 raise ValueError('No randomness source found: %s' % e)
+
+        self.keypair = Key(secret_exponent=int(pkey, 16))
+
 
     @property
     def node_id(self):

@@ -47,13 +47,9 @@ class KeyPair(object):
         except NotImplementedError:
             raise ValueError('No randomness source found: ', sys.exc_info()[0])
 
-    def get_node_id(self):
-        """
-        Returns the NodeID derived from the public key.
-
-        Returns:
-            (str): RIPEMD160 hash of public key.
-        """
+    @property
+    def node_id(self):
+        """(str): NodeID derived from the public key (RIPEMD160 hash of public key)."""
         return b2h(self.keypair.hash160())
 
     def get_public_key(self):

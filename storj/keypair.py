@@ -19,21 +19,23 @@ class KeyPair(object):
         """
         self.keypair = None
 
-        if pkey:
-            self.keypair = Key(secret_exponent=int(pkey, 16))
-
         if secret:
             self.__from_master_secret(secret)
+
+        if pkey:
+            self.keypair = Key(secret_exponent=int(pkey, 16))
 
         if not pkey and not secret:
             self.__from_random()
 
     def __from_master_secret(self, secret):
-        self.keypair = BIP32Node.from_master_secret(secret)
+        pkey = format(BIP32Node.from_master_secret(secret).secret_exponent(), "064x")
+        self.keypair = Key(secret_exponent=int(pkey, 16))
 
     def __from_random(self):
         try:
-            self.keypair = BIP32Node.from_master_secret(urandom(4096))
+            pkey = format(BIP32Node.from_master_secret(urandom(4096)).secret_exponent(), "064x")
+            self.keypair = Key(secret_exponent=int(pkey, 16))
         except NotImplementedError:
             print("No randomness source is not found: ", sys.exc_info()[0])
             raise

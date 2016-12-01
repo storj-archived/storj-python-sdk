@@ -19,33 +19,24 @@ class KeyPair(object):
         secret (str): master password.
 
     Attributes:
-
+        keypair (:py:class:`pycoin.key.Key.Key`): BIP0032-style hierarchical wallet.
     """
 
     def __init__(self, pkey=None, secret=None):
-        """
-        Represents a ECDSA key pair
-        """
-        self.keypair = None
 
-        if pkey:
+        if pkey is not None:
             self.keypair = Key(secret_exponent=int(pkey, 16))
 
-        if secret:
-            self.__from_master_secret(secret)
+        elif secret:
+            # generate a wallet from a master password
+            self.keypair = BIP32Node.from_master_secret(secret)
 
-        if not pkey and not secret:
-            self.__from_random()
-
-    def __from_master_secret(self, secret):
-        # generate a Wallet from a master password
-        self.keypair = BIP32Node.from_master_secret(secret)
-
-    def __from_random(self):
-        try:
-            self.keypair = BIP32Node.from_master_secret(urandom(4096))
-        except NotImplementedError:
-            raise ValueError('No randomness source found: ', sys.exc_info()[0])
+        else:
+            try:
+                # generate a wallet from a random password
+                self.keypair = BIP32Node.from_master_secret(urandom(4096))
+            except NotImplementedError:
+                raise ValueError('No randomness source found: ', sys.exc_info()[0])
 
     @property
     def node_id(self):
@@ -66,5 +57,3 @@ class KeyPair(object):
     def address(self):
         """(): base58 encoded bitcoin address version of the nodeID."""
         return self.keypair.address(use_uncompressed=False)
-
-    # TODO: add sign function

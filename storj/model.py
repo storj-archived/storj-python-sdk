@@ -194,9 +194,6 @@ class Frame(Object):
             self.shards = shards
 
 
-
-
-
 class KeyPair(object):
     """
     ECDSA key pair.

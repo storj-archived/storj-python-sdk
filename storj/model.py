@@ -229,7 +229,6 @@ class KeyPair(object):
 
         self.keypair = Key(secret_exponent=int(pkey, 16))
 
-
     @property
     def node_id(self):
         """(str): NodeID derived from the public key (RIPEMD160 hash of public key)."""

@@ -239,7 +239,7 @@ class KeyPair(object):
     @property
     def private_key(self):
         """(str): private key."""
-        return format(self.keypair.secret_exponent(), "064x")
+        return format(self.keypair.secret_exponent(), '064x')
 
     @property
     def address(self):

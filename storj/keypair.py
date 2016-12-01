@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Storj KeyPair module."""
 
-import sys
-
 from os import urandom
 
 from pycoin.key.Key import Key
@@ -20,6 +18,10 @@ class KeyPair(object):
 
     Attributes:
         keypair (:py:class:`pycoin.key.Key.Key`): BIP0032-style hierarchical wallet.
+
+    Raises:
+        NotImplementedError when
+            a randomness source is not found.
     """
 
     def __init__(self, pkey=None, secret=None):
@@ -35,8 +37,8 @@ class KeyPair(object):
             try:
                 # generate a wallet from a random password
                 self.keypair = BIP32Node.from_master_secret(urandom(4096))
-            except NotImplementedError:
-                raise ValueError('No randomness source found: ', sys.exc_info()[0])
+            except NotImplementedError as e:
+                raise ValueError('No randomness source found: %s' % e)
 
     @property
     def node_id(self):

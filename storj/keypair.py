@@ -2,20 +2,30 @@
 """Storj KeyPair module."""
 
 from __future__ import print_function
+from os import urandom
+
 from pycoin.key.Key import Key
 from pycoin.serialize import b2h
 from pycoin.key.BIP32Node import BIP32Node
-from os import urandom
+
 import sys
 
 
 class KeyPair(object):
+    """
+    ECDSA key pair.
+
+    Args:
+        pkey (str): hexadecimal representation of the private key (secret exponent).
+        secret (str): master password.
+
+    Attributes:
+
+    """
 
     def __init__(self, pkey=None, secret=None):
         """
         Represents a ECDSA key pair
-        :param pkey: generate a Keypair from existing private key
-        :param secret: generate a Keypair from self choosen secret
         """
         self.keypair = None
 
@@ -29,6 +39,7 @@ class KeyPair(object):
             self.__from_random()
 
     def __from_master_secret(self, secret):
+        # generate a Wallet from a master password
         self.keypair = BIP32Node.from_master_secret(secret)
 
     def __from_random(self):
@@ -40,29 +51,37 @@ class KeyPair(object):
 
     def get_node_id(self):
         """
-        Returns the NodeID derived from the public key
-        :return: nodeID - RIPEMD160 hash of public key
+        Returns the NodeID derived from the public key.
+
+        Returns:
+            (str): RIPEMD160 hash of public key.
         """
         return b2h(self.keypair.hash160())
 
     def get_public_key(self):
         """
-        Returns the public key
-        :return: key
+        Returns the public key.
+
+        Returns:
+            (str): public key.
         """
         return b2h(self.keypair.sec(use_uncompressed=False))
 
     def get_private_key(self):
         """
-        Returns the private key
-        :return: key
+        Returns the private key.
+
+        Returns:
+            (str): private key.
         """
         return format(self.keypair.secret_exponent(), "064x")
 
     def get_address(self):
         """
-        Returns the bitcoin address version of the nodeID
-        :return: address - Base58 encoded address
+        Returns the bitcoin address version of the nodeID.
+
+        Returns:
+            (): Base58 encoded address
         """
         return self.keypair.address(use_uncompressed=False)
 

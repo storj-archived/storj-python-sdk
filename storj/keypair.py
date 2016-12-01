@@ -52,13 +52,9 @@ class KeyPair(object):
         """(str): NodeID derived from the public key (RIPEMD160 hash of public key)."""
         return b2h(self.keypair.hash160())
 
-    def get_public_key(self):
-        """
-        Returns the public key.
-
-        Returns:
-            (str): public key.
-        """
+    @property
+    def public_key(self):
+        """(str): public key."""
         return b2h(self.keypair.sec(use_uncompressed=False))
 
     def get_private_key(self):

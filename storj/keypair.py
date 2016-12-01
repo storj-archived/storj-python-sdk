@@ -62,13 +62,9 @@ class KeyPair(object):
         """(str): private key."""
         return format(self.keypair.secret_exponent(), "064x")
 
-    def get_address(self):
-        """
-        Returns the bitcoin address version of the nodeID.
-
-        Returns:
-            (): Base58 encoded address
-        """
+    @property
+    def address(self):
+        """(): base58 encoded bitcoin address version of the nodeID."""
         return self.keypair.address(use_uncompressed=False)
 
     # TODO: add sign function

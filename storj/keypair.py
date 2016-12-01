@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 """Storj KeyPair module."""
 
-from __future__ import print_function
+import sys
+
 from os import urandom
 
 from pycoin.key.Key import Key
 from pycoin.serialize import b2h
 from pycoin.key.BIP32Node import BIP32Node
-
-import sys
 
 
 class KeyPair(object):

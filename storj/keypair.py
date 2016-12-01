@@ -45,8 +45,7 @@ class KeyPair(object):
         try:
             self.keypair = BIP32Node.from_master_secret(urandom(4096))
         except NotImplementedError:
-            print("No randomness source is not found: ", sys.exc_info()[0])
-            raise
+            raise ValueError('No randomness source found: ', sys.exc_info()[0])
 
     def get_node_id(self):
         """

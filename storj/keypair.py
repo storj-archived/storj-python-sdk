@@ -57,13 +57,9 @@ class KeyPair(object):
         """(str): public key."""
         return b2h(self.keypair.sec(use_uncompressed=False))
 
-    def get_private_key(self):
-        """
-        Returns the private key.
-
-        Returns:
-            (str): private key.
-        """
+    @property
+    def private_key(self):
+        """(str): private key."""
         return format(self.keypair.secret_exponent(), "064x")
 
     def get_address(self):

@@ -215,7 +215,7 @@ class KeyPair(object):
         if secret is not None:
             pkey = format(
                 BIP32Node.from_master_secret(
-                    secret
+                    secret.encode('utf-8')
                 ).secret_exponent(), "064x")
 
         elif pkey is None:

@@ -8,6 +8,9 @@ cache:
   directories:
     - "${HOME}/.pip"
 
+before_cache:
+  - "find ${HOME}/.pip -name log -o -name __pycache__ -type d | xargs -I {} rm -rf {}"
+
 matrix:
   include:
     - python: 3.6
@@ -37,7 +40,6 @@ install:
 
 script:
   - tox -- --ignore=tests/integration
-  - "find ${HOME}/.pip -name log -type d | xargs -I {} rm -rf {}"
 
 after_success:
   - pip install coveralls

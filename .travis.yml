@@ -43,10 +43,6 @@ after_success:
   - pip install coveralls
   - coveralls
 
-notifications:
-  slack: storjcommunity:TZfUO9ycY8R9UYwztWZTo0jk
-  email: false
-
 deploy:
   provider: pypi
   user: steenzout

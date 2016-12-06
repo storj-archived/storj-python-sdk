@@ -9,13 +9,15 @@ import six
 import strict_rfc3339
 import tempfile
 
-
 from datetime import datetime
 
-from storj.model import \
-    Bucket, Contact, File, FilePointer, Frame, MerkleTree, Mirror, \
-    Shard, ShardManager, Token
+from pycoin.key.Key import Key
+from pycoin.serialize import b2h
+from pycoin.key.BIP32Node import BIP32Node
 
+from storj.model import \
+    Bucket, Contact, File, FilePointer, Frame, KeyPair, \
+    MerkleTree, Mirror, Shard, ShardManager, Token
 
 from .. import AbstractTestCase
 
@@ -141,6 +143,42 @@ class FrameTestCase(AbstractTestCase):
         assert frame.shards == []
 
 
+class KeyPairTestCase(AbstractTestCase):
+    """Test case for the KeyPair class."""
+
+    def _assert_wallet(self, wallet):
+
+        assert isinstance(wallet.keypair, Key)
+        assert wallet.private_key == self.private_key
+        assert wallet.public_key == self.public_key
+        assert wallet.node_id == 'abb5b062c7797924bb5b7d65e4f8a2f7c6e0311f'
+        assert wallet.address == '1GevCn3H1p76GHHPS9nzg8wBYLFaS2MAmX'
+
+    def setUp(self):
+        self.master_password = 'master_password'
+        self.secret = (
+            'c7d360e0d7d6820ea8d33cc7ad81bf9d'
+            '04c2f9c793f21cbf0a4a004350346ab8'
+        )
+        self.secret_exponent = int(self.secret, 16)
+        self.private_key = (
+            'c7d360e0d7d6820ea8d33cc7ad81bf9d'
+            '04c2f9c793f21cbf0a4a004350346ab8'
+        )
+        self.public_key = (
+            '03980352d67d91a8cf64251b1d4f72726'
+            '54c70aa21932aaea1b359c47b26aee9d0'
+        )
+
+    def test_init(self):
+        """Test KeyPair.__init__()."""
+
+        self._assert_wallet(KeyPair(**dict(
+            pkey=self.secret
+        )))
+        self._assert_wallet(KeyPair(**dict(secret=self.master_password)))
+
+
 class MirrorTestCase(AbstractTestCase):
     """Test case for the Mirror class."""
 
@@ -175,10 +213,14 @@ class ShardTestCase(AbstractTestCase):
 
         shard = Shard(**kwargs)
 
-        assert kwargs['challenges'] if 'challenges' in kwargs else [
-        ] == shard.challenges
-        assert kwargs[
-            'exclude'] if 'exclude' in kwargs else [] == shard.exclude
+        if 'challenges' in kwargs:
+            assert kwargs['challenges']
+        else:
+            assert shard.challenges == []
+        if 'exclude' in kwargs:
+            assert kwargs['exclude']
+        else:
+            assert shard.exclude == []
 
         assert shard.hash == kwargs['hash']
         assert shard.id == kwargs['id']
@@ -554,6 +596,5 @@ class TokenTestCase(AbstractTestCase):
         assert token.bucket == Bucket(id=kwargs['bucket'])
         assert token.operation == kwargs['operation']
         assert token.expires == datetime.fromtimestamp(
-            strict_rfc3339.rfc3339_to_timestamp(
-                kwargs['expires']))
+            strict_rfc3339.rfc3339_to_timestamp(kwargs['expires']))
         assert token.encryptionKey == kwargs['encryptionKey']

@@ -19,7 +19,7 @@ def key():
 
 @key.command()
 def generate():
-    pass  # client = get_client()
+    client = get_client()
 
 
 @key.command

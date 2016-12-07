@@ -3,7 +3,6 @@ pycrypto>=2.6.1
 pytz>=2016.2
 requests>=2.7.0
 six>=1.10.0
-micropayment-core>=0.3.0
 steenzout.object>=1.0.8
 steenzout.serialization.json>=1.0.2
 strict_rfc3339>=0.7

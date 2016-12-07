@@ -13,6 +13,14 @@ from storj import exception, http, model
 
 
 from .. import AbstractTestCase
+from storj import http
+from storj import model
+
+
+PRIVKEY = "45c6efba90601d9ff8f6f46550cc4661b940f39761963d82529e555ead8e915b"
+PUBKEY = "0200802cc451fa39b0730bb5f37a3670e96e9e8e8ea479381f077ff4730fe2ed0b"
+PASSWORD = "s3CR3cy"
+PW_DIGEST = "67f1a7a10045d97a03312c9332d2c98195408abfb132be141194d8a75898d6da"
 
 
 class ClientTestCase(AbstractTestCase):
@@ -36,16 +44,22 @@ class ClientTestCase(AbstractTestCase):
     def test_init(self):
         """Test Client.__init__()."""
         assert self.email == self.client.email
-        assert self.password_digest == self.client.password
+        assert PW_DIGEST == self.client.password
 
-    def test_add_basic_auth(self):
-        """Test Client._add_basic_auth()."""
-        request_kwargs = dict(headers={})
-        self.client._add_basic_auth(request_kwargs)
+    def test_call(self):
+        pass
 
-        assert 'Authorization' in request_kwargs['headers']
-        assert request_kwargs['headers']['Authorization'].startswith(b'Basic ')
-        assert request_kwargs['headers']['Authorization'].endswith(b'==')
+    def test_user_register(self):
+        self.client.user_register()
+        self.client.call.assert_called_with(
+            data={
+                'password': PW_DIGEST,
+                'pubkey': PUBKEY,
+                'email': 'email@example.com'
+            },
+            method='POST',
+            path='/users'
+        )
 
     def test_bucket_create(self):
         """Test Client.bucket_create()."""
@@ -80,12 +94,15 @@ class ClientTestCase(AbstractTestCase):
     def test_bucket_files(self):
         """Test Client.bucket_files()."""
         test_bucket_id = "57fd385426adcf743b3d39c5"
+        self.client.token_create = mock.MagicMock()
+        self.client.token_create.return_value = {'token': 'test_token'}
 
         response = self.client.bucket_files(test_bucket_id)
 
         self.mock_request.assert_called_once_with(
             method='GET',
-            path='/buckets/%s/files/' % (test_bucket_id))
+            path='/buckets/%s/files/' % (test_bucket_id),
+            headers={'x-token': 'test_token'})
 
         self.assertIsNotNone(response)
 
@@ -333,7 +350,7 @@ class ClientTestCase(AbstractTestCase):
         self.mock_request.assert_called_once_with(
             method='PUT',
             path='/frames/%s' % test_frame_id,
-            json=test_json)
+            data=test_json)
 
     def test_frame_create(self):
         """Test Client.frame_create()."""
@@ -358,7 +375,7 @@ class ClientTestCase(AbstractTestCase):
         self.mock_request.assert_called_once_with(
             method='DELETE',
             path='/frames/%s' % test_frame_id,
-            json=test_json
+            data=test_json
         )
 
     def test_frame_get(self):
@@ -403,11 +420,11 @@ class ClientTestCase(AbstractTestCase):
             method='GET',
             path='/frames')
 
-    def test_key_delete(self):
-        """Test Client.key_delete()."""
+    def test_keys_delete(self):
+        """Test Client.keys_delete()."""
         test_key = '39ddkakdi'
 
-        self.client.key_delete(test_key)
+        self.client.keys_delete(test_key)
 
         self.mock_request.assert_called_once_with(
             method='DELETE',

@@ -63,3 +63,5 @@ class Bucket(Integration):
         self.logger.debug('2.2')
         with pytest.raises(StopIteration):
             next(self.client.bucket_list())
+
+        self.assertFalse(True)

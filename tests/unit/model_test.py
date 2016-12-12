@@ -17,7 +17,7 @@ from pycoin.key.BIP32Node import BIP32Node
 
 from storj.model import \
     Bucket, Contact, File, FilePointer, Frame, KeyPair, \
-    MerkleTree, Mirror, Shard, ShardManager, Token
+    MerkleTree, Mirror, Shard, ShardManager, Token, IdecdsaCipher
 
 from .. import AbstractTestCase
 
@@ -177,6 +177,18 @@ class KeyPairTestCase(AbstractTestCase):
             pkey=self.secret
         )))
         self._assert_wallet(KeyPair(**dict(secret=self.master_password)))
+
+
+class IdecdsaCipherTestCase(AbstractTestCase):
+    """Test case for the IdecdsaCipher class."""
+    def test_init(self):
+        password = 'testpassword'
+        data = ('c7d360e0d7d6820ea8d33cc7ad81bf9d'
+                '04c2f9c793f21cbf0a4a004350346ab8')
+
+        cipher = IdecdsaCipher()
+
+        assert cipher.simpleDecrypt(password, cipher.simpleEncrypt(password, data)) == data
 
 
 class MirrorTestCase(AbstractTestCase):

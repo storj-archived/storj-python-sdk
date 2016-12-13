@@ -254,30 +254,34 @@ class KeyPair(object):
 
 
 class IdecdsaCipher(Object):
-    """
-    Tools for en-/decrypt private key to/from id_ecdsa
-    """
+    """Tools for en-/decrypt private key to/from id_ecdsa"""
 
-    def __init__(self):
-        pass
-
-    def pad(self, data):
+    @staticmethod
+    def pad(data):
+        """input data is returned as a padded multiple of 16 bytes"""
         padding = 16 - len(data) % 16
-        return data + padding * chr(padding)
+        return '%s%s' % (data, padding * chr(padding))
 
-    def unpad(self, data):
+    @staticmethod
+    def unpad(data):
+        """removes padding from input data and returns unpadded data"""
         return data[0:-ord(data[-1])]
 
-    def decrypt_node(self, hex_data, key='0' * 32, iv='0' * 16):
+    def decrypt(self, hex_data, key, iv):
+        """returns aes dencrypted data from hex_data, dencrypted
+        with key and iv"""
         data = ''.join(map(chr, bytearray.fromhex(hex_data)))
         aes = AES.new(key, AES.MODE_CBC, iv)
         return self.unpad(aes.decrypt(data))
 
-    def encrypt_node(self, data, key='0' * 32, iv='0' * 16):
+    def encrypt(self, data, key, iv):
+        """returns aes encrypted data from hex_data, encrypted
+        with key and iv"""
         aes = AES.new(key, AES.MODE_CBC, iv)
         return aes.encrypt(self.pad(data))
 
     def EVP_BytesToKey(self, password, key_len, iv_len):
+        """derives a key and IV from various parameters"""
         # equivalent to OpenSSL's EVP_BytesToKey() with count 1
         # so that we make the same key and iv as nodejs version
         m = []
@@ -287,7 +291,7 @@ class IdecdsaCipher(Object):
             data = password
             if i > 0:
                 data = m[i - 1] + password
-            md5.update(data)
+            md5.update(data.encode('utf-8'))
             m.append(md5.digest())
             i += 1
         ms = ''.join(m)
@@ -296,7 +300,8 @@ class IdecdsaCipher(Object):
         return key, iv
 
     def simpleEncrypt(self, password, data):
-        """Encrypts the given data with the supplied password and base58 encodes it
+        """Encrypts the given data with the supplied password and returning it
+        base58 encoded
 
         Args:
             password (str): The passphrase to use for encryption
@@ -307,10 +312,11 @@ class IdecdsaCipher(Object):
 
         """
         key, iv = self.EVP_BytesToKey(password, 32, 16)
-        return base58.b58encode(self.encrypt_node(data, key, iv))
+        return base58.b58encode(self.encrypt(data, key, iv))
 
     def simpleDecrypt(self, password, data):
-        """Decrypts the given data with the supplied password and base58 decodes it
+        """Decrypts the given base58 encoded data with the supplied password and
+        return unencrypted data
 
          Args:
             password (str): The passphrase to use for decryption
@@ -321,7 +327,7 @@ class IdecdsaCipher(Object):
         """
         strdata = base58.b58decode(data)
         key, iv = self.EVP_BytesToKey(password, 32, 16)
-        return self.decrypt_node(strdata.encode('hex'), key, iv)
+        return self.decrypt(strdata.encode('hex'), key, iv)
 
 
 class Keyring(Object):

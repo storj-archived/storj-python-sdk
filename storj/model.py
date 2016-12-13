@@ -291,7 +291,7 @@ class IdecdsaCipher(Object):
             data = password
             if i > 0:
                 data = m[i - 1] + password
-            md5.update(data.encode('utf-8'))
+            md5.update(data)
             m.append(md5.digest())
             i += 1
         ms = ''.join(m)

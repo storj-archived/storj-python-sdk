@@ -21,6 +21,9 @@ from pycoin.key.BIP32Node import BIP32Node
 
 from steenzout.object import Object
 
+from Crypto.Cipher import AES
+import base58
+
 
 class Bucket(Object):
     """Storage bucket.
@@ -248,6 +251,77 @@ class KeyPair(object):
     def address(self):
         """(): base58 encoded bitcoin address version of the nodeID."""
         return self.keypair.address(use_uncompressed=False)
+
+
+class IdecdsaCipher(Object):
+    """
+    Tools for en-/decrypt private key to/from id_ecdsa
+    """
+
+    def __init__(self):
+        pass
+
+    def pad(self, data):
+        padding = 16 - len(data) % 16
+        return data + padding * chr(padding)
+
+    def unpad(self, data):
+        return data[0:-ord(data[-1])]
+
+    def decrypt_node(self, hex_data, key='0' * 32, iv='0' * 16):
+        data = ''.join(map(chr, bytearray.fromhex(hex_data)))
+        aes = AES.new(key, AES.MODE_CBC, iv)
+        return self.unpad(aes.decrypt(data))
+
+    def encrypt_node(self, data, key='0' * 32, iv='0' * 16):
+        aes = AES.new(key, AES.MODE_CBC, iv)
+        return aes.encrypt(self.pad(data))
+
+    def EVP_BytesToKey(self, password, key_len, iv_len):
+        # equivalent to OpenSSL's EVP_BytesToKey() with count 1
+        # so that we make the same key and iv as nodejs version
+        m = []
+        i = 0
+        while len(''.join(m)) < (key_len + iv_len):
+            md5 = hashlib.md5()
+            data = password
+            if i > 0:
+                data = m[i - 1] + password
+            md5.update(data)
+            m.append(md5.digest())
+            i += 1
+        ms = ''.join(m)
+        key = ms[:key_len]
+        iv = ms[key_len:key_len + iv_len]
+        return key, iv
+
+    def simpleEncrypt(self, password, data):
+        """Encrypts the given data with the supplied password and base58 encodes it
+
+        Args:
+            password (str): The passphrase to use for encryption
+            data (str): The string to encrypt
+
+        Returns:
+            (str): encrypted string
+
+        """
+        key, iv = self.EVP_BytesToKey(password, 32, 16)
+        return base58.b58encode(self.encrypt_node(data, key, iv))
+
+    def simpleDecrypt(self, password, data):
+        """Decrypts the given data with the supplied password and base58 decodes it
+
+         Args:
+            password (str): The passphrase to use for decryption
+            data (str): The string to decrypt
+
+        Returns:
+            (str): unencrypted string
+        """
+        strdata = base58.b58decode(data)
+        key, iv = self.EVP_BytesToKey(password, 32, 16)
+        return self.decrypt_node(strdata.encode('hex'), key, iv)
 
 
 class Keyring(Object):

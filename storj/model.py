@@ -18,6 +18,9 @@ from datetime import datetime
 from pycoin.key.Key import Key
 from pycoin.serialize import b2h
 from pycoin.key.BIP32Node import BIP32Node
+from bitcoin.wallet import CBitcoinSecret
+from bitcoin.signmessage import BitcoinMessage, SignMessage
+from micropayment_core import keys
 
 from steenzout.object import Object
 
@@ -251,6 +254,15 @@ class KeyPair(object):
     def address(self):
         """(): base58 encoded bitcoin address version of the nodeID."""
         return self.keypair.address(use_uncompressed=False)
+
+    def sign(self, message, compact=True):
+        """Signs the supplied message with the private key"""
+        if compact:
+            key = CBitcoinSecret(self.keypair.wif())
+            message = BitcoinMessage(message)
+            return SignMessage(key, message)
+        else:
+            return keys.sign_sha256(self.private_key, message)
 
 
 class IdecdsaCipher(Object):

@@ -193,7 +193,7 @@ class Client(object):
         if transfer:
             data['transfer'] = transfer
 
-        return model.Bucket(**self._request(method='POST', path='/buckets', data=data))
+        return model.Bucket(**self._request(method='POST', path='/buckets', json=data))
 
     def bucket_delete(self, bucket_id):
         """Destroy a storage bucket.
@@ -204,7 +204,6 @@ class Client(object):
         Args:
             bucket_id (string): unique identifier.
         """
-
         self.logger.info('bucket_delete(%s)', bucket_id)
         self._request(method='DELETE', path='/buckets/%s' % bucket_id)
 
@@ -290,7 +289,7 @@ class Client(object):
         return model.Bucket(**self._request(
             method='PATCH',
             path='/buckets/%s' % bucket_id,
-            data={
+            json={
                 'name': bucket_name,
                 'pubkeys': keys}))
 
@@ -313,7 +312,7 @@ class Client(object):
         return model.Mirror(**self._request(
             method='POST',
             path='/buckets/%s/mirrors' % bucket_id,
-            data={
+            json={
                 'file': file_id,
                 'redundancy': redundancy
             }))
@@ -548,7 +547,7 @@ class Client(object):
         self._request(
             method='DELETE',
             path='/frames/%s' % frame_id,
-            data={'frame_id': frame_id})
+            json={'frame_id': frame_id})
 
     def frame_get(self, frame_id):
         """Fetches the file staging frame by it's unique ID.
@@ -567,7 +566,7 @@ class Client(object):
         response = self._request(
             method='GET',
             path='/frames/%s' % frame_id,
-            data={'frame_id': frame_id})
+            json={'frame_id': frame_id})
 
         if response is not None:
             return model.Frame(**response)
@@ -589,7 +588,6 @@ class Client(object):
 
         if response is not None:
             for kwargs in response:
-                print "\n\n\n" + str(kwargs) + "\n\n"
                 yield model.Frame(**kwargs)
         else:
             raise StopIteration
@@ -694,7 +692,7 @@ class Client(object):
         self._request(
             method='POST',
             path='/keys',
-            data={'key': ecdsa_to_hex(public_key)})
+            json={'key': ecdsa_to_hex(public_key)})
 
     def token_create(self, bucket_id, operation):
         """Creates a token for the specified operation.
@@ -714,7 +712,7 @@ class Client(object):
         return model.Token(**self._request(
             method='POST',
             path='/buckets/%s/tokens' % bucket_id,
-            data={'operation': operation}))
+            json={'operation': operation}))
 
     def user_activate(self, token):
         """Activate user.
@@ -746,7 +744,7 @@ class Client(object):
         self._request(
             method='GET',
             path='/activations/%s' % token,
-            data={
+            json={
                 'email': email,
             })
 
@@ -767,7 +765,7 @@ class Client(object):
         self._request(
             method='POST',
             path='/users',
-            data={
+            json={
                 'email': email,
                 'password': password
             })

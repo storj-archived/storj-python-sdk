@@ -110,5 +110,3 @@ ENV/
 pyvenv.cfg
 .venv
 pip-selfcheck.json
-test.txt
-test.py

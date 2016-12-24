@@ -179,8 +179,11 @@ class Frame(Object):
         shards (list[:py:class:`Shard`]): shards that compose this frame.
     """
 
-    def __init__(self, id=None, created=None, shards=None):
+    def __init__(self, id=None, created=None, shards=None, locked=None, user=None, size=None):
         self.id = id
+        self.locked = locked
+        self.user = user
+        self.size = size
 
         if created is not None:
             self.created = datetime.fromtimestamp(

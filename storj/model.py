@@ -15,11 +15,13 @@ import types
 from os import urandom
 from datetime import datetime
 
+import io
 from pycoin.key.Key import Key
 from pycoin.serialize import b2h
 from pycoin.key.BIP32Node import BIP32Node
-from bitcoin.wallet import CBitcoinSecret
-from bitcoin.signmessage import BitcoinMessage, SignMessage
+from pycoin.serialize.bitcoin_streamer import stream_bc_string
+from pycoin.ecdsa import numbertheory, generator_secp256k1
+from pycoin.encoding import to_bytes_32, from_bytes_32, double_sha256
 from micropayment_core import keys
 
 from steenzout.object import Object
@@ -258,9 +260,41 @@ class KeyPair(object):
     def sign(self, message, compact=True):
         """Signs the supplied message with the private key"""
         if compact:
-            key = CBitcoinSecret(self.keypair.wif())
-            message = BitcoinMessage(message)
-            return SignMessage(key, message)
+            #key = CBitcoinSecret(self.keypair.wif())
+            #message = BitcoinMessage(message)
+            #return SignMessage(key, message)
+
+            # https://github.com/F483/btctxstore/blob/master/btctxstore/control.py#L270
+            fd = io.BytesIO()
+            stream_bc_string(fd, bytearray('Bitcoin Signed Message:\n', 'ascii'))
+            stream_bc_string(fd, bytearray(message, 'utf-8'))
+            mhash = from_bytes_32(double_sha256(fd.getvalue()))
+
+            G = generator_secp256k1
+            n = G.order()
+
+            k = from_bytes_32(os.urandom(32))
+            p1 = k * G
+            r = p1.x()
+            if r == 0:
+                raise RuntimeError("amazingly unlucky random number r")
+            s = (numbertheory.inverse_mod(k, n) *
+                 (mhash + (self.keypair.secret_exponent() * r) % n)) % n
+            if s == 0:
+                raise RuntimeError("amazingly unlucky random number s")
+
+            y_odd = p1.y() % 2
+            assert y_odd in (0, 1)
+
+            first = 27 + y_odd + (4 if not self.keypair._use_uncompressed(False) else 0)
+            sig = binascii.b2a_base64(bytearray([first]) + to_bytes_32(r) + to_bytes_32(s)).strip()
+
+            if not isinstance(sig, str):
+                # python3 b2a wrongness
+                sig = str(sig, 'ascii')
+
+            return sig
+
         else:
             return keys.sign_sha256(self.private_key, message)
 

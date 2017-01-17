@@ -260,11 +260,6 @@ class KeyPair(object):
     def sign(self, message, compact=True):
         """Signs the supplied message with the private key"""
         if compact:
-            #key = CBitcoinSecret(self.keypair.wif())
-            #message = BitcoinMessage(message)
-            #return SignMessage(key, message)
-
-            # https://github.com/F483/btctxstore/blob/master/btctxstore/control.py#L270
             fd = io.BytesIO()
             stream_bc_string(fd, bytearray('Bitcoin Signed Message:\n', 'ascii'))
             stream_bc_string(fd, bytearray(message, 'utf-8'))
@@ -294,7 +289,6 @@ class KeyPair(object):
                 sig = str(sig, 'ascii')
 
             return sig
-
         else:
             return keys.sign_sha256(self.private_key, message)
 

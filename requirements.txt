@@ -9,5 +9,4 @@ strict_rfc3339>=0.7
 ws4py>=0.3.4
 pycoin>=0.62
 base58>=0.2.4
-micropayment_core>=0.4.3
-python-bitcoinlib>=0.7.0
+micropayment-core>=0.4.3

@@ -173,13 +173,12 @@ class FilePointer(Object):
         channel (str):
     """
 
-    def __init__(self, hash=None, token=None, operation=None, channel=None ):
+    def __init__(self, hash=None, token=None, operation=None, channel=None):
+
         self.hash = hash
         self.token = Token(token=token)
         self.operation = operation
         self.channel = channel
-
-
 
 
 class Frame(Object):
@@ -208,8 +207,8 @@ class Frame(Object):
             self.shards = []
         else:
             self.shards = shards
-            
-            
+
+
 class KeyPair(object):
     """
     ECDSA key pair.
@@ -559,7 +558,7 @@ class FileMirrors(Object):
         established (str): list of established
     """
 
-    def __init__(self, available=None , established=None):
+    def __init__(self, available=None, established=None):
         self.established = established
         self.available = available
 
@@ -780,7 +779,7 @@ class Token(Object):
 
     def __init__(
             self, token=None, bucket=None, operation=None, expires=None,
-            encryptionKey=None,   id=None
+            encryptionKey=None, id=None
     ):
         self.id = token
         self.bucket = Bucket(id=bucket)

@@ -514,8 +514,7 @@ class Client(object):
 
         if response is not None:
             return response
-        
-        
+
     def file_mirrors(self, bucket_id, file_id):
         """Get list of established and available mirrors associated with a file.
 
@@ -537,13 +536,11 @@ class Client(object):
             path='/buckets/%s/files/%s/mirrors/' % (bucket_id, file_id),
             headers={'x-token': pull_token.id})
 
-
         if response is not None:
             for kwargs in response:
                 yield model.FileMirrors(**kwargs)
         else:
             raise StopIteration
-
 
     def frame_create(self):
         """Creates a file staging frame.

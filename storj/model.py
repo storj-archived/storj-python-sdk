@@ -643,7 +643,7 @@ class ShardManager(Object):
         shards (list[:py:class:`Shard`]): list of shards
     """
 
-    def __init__(self, filepath, shard_size, nchallenges=4):
+    def __init__(self, filepath, shard_size, nchallenges=12):
         self.nchallenges = nchallenges
         self.shard_size = shard_size
         self.filepath = filepath

@@ -91,7 +91,7 @@ class Contact(Object):
 
     def __init__(
             self, address=None, port=None, nodeID=None,
-            lastSeen=None, protocol=None, userAgent=None
+            lastSeen=None, protocol=None, userAgent=None, responseTime=None, timeoutRate=None, lastTimeout=None
     ):
         self.address = address
         self.port = port
@@ -99,6 +99,9 @@ class Contact(Object):
         self.lastSeen = lastSeen
         self.protocol = protocol
         self.userAgent = userAgent
+        self.responseTime = responseTime
+        self.timeoutRate = timeoutRate
+        self.lastTimeout = lastTimeout
 
     @property
     def lastSeen(self):
@@ -171,6 +174,7 @@ class FilePointer(Object):
     """
 
     def __init__(self, hash=None, token=None, operation=None, channel=None):
+
         self.hash = hash
         self.token = Token(token=token)
         self.operation = operation
@@ -187,8 +191,11 @@ class Frame(Object):
         shards (list[:py:class:`Shard`]): shards that compose this frame.
     """
 
-    def __init__(self, id=None, created=None, shards=None):
+    def __init__(self, id=None, created=None, shards=None, locked=None, user=None, size=None):
         self.id = id
+        self.locked = locked
+        self.user = user
+        self.size = size
 
         if created is not None:
             self.created = datetime.fromtimestamp(
@@ -543,6 +550,19 @@ class Mirror(Object):
         self.status = status
 
 
+class FileMirrors(Object):
+    """File mirrors
+
+    Attributes:
+        available (str): list of available mirrors
+        established (str): list of established
+    """
+
+    def __init__(self, available=None, established=None):
+        self.established = established
+        self.available = available
+
+
 class Shard(Object):
     """Shard.
 
@@ -759,11 +779,12 @@ class Token(Object):
 
     def __init__(
             self, token=None, bucket=None, operation=None, expires=None,
-            encryptionKey=None
+            encryptionKey=None, id=None
     ):
         self.id = token
         self.bucket = Bucket(id=bucket)
         self.operation = operation
+        self.id = id
 
         if expires is not None:
             self.expires = datetime.fromtimestamp(

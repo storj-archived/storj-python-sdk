@@ -514,6 +514,36 @@ class Client(object):
 
         if response is not None:
             return response
+        
+        
+    def file_mirrors(self, bucket_id, file_id):
+        """Get list of established and available mirrors associated with a file.
+
+
+        Args:
+            bucket_id (str): bucket unique identifier.
+            file_id (str): file unique identifier.
+
+        Returns:
+            (generator[:py:class:`storj.model.FileMirrors`]): list of mirrors of give file.
+        """
+        # print "test"
+        self.logger.info('file_mirrors(%s, %s)', bucket_id, file_id)
+
+        pull_token = self.token_create(bucket_id, operation='PULL')
+
+        response = self._request(
+            method='GET',
+            path='/buckets/%s/files/%s/mirrors/' % (bucket_id, file_id),
+            headers={'x-token': pull_token.id})
+
+
+        if response is not None:
+            for kwargs in response:
+                yield model.FileMirrors(**kwargs)
+        else:
+            raise StopIteration
+
 
     def frame_create(self):
         """Creates a file staging frame.

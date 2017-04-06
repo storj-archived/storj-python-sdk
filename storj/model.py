@@ -28,6 +28,7 @@ from steenzout.object import Object
 
 from Crypto.Cipher import AES
 import base58
+import math
 
 
 class Bucket(Object):
@@ -642,10 +643,12 @@ class ShardManager(Object):
         shards (list[:py:class:`Shard`]): list of shards
     """
 
-    def __init__(self, filepath, shard_size, nchallenges=12):
+
+    def __init__(self, filepath, shard_size=None, tmp_path="/tmp/", nchallenges=2):
         self.nchallenges = nchallenges
         self.shard_size = shard_size
         self.filepath = filepath
+        self.tmp_path = tmp_path
 
     @property
     def filepath(self):
@@ -665,32 +668,127 @@ class ShardManager(Object):
         self.index = 0
         self._make_shards()
 
+    def get_optimal_shard_parametrs(self, file_size):
+        shard_parameters = {}
+        accumulator = 0
+        shard_size = None
+        while (shard_size == None):
+            shard_size = self.determine_shard_size(file_size, accumulator)
+            accumulator += 1
+        print shard_size
+        print file_size
+        if shard_size == 0:
+            shard_size = file_size
+        shard_parameters["shard_size"] = str(shard_size)
+        shard_parameters["shard_count"] =  math.ceil(file_size / shard_size)
+        shard_parameters["file_size"] = file_size
+        return shard_parameters
+
+
+    def determine_shard_size(self, file_size, accumulator):
+
+        #Based on <https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c>
+
+        hops = 0
+
+        if (file_size <= 0):
+            return 0
+        #if accumulator != True:
+            #accumulator  = 0
+        print accumulator
+
+        # Determine hops back by accumulator
+        if ((accumulator - SHARD_MULTIPLES_BACK) < 0 ):
+            hops = 0
+        else:
+            hops = accumulator - SHARD_MULTIPLES_BACK
+
+        #accumulator = 10
+        #self.shard_size(1)
+        byte_multiple = self.shard_size_const(accumulator)
+
+        check =  file_size / byte_multiple
+        #print check
+        if (check > 0 and check <= 1):
+            while (hops > 0 and self.shard_size_const(hops) > MAX_SHARD_SIZE):
+                if hops - 1 <= 0:
+                    hops = 0
+                else:
+                    hops = hops - 1
+            return  self.shard_size_const(hops)
+
+        # Maximum of 2 ^ 41 * 8 * 1024 * 1024
+        if (accumulator > 41):
+            return 0
+
+
+    def shard_size_const (self, hops):
+        return (8 * (1024 * 1024)) * pow(2, hops)
+
     def _make_shards(self):
         """Populates the shard manager with shards."""
         self.shards = []
+        self.__postfix = ''
+        index = 0
 
-        with open(self._filepath, 'rb') as fd:
+        # Get the file size
+        fsize = os.path.getsize(self.filepath)
 
-            index = 0
-            while True:
-                chunk = fd.read(self.shard_size)
+        optimal_shard_parametrs = self.get_optimal_shard_parametrs(fsize)
 
-                if not chunk:
-                    break
+        self.__numchunks = int(optimal_shard_parametrs["shard_count"])
+        print 'Number of chunks', self.__numchunks, '\n'
 
+        try:
+            f = open(self.filepath, 'rb')
+        except (OSError, IOError), e:
+            raise ShardingException, str(e)
+
+        bname = (os.path.split(self.filepath))[1]
+
+        # Get size of each chunk
+        self.__chunksize = int(float(fsize) / float(self.__numchunks))
+
+        chunksz = self.__chunksize
+        total_bytes = 0
+        i = 0
+        for x in range(self.__numchunks):
+            chunkfilename = bname + '-' + str(x + 1) + self.__postfix
+
+            # if reading the last section, calculate correct
+            # chunk size.
+            if x == self.__numchunks - 1:
+                chunksz = fsize - total_bytes
+
+            self.tmp_path = "/tmp/"
+            try:
+                print 'Writing file', chunkfilename
+                data = f.read(chunksz)
+                total_bytes += len(data)
+                inc = len(data)
+                chunkf = file(self.tmp_path+chunkfilename, 'wb')
+                chunkf.write(data)
+                chunkf.close()
                 challenges = self._make_challenges(self.nchallenges)
 
                 shard = Shard(size=self.shard_size,
                               index=index,
-                              hash=ShardManager.hash(chunk),
-                              tree=self._make_tree(challenges, chunk),
+                              hash=ShardManager.hash(data[i:i + inc]),
+                              tree=self._make_tree(challenges, data[i:i + inc]),
                               challenges=challenges)
-
+                # print chunk
                 self.shards.append(shard)
                 index += 1
+                i += 1
+            except (OSError, IOError), e:
+                print e
+                continue
+            except EOFError, e:
+                print e
+                break
 
         self.index = len(self.shards)
-
+    
     @staticmethod
     def hash(data):
         """Returns ripemd160 of sha256 of a string as a string of hex.

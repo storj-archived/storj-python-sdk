@@ -633,6 +633,10 @@ class Shard(Object):
 
 
 class ShardManager(Object):
+    global SHARD_MULTIPLES_BACK, MAX_SHARD_SIZE
+    MAX_SHARD_SIZE = 4294967296  # 4Gb
+    SHARD_MULTIPLES_BACK = 4
+    
     """File shard manager.
 
     Attributes:

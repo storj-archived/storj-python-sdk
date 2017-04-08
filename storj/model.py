@@ -633,22 +633,19 @@ class Shard(Object):
 
 
 class ShardManager(Object):
+
     global SHARD_MULTIPLES_BACK, MAX_SHARD_SIZE
+
     MAX_SHARD_SIZE = 4294967296  # 4Gb
     SHARD_MULTIPLES_BACK = 4
-    
-    """File shard manager.
 
-    Attributes:
-        filepath (str): path to the file.
-        index (int): number of shards for the given file.
-        nchallenges (int): number of challenges to be generated.
-        shard_size (int/long): split file in chunks of this size.
-        shards (list[:py:class:`Shard`]): list of shards
-    """
-
-
-    def __init__(self, filepath, shard_size=None, tmp_path="/tmp/", nchallenges=2):
+    def __init__(
+        self,
+        filepath,
+        shard_size=None,
+        tmp_path='/tmp/',
+        nchallenges=2,
+        ):
         self.nchallenges = nchallenges
         self.shard_size = shard_size
         self.filepath = filepath
@@ -657,6 +654,7 @@ class ShardManager(Object):
     @property
     def filepath(self):
         """(str): path to the file."""
+
         return self._filepath
 
     @filepath.setter
@@ -676,71 +674,82 @@ class ShardManager(Object):
         shard_parameters = {}
         accumulator = 0
         shard_size = None
-        while (shard_size == None):
-            shard_size = self.determine_shard_size(file_size, accumulator)
+        while shard_size == None:
+            shard_size = self.determine_shard_size(file_size,
+                    accumulator)
             accumulator += 1
         print shard_size
         print file_size
         if shard_size == 0:
             shard_size = file_size
-        shard_parameters["shard_size"] = str(shard_size)
-        shard_parameters["shard_count"] =  math.ceil(file_size / shard_size)
-        shard_parameters["file_size"] = file_size
+        shard_parameters['shard_size'] = str(shard_size)
+        shard_parameters['shard_count'] = math.ceil(file_size
+                / shard_size)
+        shard_parameters['file_size'] = file_size
         return shard_parameters
-
 
     def determine_shard_size(self, file_size, accumulator):
 
-        #Based on <https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c>
+        # Based on <https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c>
 
         hops = 0
 
-        if (file_size <= 0):
+        if file_size <= 0:
             return 0
-        #if accumulator != True:
-            #accumulator  = 0
+
+        # if accumulator != True:
+            # accumulator  = 0
+
         print accumulator
 
         # Determine hops back by accumulator
-        if ((accumulator - SHARD_MULTIPLES_BACK) < 0 ):
+
+        if accumulator - SHARD_MULTIPLES_BACK < 0:
             hops = 0
         else:
             hops = accumulator - SHARD_MULTIPLES_BACK
 
-        #accumulator = 10
-        #self.shard_size(1)
+        # accumulator = 10
+        # self.shard_size(1)
+
         byte_multiple = self.shard_size_const(accumulator)
 
-        check =  file_size / byte_multiple
-        #print check
-        if (check > 0 and check <= 1):
-            while (hops > 0 and self.shard_size_const(hops) > MAX_SHARD_SIZE):
+        check = file_size / byte_multiple
+
+        # print check
+
+        if check > 0 and check <= 1:
+            while hops > 0 and self.shard_size_const(hops) \
+                > MAX_SHARD_SIZE:
                 if hops - 1 <= 0:
                     hops = 0
                 else:
                     hops = hops - 1
-            return  self.shard_size_const(hops)
+            return self.shard_size_const(hops)
 
         # Maximum of 2 ^ 41 * 8 * 1024 * 1024
-        if (accumulator > 41):
+
+        if accumulator > 41:
             return 0
 
-
-    def shard_size_const (self, hops):
-        return (8 * (1024 * 1024)) * pow(2, hops)
+    def shard_size_const(self, hops):
+        return 8 * (1024 * 1024) * pow(2, hops)
 
     def _make_shards(self):
         """Populates the shard manager with shards."""
+
         self.shards = []
         self.__postfix = ''
         index = 0
 
         # Get the file size
+
         fsize = os.path.getsize(self.filepath)
 
-        optimal_shard_parametrs = self.get_optimal_shard_parametrs(fsize)
+        optimal_shard_parametrs = \
+            self.get_optimal_shard_parametrs(fsize)
 
-        self.__numchunks = int(optimal_shard_parametrs["shard_count"])
+        self.__numchunks = int(optimal_shard_parametrs['shard_count'])
         print 'Number of chunks', self.__numchunks, '\n'
 
         try:
@@ -748,9 +757,10 @@ class ShardManager(Object):
         except (OSError, IOError), e:
             raise ShardingException, str(e)
 
-        bname = (os.path.split(self.filepath))[1]
+        bname = os.path.split(self.filepath)[1]
 
         # Get size of each chunk
+
         self.__chunksize = int(float(fsize) / float(self.__numchunks))
 
         chunksz = self.__chunksize
@@ -761,26 +771,28 @@ class ShardManager(Object):
 
             # if reading the last section, calculate correct
             # chunk size.
+
             if x == self.__numchunks - 1:
                 chunksz = fsize - total_bytes
 
-            self.tmp_path = "/tmp/"
+            self.tmp_path = '/tmp/'
             try:
                 print 'Writing file', chunkfilename
                 data = f.read(chunksz)
                 total_bytes += len(data)
                 inc = len(data)
-                chunkf = file(self.tmp_path+chunkfilename, 'wb')
+                chunkf = file(self.tmp_path + chunkfilename, 'wb')
                 chunkf.write(data)
                 chunkf.close()
                 challenges = self._make_challenges(self.nchallenges)
 
-                shard = Shard(size=self.shard_size,
-                              index=index,
-                              hash=ShardManager.hash(data[i:i + inc]),
-                              tree=self._make_tree(challenges, data[i:i + inc]),
-                              challenges=challenges)
+                shard = Shard(size=self.shard_size, index=index,
+                              hash=ShardManager.hash(data),
+                              tree=self._make_tree(challenges, data[i:i
+                              + inc]), challenges=challenges)  # hash=ShardManager.hash(data[i:i + inc]),
+
                 # print chunk
+
                 self.shards.append(shard)
                 index += 1
                 i += 1
@@ -792,7 +804,7 @@ class ShardManager(Object):
                 break
 
         self.index = len(self.shards)
-    
+
     @staticmethod
     def hash(data):
         """Returns ripemd160 of sha256 of a string as a string of hex.
@@ -803,12 +815,12 @@ class ShardManager(Object):
         Returns:
             (str): the ripemd160 of sha256 digest.
         """
+
         if not isinstance(data, six.binary_type):
             data = bytes(data.encode('utf-8'))
 
-        return binascii.hexlify(
-            ShardManager._ripemd160(ShardManager._sha256(data))
-        ).decode('utf-8')
+        return binascii.hexlify(ShardManager._ripemd160(ShardManager._sha256(data))).decode('utf-8'
+                )
 
     @staticmethod
     def _ripemd160(b):
@@ -820,6 +832,7 @@ class ShardManager(Object):
         Returns:
             (str): the ripemd160 digest.
         """
+
         return hashlib.new('ripemd160', b).digest()
 
     @staticmethod
@@ -832,6 +845,7 @@ class ShardManager(Object):
         Returns:
             (str): the sha256 digest.
         """
+
         return hashlib.new('sha256', b).digest()
 
     def _make_challenges(self, challenges=12):
@@ -843,7 +857,9 @@ class ShardManager(Object):
         Returns:
             (list[str]): list of challenges.
         """
-        return [self._make_challenge_string() for _ in xrange(challenges)]
+
+        return [self._make_challenge_string() for _ in
+                xrange(challenges)]
 
     def _make_challenge_string(self):
         return binascii.hexlify(''.join(os.urandom(32)))
@@ -858,7 +874,10 @@ class ShardManager(Object):
         Returns:
             (:py:class:`MerkleTree`): audit tree.
         """
-        return MerkleTree((ShardManager.hash('%s%s' % (c, data)) for c in challenges))
+
+        return MerkleTree(ShardManager.hash('%s%s' % (c, data))
+                          for c in challenges)
+
 
 
 class Token(Object):

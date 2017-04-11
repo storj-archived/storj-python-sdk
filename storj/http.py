@@ -741,6 +741,32 @@ class Client(object):
             path='/buckets/%s/tokens' % bucket_id,
             json={'operation': operation}))
 
+    def send_exchange_report (self, exchange_report_data):
+        """Send exchange report to bridge
+            Args:
+                exchange_report_data (ExchangeReport): exchange report datails.
+
+            Returns:
+                (dict): ...
+               """
+        self.logger.info('send_exchenge_report()')
+
+        data = {
+            'dataHash': exchange_report_data.dataHash,
+            'reporterId': exchange_report_data.reporterId,
+            'farmerId': exchange_report_data.farmerId,
+            'clientId': exchange_report_data.clientId,
+            'exchangeStart': exchange_report_data.exchangeStart,
+            'exchangeEnd': exchange_report_data.exchangeEnd,
+            'exchangeResultCode': exchange_report_data.exchangeResultCode,
+            'exchangeResultMessage': exchange_report_data.exchangeResultMessage,
+        }
+
+        return model.ExchangeReport(**self._request(
+            method='POST',
+            path='/reports/exchanges',
+            json=data))
+    
     def user_activate(self, token):
         """Activate user.
 
@@ -756,6 +782,23 @@ class Client(object):
             method='GET',
             path='/activations/%s' % token)
 
+    def check_file_existence_in_bucket(self, bucket_id, filepath, file_id=None):
+        # checking if file with same name or hash exist in bucket
+
+        with open(filepath, mode='rb') as file:  # b is important -> binary
+            fileContent = file.read()
+        bname = (os.path.split(filepath))[1]
+        file_metadata = self.file_metadata(bucket_id, file_id)
+        file_hash = model.ShardManager.hash(fileContent)
+
+        if file_metadata.filename == bname:
+            return 1 # same file name
+        elif file_metadata.hash == file_hash:
+            return 2 # same file RIPEMD160 hash - same file content
+        else:
+            return False
+
+        
     def user_activation_email(self, email, token):
         """Send user activation email.
 

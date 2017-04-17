@@ -131,7 +131,7 @@ class File(Object):
     """
 
     def __init__(self, bucket=None, hash=None, mimetype=None,
-                 filename=None, size=None, id=None, frame=None):
+                 filename=None, size=None, id=None, frame=None, created=None, hmac=None):
         self.bucket = Bucket(id=bucket)
         self.hash = hash
         self.mimetype = mimetype
@@ -140,6 +140,8 @@ class File(Object):
         self.shard_manager = None
         self.id = id
         self.frame = Frame(id=frame)
+        self.created = created
+        self.hmac = hmac
 
     @property
     def content_type(self):
@@ -632,6 +634,13 @@ class Shard(Object):
         pass
 
 
+class ShardingException(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
+    
 class ShardManager(Object):
 
     global SHARD_MULTIPLES_BACK, MAX_SHARD_SIZE
@@ -669,6 +678,7 @@ class ShardManager(Object):
         self._filepath = value
         self.index = 0
         self._make_shards()
+
 
     def get_optimal_shard_parametrs(self, file_size):
         shard_parameters = {}
@@ -775,7 +785,17 @@ class ShardManager(Object):
             if x == self.__numchunks - 1:
                 chunksz = fsize - total_bytes
 
-            self.tmp_path = '/tmp/'
+            self.shard_size = chunksz
+            if platform == "linux" or platform == "linux2":
+                # linux
+                self.tmp_path = '/tmp/'
+            elif platform == "darwin":
+                # OS X
+                self.tmp_path = '/tmp/'
+            elif platform == "win32":
+                # Windows
+                self.tmp_path = "C://Windows/temp/"
+
             try:
                 print 'Writing file', chunkfilename
                 data = f.read(chunksz)
@@ -914,3 +934,33 @@ class Token(Object):
             self.expires = None
 
         self.encryptionKey = encryptionKey
+        
+class ExchangeReport(Object):
+
+
+    def __init__(
+            self, dataHash=None, reporterId=None, farmerId=None, clientId=None,
+            exchangeStart=None,   exchangeEnd=None,   exchangeResultCode=None,   exchangeResultMessage=None
+    ):
+        self.dataHash = dataHash
+        self.reporterId = reporterId
+        self.farmerId = farmerId
+        self.clientId = clientId
+        self.exchangeStart = exchangeStart
+        self.exchangeEnd = exchangeEnd
+        self.exchangeResultCode = exchangeResultCode
+        self.exchangeResultMessage = exchangeResultMessage
+
+        # result codes
+        self.SUCCESS = 1000
+        self.FAILURE = 1100
+        self.STORJ_REPORT_UPLOAD_ERROR = "TRANSFER_FAILED"
+        self.STORJ_REPORT_SHARD_UPLOADED = "SHARD_UPLOADED"
+        self.STORJ_REPORT_DOWNLOAD_ERROR = "DOWNLOAD_ERROR"
+        self.STORJ_REPORT_SHARD_DOWNLOADED = "SHARD_DOWNLOADED"
+
+class StorjParametrs(Object):
+    def __init__(
+            self, tmpPath=None
+    ):
+        self.tmpPath = tmpPath

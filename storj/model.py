@@ -30,6 +30,8 @@ from Crypto.Cipher import AES
 import base58
 import math
 
+from sys import platform
+
 
 class Bucket(Object):
     """Storage bucket.

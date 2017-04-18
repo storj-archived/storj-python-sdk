@@ -179,7 +179,6 @@ class FilePointer(Object):
     """
 
     def __init__(self, hash=None, token=None, operation=None, channel=None):
-
         self.hash = hash
         self.token = Token(token=token)
         self.operation = operation
@@ -383,7 +382,6 @@ class IdecdsaCipher(Object):
 
 
 class Keyring(Object):
-
     def __init__(self):
         self.password = None
         self.salt = None
@@ -400,6 +398,22 @@ class Keyring(Object):
         self.export_keyring(password, salt, user_pass)
         self.password = password
         self.salt = salt
+
+    def get_encryption_key(self, user_pass):
+        #user_pass = raw_input("Enter your keyring password: ")
+        password = hex(random.getrandbits(512 * 8))[2:-1]
+        salt = hex(random.getrandbits(32 * 8))[2:-1]
+
+        pbkdf2 = hashlib.pbkdf2_hmac('sha512', password, salt, 25000, 512)
+
+        key = hashlib.new('sha256', pbkdf2).hexdigest()
+        IV = salt[:16]
+        #self.export_keyring(password, salt, user_pass)
+        self.password = password
+        self.salt = salt
+
+        return key
+
 
     def export_keyring(self, password, salt, user_pass):
         plain = pad("{\"pass\" : \"%s\", \n\"salt\" : \"%s\"\n}"
@@ -642,21 +656,21 @@ class ShardingException(Exception):
 
     def __str__(self):
         return str(self.value)
-    
-class ShardManager(Object):
 
+
+class ShardManager(Object):
     global SHARD_MULTIPLES_BACK, MAX_SHARD_SIZE
 
     MAX_SHARD_SIZE = 4294967296  # 4Gb
     SHARD_MULTIPLES_BACK = 4
 
     def __init__(
-        self,
-        filepath,
-        shard_size=None,
-        tmp_path='/tmp/',
-        nchallenges=2,
-        ):
+            self,
+            filepath,
+            shard_size=None,
+            tmp_path='/tmp/',
+            nchallenges=2,
+    ):
         self.nchallenges = nchallenges
         self.shard_size = shard_size
         self.filepath = filepath
@@ -681,14 +695,13 @@ class ShardManager(Object):
         self.index = 0
         self._make_shards()
 
-
     def get_optimal_shard_parametrs(self, file_size):
         shard_parameters = {}
         accumulator = 0
         shard_size = None
         while shard_size == None:
             shard_size = self.determine_shard_size(file_size,
-                    accumulator)
+                                                   accumulator)
             accumulator += 1
         print shard_size
         print file_size
@@ -696,7 +709,7 @@ class ShardManager(Object):
             shard_size = file_size
         shard_parameters['shard_size'] = str(shard_size)
         shard_parameters['shard_count'] = math.ceil(file_size
-                / shard_size)
+                                                    / shard_size)
         shard_parameters['file_size'] = file_size
         return shard_parameters
 
@@ -709,7 +722,7 @@ class ShardManager(Object):
         if file_size <= 0:
             return 0
 
-        # if accumulator != True:
+            # if accumulator != True:
             # accumulator  = 0
 
         print accumulator
@@ -732,7 +745,7 @@ class ShardManager(Object):
 
         if check > 0 and check <= 1:
             while hops > 0 and self.shard_size_const(hops) \
-                > MAX_SHARD_SIZE:
+                    > MAX_SHARD_SIZE:
                 if hops - 1 <= 0:
                     hops = 0
                 else:
@@ -811,7 +824,8 @@ class ShardManager(Object):
                 shard = Shard(size=self.shard_size, index=index,
                               hash=ShardManager.hash(data),
                               tree=self._make_tree(challenges, data[i:i
-                              + inc]), challenges=challenges)  # hash=ShardManager.hash(data[i:i + inc]),
+                                                                      + inc]),
+                              challenges=challenges)  # hash=ShardManager.hash(data[i:i + inc]),
 
                 # print chunk
 
@@ -842,7 +856,7 @@ class ShardManager(Object):
             data = bytes(data.encode('utf-8'))
 
         return binascii.hexlify(ShardManager._ripemd160(ShardManager._sha256(data))).decode('utf-8'
-                )
+                                                                                            )
 
     @staticmethod
     def _ripemd160(b):
@@ -901,7 +915,6 @@ class ShardManager(Object):
                           for c in challenges)
 
 
-
 class Token(Object):
     """Token.
 
@@ -936,13 +949,12 @@ class Token(Object):
             self.expires = None
 
         self.encryptionKey = encryptionKey
-        
+
+
 class ExchangeReport(Object):
-
-
     def __init__(
             self, dataHash=None, reporterId=None, farmerId=None, clientId=None,
-            exchangeStart=None,   exchangeEnd=None,   exchangeResultCode=None,   exchangeResultMessage=None
+            exchangeStart=None, exchangeEnd=None, exchangeResultCode=None, exchangeResultMessage=None
     ):
         self.dataHash = dataHash
         self.reporterId = reporterId
@@ -960,6 +972,7 @@ class ExchangeReport(Object):
         self.STORJ_REPORT_SHARD_UPLOADED = "SHARD_UPLOADED"
         self.STORJ_REPORT_DOWNLOAD_ERROR = "DOWNLOAD_ERROR"
         self.STORJ_REPORT_SHARD_DOWNLOADED = "SHARD_DOWNLOADED"
+
 
 class StorjParametrs(Object):
     def __init__(

@@ -451,8 +451,10 @@ class Client(object):
 
     def frame_add_shard(self, shard, frame_id):
         """Adds a shard item to the staging frame and negotiates a storage contract.
+
         See `API frames: PUT /frames/{frame_id}
         <https://storj.github.io/bridge/#!/frames/put_frames_frame_id>`_
+
         Args:
             shard (:py:class:`storj.models.Shard`): the shard.
             frame_id (str): the frame unique identifier.
@@ -464,7 +466,7 @@ class Client(object):
             'size': shard.size,
             'index': shard.index,
             'challenges': shard.challenges,
-            'tree': shard.tree,
+            'tree': shard.tree.leaves,
         }
 
         response = self._request(
@@ -472,8 +474,7 @@ class Client(object):
             path='/frames/%s' % frame_id,
             json=data)
 
-        if response is not None:
-            return response
+        return response
 
     def file_mirrors(self, bucket_id, file_id):
         """Get list of established and available mirrors associated with a file.

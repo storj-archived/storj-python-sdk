@@ -11,6 +11,7 @@ import time
 from base64 import b64encode
 from binascii import b2a_hex
 from ecdsa import SigningKey, SECP256k1, VerifyingKey
+from ecdsa.util import sigencode_der
 from hashlib import sha256
 from io import BytesIO
 from six.moves.urllib.parse import urlencode, urljoin
@@ -65,7 +66,7 @@ class Client(object):
         if isinstance(ecdsa_private_key, SigningKey):
             self.private_key = ecdsa_private_key
             self.public_key = self.private_key.get_verifying_key()
-            self.public_key_hex = ecdsa_to_hex(self.public_key)
+            self.public_key_hex = ecdsa_to_hex(self.public_key.to_string())
 
     def _add_basic_auth(self, request_kwargs):
         self.logger.debug('using basic auth')
@@ -100,7 +101,7 @@ class Client(object):
         request_kwargs['headers'].update(
             {
                 'x-signature': signature,
-                'x-pubkey': ecdsa_to_hex(self.public_key),
+                'x-pubkey': ecdsa_to_hex(self.public_key.to_string()),
             })
 
     def _prepare_request(self, **kwargs):
@@ -668,7 +669,7 @@ class Client(object):
         self._request(
             method='POST',
             path='/keys',
-            json={'key': ecdsa_to_hex(public_key)})
+            json={'key': ecdsa_to_hex(public_key.to_string())})
 
     def token_create(self, bucket_id, operation):
         """Creates a token for the specified operation.

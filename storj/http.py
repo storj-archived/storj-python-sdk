@@ -610,28 +610,17 @@ class Client(object):
 
     def key_generate(self):
 
-        def generate_new_key_pair():
-            """
-            Generate a new key pair.
-
-            Returns:
-                tuple(:py:class:`ecdsa.keys.SigningKey`,
-                      :py:class:`ecdsa.keys.VerifyingKey`):
-                key pair (private, public).
-            """
-
-            private_key = SigningKey.generate(
-                curve=SECP256k1,
-                hashfunc=sha256,
-            )
-
-            return private_key, private_key.get_verifying_key()
-
         self.logger.info('key_generate()')
 
         print("This will replace your public and private keys in 3 seconds...")
         time.sleep(3)
-        (self.private_key, self.public_key) = generate_new_key_pair()
+
+        self.private_key = SigningKey.generate(
+                curve=SECP256k1,
+                hashfunc=sha256,
+        )
+
+        self.public_key = self.private_key.get_verifying_key()
 
         s = raw_input('Export keys to file for later use? [Y/N]')
         if 'Y' in s.upper():

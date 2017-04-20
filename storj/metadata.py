@@ -12,4 +12,4 @@ __author_email__ = (
     'james@storj.io;'
     'marc.schubert@gmail.com'
 )
-__version__ = '0.1.6'
+__version__ = '0.1.7'

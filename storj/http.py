@@ -106,12 +106,10 @@ class Client(object):
 
     def _prepare_request(self, **kwargs):
         """Prepares a HTTP request.
-
         Args:
             kwargs (dict): keyword arguments for the authentication function
                 (``_add_ecdsa_signature()`` or ``_add_basic_auth()``) and
                 :py:class:`requests.Request` class.
-
         Raises:
             AssertionError: in case ``kwargs['path']`` doesn't start with ``/``.
         """
@@ -133,10 +131,8 @@ class Client(object):
 
     def _request(self, **kwargs):
         """Perform HTTP request.
-
         Args:
             kwargs (dict): keyword arguments.
-
         Raises:
             :py:class:`StorjBridgeApiError`: in case::
                 - internal server error
@@ -173,15 +169,12 @@ class Client(object):
 
     def bucket_create(self, name, storage=None, transfer=None):
         """Create storage bucket.
-
         See `API buckets: POST /buckets
         <https://storj.github.io/bridge/#!/buckets/post_buckets>`_
-
         Args:
             name (str): name.
             storage (int): storage limit (in GB).
             transfer (int): transfer limit (in GB).
-
         Returns:
             (:py:class:`model.Bucket`): bucket.
         """
@@ -197,10 +190,8 @@ class Client(object):
 
     def bucket_delete(self, bucket_id):
         """Destroy a storage bucket.
-
         See `API buckets: DELETE /buckets/{id}
         <https://storj.github.io/bridge/#!/buckets/delete_buckets_id>`_
-
         Args:
             bucket_id (string): unique identifier.
         """
@@ -209,13 +200,10 @@ class Client(object):
 
     def bucket_files(self, bucket_id):
         """List all the file metadata stored in the bucket.
-
         See `API buckets: GET /buckets/{id}/files
         <https://storj.github.io/bridge/#!/buckets/get_buckets_id_files>`_
-
         Args:
             bucket_id (string): unique identifier.
-
         Returns:
             (dict): to be changed to model in the future.
         """
@@ -223,17 +211,14 @@ class Client(object):
 
         return self._request(
             method='GET',
-            path='/buckets/%s/files/' % (bucket_id),)
+            path='/buckets/%s/files/' % (bucket_id), )
 
     def bucket_get(self, bucket_id):
         """Return the bucket object.
-
         See `API buckets: GET /buckets
         <https://storj.github.io/bridge/#!/buckets/get_buckets_id>`_
-
         Args:
             bucket_id (str): bucket unique identifier.
-
         Returns:
             (:py:class:`model.Bucket`): bucket.
         """
@@ -253,10 +238,8 @@ class Client(object):
 
     def bucket_list(self):
         """List all of the buckets belonging to the user.
-
         See `API buckets: GET /buckets
         <https://storj.github.io/bridge/#!/buckets/get_buckets>`_
-
         Returns:
             (generator[:py:class:`model.Bucket`]): buckets.
         """
@@ -272,15 +255,12 @@ class Client(object):
 
     def bucket_set_keys(self, bucket_id, bucket_name, keys):
         """Update the bucket with the given public keys.
-
         See `API buckets: PATCH /buckets/{bucket_id}
         <https://storj.github.io/bridge/#!/buckets/patch_buckets_id>`_
-
         Args:
             bucket_id (str): bucket unique identifier.
             bucket_name (str): bucket name.
             keys (list[str]): public keys.
-
         Returns:
             (:py:class:`storj.model.Bucket`): updated bucket information.
         """
@@ -295,15 +275,12 @@ class Client(object):
 
     def bucket_set_mirrors(self, bucket_id, file_id, redundancy):
         """Establishes a series of mirrors for the given file.
-
         See `API buckets: POST /buckets/{id}/mirrors
         <https://storj.github.io/bridge/#!/buckets/post_buckets_id_mirrors>`_
-
         Args:
             bucket_id (str): bucket unique identifier.
             file_id (str): file unique identitifer.
             redundancy (int): number of replicas.
-
         Returns:
             (:py:class:`storj.model.Mirror`): the mirror settings.
         """
@@ -319,17 +296,14 @@ class Client(object):
 
     def contact_list(self, page=1, address=None, protocol=None, user_agent=None, connected=None):
         """Lists contacts.
-
         See `API contacts: GET /contacts
         <https://storj.github.io/bridge/#!/contacts/get_contacts>`_
-
         Args:
             page (str): pagination indicator.
             address (str): hostname or IP address.
             protocol (str): SemVer protocol tag.
             user_agent (str): Storj user agent string for farming client.
             connected (bool): filter results by connection status.
-
         Returns:
             (list[:py:class:`storj.model.Contact`]): list of contacts.
         """
@@ -347,13 +321,10 @@ class Client(object):
 
     def contact_lookup(self, node_id):
         """Lookup for contact information of a node.
-
         See `API contacts: GET /contacts/{nodeID}
         <https://storj.github.io/bridge/#!/contacts/get_contacts_nodeID>`_
-
         Args:
             node_id (str): node unique identifier.
-
         Returns:
             (:py:class:`storj.model.Contact`): contact information
         """
@@ -378,6 +349,7 @@ class Client(object):
         Returns:
             (generator[:py:class:`storj.model.FilePointer`]): file pointers.
         """
+        # print "test"
         self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
 
         pull_token = self.token_create(bucket_id, operation='PULL')
@@ -385,13 +357,10 @@ class Client(object):
         response = self._request(
             method='GET',
             path='/buckets/%s/files/%s/' % (bucket_id, file_id),
-            headers={'x-token': pull_token.id})
+            headers={'x-token': pull_token.id, 'skip': str(skip), 'limit': str(limit)},
+            json={'skip': str(skip), 'limit': str(limit)})
 
-        if response is not None:
-            for kwargs in response:
-                yield model.FilePointer(**kwargs)
-        else:
-            raise StopIteration
+        return response
 
     def file_download(self, bucket_id, file_id):
         self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)
@@ -410,14 +379,11 @@ class Client(object):
 
     def file_metadata(self, bucket_id, file_id):
         """Get file metadata.
-
         See `API buckets: GET /buckets/{id}/files/{file_id}/info
         <https://storj.github.io/bridge/#!/buckets/get_buckets_id_files_file_id_info>`_
-
         Args:
             bucket_id (str): bucket unique identifier.
             file_id (str): file unique identifier.
-
         Returns:
             (:py:class:`storj.model.File`): file metadata.
         """
@@ -433,10 +399,8 @@ class Client(object):
 
     def file_upload(self, bucket_id, file, frame):
         """Upload file.
-
         See `API buckets: POST /buckets/{id}/files
         <https://storj.github.io/bridge/#!/buckets/post_buckets_id_files>`_
-
         Args:
             bucket_id (str): bucket unique identifier.
             file (:py:class:`storj.model.File`): file to be uploaded.
@@ -473,10 +437,8 @@ class Client(object):
 
     def file_remove(self, bucket_id, file_id):
         """Delete a file pointer from a specified bucket.
-
         See `API buckets: DELETE /buckets/{id}/files/{file_id}
         <https://storj.github.io/bridge/#!/buckets/delete_buckets_id_files_file_id>`_
-
         Args:
             bucket_id (str): bucket unique identifier.
             file_id (str): file unique identifier.
@@ -504,7 +466,7 @@ class Client(object):
             'size': shard.size,
             'index': shard.index,
             'challenges': shard.challenges,
-            'tree': shard.tree,
+            'tree': shard.tree.leaves,
         }
 
         response = self._request(
@@ -512,15 +474,36 @@ class Client(object):
             path='/frames/%s' % frame_id,
             json=data)
 
+        return response
+
+    def file_mirrors(self, bucket_id, file_id):
+        """Get list of established and available mirrors associated with a file.
+        Args:
+            bucket_id (str): bucket unique identifier.
+            file_id (str): file unique identifier.
+        Returns:
+            (generator[:py:class:`storj.model.FileMirrors`]): list of mirrors of give file.
+        """
+        # print "test"
+        self.logger.info('file_mirrors(%s, %s)', bucket_id, file_id)
+
+        pull_token = self.token_create(bucket_id, operation='PULL')
+
+        response = self._request(
+            method='GET',
+            path='/buckets/%s/files/%s/mirrors/' % (bucket_id, file_id),
+            headers={'x-token': pull_token.id})
+
         if response is not None:
-            return response
+            for kwargs in response:
+                yield model.FileMirrors(**kwargs)
+        else:
+            raise StopIteration
 
     def frame_create(self):
         """Creates a file staging frame.
-
         See `API frames: POST /frames
         <https://storj.github.io/bridge/#!/frames/post_frames>`_
-
         Returns:
             (:py:class:`storj.model.Frame`): the frame.
         """
@@ -535,10 +518,8 @@ class Client(object):
 
     def frame_delete(self, frame_id):
         """Destroys the file staging frame by it's unique ID.
-
         See `API frames: DELETE	/frames/{frame_id}
         <https://storj.github.io/bridge/#!/frames/delete_frames_frame_id>`_
-
         Args:
             frame_id (str): unique identifier.
         """
@@ -551,13 +532,10 @@ class Client(object):
 
     def frame_get(self, frame_id):
         """Fetches the file staging frame by it's unique ID.
-
         See `API frame: GET /frames/{frame_id}
         <https://storj.github.io/bridge/#!/frames/get_frames_frame_id>`_
-
         Args:
             frame_id (str): unique identifier.
-
         Returns:
             (:py:class:`storj.model.Frame`): a frame.
         """
@@ -573,10 +551,8 @@ class Client(object):
 
     def frame_list(self):
         """Returns all open file staging frames.
-
         See `API frame: GET /frames
         < https://storj.github.io/bridge/#!/frames/get_frames>`_
-
         Returns:
             (generator[:py:class:`storj.model.Frame`]): all open file staging frames.
         """
@@ -594,10 +570,8 @@ class Client(object):
 
     def key_delete(self, public_key):
         """Removes a public ECDSA keys.
-
         See `API keys: DELETE /keys/{pubkey}
         <https://storj.github.io/bridge/#!/keys/delete_keys_pubkey>`_
-
         Args:
             public_key (str): key to be removed.
         """
@@ -610,7 +584,7 @@ class Client(object):
         self.logger.info('key_dump()')
 
         if self.private_key is not None and \
-                self.public_key is not None:
+                        self.public_key is not None:
             print('Local Private Key: %s' % self.private_key
                   + '\nLocal Public Key: %s' % self.public_key)
 
@@ -664,10 +638,8 @@ class Client(object):
 
     def key_list(self):
         """Lists the public ECDSA keys associated with the user.
-
         See `API keys: GET /keys
         <https://storj.github.io/bridge/#!/keys/get_keys>`_
-
         Returns:
             (list[str]): public keys.
         """
@@ -680,10 +652,8 @@ class Client(object):
 
     def key_register(self, public_key):
         """Register an ECDSA public key.
-
         See `API keys: POST /keys
         <https://storj.github.io/bridge/#!/keys/post_keys>`_
-
         Returns:
             (list[:py:class:`storj.model.Key`]): public keys.
         """
@@ -696,14 +666,11 @@ class Client(object):
 
     def token_create(self, bucket_id, operation):
         """Creates a token for the specified operation.
-
         See `API buckets: POST /buckets/{id}/tokens
         <https://storj.github.io/bridge/#!/buckets/post_buckets_id_tokens>`_
-
         Args:
             bucket_id (str): bucket unique identifier.
             operation (str): operation.
-
         Returns:
             (dict): ...
         """
@@ -714,12 +681,35 @@ class Client(object):
             path='/buckets/%s/tokens' % bucket_id,
             json={'operation': operation}))
 
+    def send_exchange_report(self, exchange_report_data):
+        """Send exchange report to bridge
+            Args:
+                exchange_report_data (ExchangeReport): exchange report datails.
+            Returns:
+                (dict): ...
+               """
+        self.logger.info('send_exchenge_report()')
+
+        data = {
+            'dataHash': exchange_report_data.dataHash,
+            'reporterId': exchange_report_data.reporterId,
+            'farmerId': exchange_report_data.farmerId,
+            'clientId': exchange_report_data.clientId,
+            'exchangeStart': exchange_report_data.exchangeStart,
+            'exchangeEnd': exchange_report_data.exchangeEnd,
+            'exchangeResultCode': exchange_report_data.exchangeResultCode,
+            'exchangeResultMessage': exchange_report_data.exchangeResultMessage,
+        }
+
+        return model.ExchangeReport(**self._request(
+            method='POST',
+            path='/reports/exchanges',
+            json=data))
+
     def user_activate(self, token):
         """Activate user.
-
         See `API users: GET /activations/{token}
         <https://storj.github.io/bridge/#!/users/get_activations_token>`_
-
         Args:
             token (str): activation token.
         """
@@ -729,12 +719,26 @@ class Client(object):
             method='GET',
             path='/activations/%s' % token)
 
+    def check_file_existence_in_bucket(self, bucket_id, filepath, file_id=None):
+        # checking if file with same name or hash exist in bucket
+
+        with open(filepath, mode='rb') as file:  # b is important -> binary
+            fileContent = file.read()
+        bname = (os.path.split(filepath))[1]
+        file_metadata = self.file_metadata(bucket_id, file_id)
+        file_hash = model.ShardManager.hash(fileContent)
+
+        if file_metadata.filename == bname:
+            return 1  # same file name
+        elif file_metadata.hash == file_hash:
+            return 2  # same file RIPEMD160 hash - same file content
+        else:
+            return False
+
     def user_activation_email(self, email, token):
         """Send user activation email.
-
         See `API users: POST /activations/{token}
         <https://storj.github.io/bridge/#!/users/post_activations_token>`_
-
         Args:
             email (str): user's email address.
             token (str): activation token.
@@ -750,10 +754,8 @@ class Client(object):
 
     def user_create(self, email, password):
         """Create a new user with Storj bridge.
-
         See `API users: POST /users
         <https://storj.github.io/bridge/#!/users/post_users>`_
-
         Args:
             email (str): user's email address.
             password (str): user's password.
@@ -762,7 +764,7 @@ class Client(object):
 
         password = sha256(password).hexdigest()
 
-        self._request(
+        response = self._request(
             method='POST',
             path='/users',
             json={
@@ -770,14 +772,13 @@ class Client(object):
                 'password': password
             })
 
-        self.authenticate(email=email, password=password)
+        return response
+        #self.authenticate(email=email, password=password)
 
     def user_deactivate(self, token):
         """Discard activation token.
-
         See `API users: GET /activations/{token}
         <https://storj.github.io/bridge/#!/users/get_deactivations_token>`_
-
         Args:
             token (str): activation token.
         """
@@ -789,10 +790,8 @@ class Client(object):
 
     def user_delete(self, email):
         """Delete user account.
-
         See `API users: DELETE /users/{email}
         <https://storj.github.io/bridge/#!/users/post_users>`_
-
         Args:
             email (str): user's email address.
         """
@@ -804,10 +803,8 @@ class Client(object):
 
     def user_reset_password(self, email):
         """Request a password reset.
-
         See `API users: PATCH /users/{email}
         <https://storj.github.io/bridge/#!/users/patch_users_email>`_
-
         Args:
             email (str): user's email address.
         """
@@ -819,10 +816,8 @@ class Client(object):
 
     def user_reset_password_confirmation(self, token):
         """Confirm a password reset request.
-
         See `API users: GET /resets/{token}
         <https://storj.github.io/bridge/#!/users/get_resets_token>`_
-
         Args:
             token (str): password reset token.
         """

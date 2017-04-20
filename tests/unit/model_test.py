@@ -598,7 +598,7 @@ class TokenTestCase(AbstractTestCase):
         """Test Token.__init__()."""
 
         kwargs = dict(
-            token='token',
+            token=None,
             bucket='bucket_id',
             operation='operation',
             expires='2016-10-13T04:23:48.183Z',

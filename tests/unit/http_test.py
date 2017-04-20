@@ -324,7 +324,7 @@ class ClientTestCase(AbstractTestCase):
             'hash': '5775772',
             'index': 7,
             'challenges': ['0118', 999, 88199, 9119, 725, 3],
-            'tree': test_tree,
+            'tree': test_tree.leaves,
             'size': 3810}
 
         test_frame_id = '8193'

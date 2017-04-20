@@ -698,7 +698,7 @@ class ShardManager(Object):
         accumulator = 0
         shard_size = None
 
-        while shard_size == None:
+        while shard_size is None:
             shard_size = self.determine_shard_size(file_size, accumulator)
             accumulator += 1
 
@@ -813,9 +813,10 @@ class ShardManager(Object):
                 data = f.read(chunksz)
                 total_bytes += len(data)
                 inc = len(data)
-                chunkf = file(self.tmp_path + chunkfilename, 'wb')
-                chunkf.write(data)
-                chunkf.close()
+
+                with open('%s%s' % (self.tmp_path, chunkfilename), 'wb') as chunkf:
+                    chunkf.write(data)
+
                 challenges = self._make_challenges(self.nchallenges)
 
                 shard = Shard(size=self.shard_size, index=index,

@@ -7,8 +7,6 @@ import io
 from abc import ABCMeta
 from hashlib import sha256
 
-from ecdsa import SigningKey, SECP256k1
-
 from .api import ecdsa_to_hex
 from .configuration import read_config
 from .http import Client
@@ -23,24 +21,6 @@ def get_client():
         (:py:class:`storj.http.Client`): Storj HTTP client.
     """
     return Client(*read_config())
-
-
-def generate_new_key_pair():
-    """
-    Generate a new key pair.
-
-    Returns:
-        tuple(:py:class:`ecdsa.keys.SigningKey`,
-              :py:class:`ecdsa.keys.VerifyingKey`):
-        key pair (private, public).
-    """
-
-    private_key = SigningKey.generate(
-        curve=SECP256k1,
-        hashfunc=sha256,
-    )
-
-    return private_key, private_key.get_verifying_key()
 
 
 class BucketManager(ABCMeta):

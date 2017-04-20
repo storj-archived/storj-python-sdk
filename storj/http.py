@@ -6,12 +6,11 @@ import os
 import logging
 import json
 import requests
-import storj
 import time
 
 from base64 import b64encode
 from binascii import b2a_hex
-from ecdsa import SigningKey
+from ecdsa import SigningKey, SECP256k1, VerifyingKey
 from hashlib import sha256
 from io import BytesIO
 from six.moves.urllib.parse import urlencode, urljoin
@@ -22,10 +21,10 @@ except ImportError:
     # Python 2
     JSONDecodeError = ValueError
 
-from . import model
-from .api import ecdsa_to_hex
-from .exception import StorjBridgeApiError
-from storj import web_socket
+import model
+from api import ecdsa_to_hex
+from exception import StorjBridgeApiError
+import web_socket
 
 
 class Client(object):
@@ -610,11 +609,29 @@ class Client(object):
         print('Wrote keyfiles to dir: %s' % os.getcwd())
 
     def key_generate(self):
+
+        def generate_new_key_pair():
+            """
+            Generate a new key pair.
+
+            Returns:
+                tuple(:py:class:`ecdsa.keys.SigningKey`,
+                      :py:class:`ecdsa.keys.VerifyingKey`):
+                key pair (private, public).
+            """
+
+            private_key = SigningKey.generate(
+                curve=SECP256k1,
+                hashfunc=sha256,
+            )
+
+            return private_key, private_key.get_verifying_key()
+
         self.logger.info('key_generate()')
 
         print("This will replace your public and private keys in 3 seconds...")
         time.sleep(3)
-        (self.private_key, self.public_key) = storj.generate_new_key_pair()
+        (self.private_key, self.public_key) = generate_new_key_pair()
 
         s = raw_input('Export keys to file for later use? [Y/N]')
         if 'Y' in s.upper():

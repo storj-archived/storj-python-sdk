@@ -323,7 +323,7 @@ class ShardManagerTestCase(AbstractTestCase):
         tmpfile = tempfile.NamedTemporaryFile(mode, delete=False)
         try:
             tmpfile.write(content)
-            tmpfile.close()
+            tmpfile.flush()
 
             size = 10
             nchallenges = 2

@@ -427,11 +427,10 @@ class Keyring(Object):
         return key
 
     def export_keyring(self, password, salt, user_pass):
-        plain = pad("{\"pass\" : \"%s\", \n\"salt\" : \"%s\"\n}"
-                    % (password, salt))
+        plain = self.pad('{"pass" : "%s", \n"salt" : "%s"\n}' % (password, salt))
         IV = hex(random.getrandbits(8 * 8))[2:-1]
 
-        aes = AES.new(pad(user_pass), AES.MODE_CBC, IV)
+        aes = AES.new(self.pad(user_pass), AES.MODE_CBC, IV)
 
         with open('key.b64', 'wb') as f:
             f.write(base64.b64encode(IV + aes.encrypt(plain)))
@@ -444,7 +443,7 @@ class Keyring(Object):
 
         key_enc = base64.b64decode(keyb64)
         IV = key_enc[:16]
-        key = AES.new(pad(user_pass), AES.MODE_CBC, IV)
+        key = AES.new(self.pad(user_pass), AES.MODE_CBC, IV)
 
         # returns the salt and password as a dict
         creds = eval(key.decrypt(key_enc[16:])[:-4])

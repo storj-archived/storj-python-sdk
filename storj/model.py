@@ -1,49 +1,51 @@
 # -*- coding: utf-8 -*-
 """Storj model module."""
 
+import base58
 import base64
 import binascii
 import hashlib
+import math
+import io
+import random
 import os
 import os.path
-import random
 
 import six
 import strict_rfc3339
 import types
 
-from os import urandom
+from Crypto.Cipher import AES
 from datetime import datetime
 
-import io
+from micropayment_core import keys
+
+from os import urandom
+
 from pycoin.key.Key import Key
 from pycoin.serialize import b2h
 from pycoin.key.BIP32Node import BIP32Node
 from pycoin.serialize.bitcoin_streamer import stream_bc_string
 from pycoin.ecdsa import numbertheory, generator_secp256k1
 from pycoin.encoding import to_bytes_32, from_bytes_32, double_sha256
-from micropayment_core import keys
 
 from steenzout.object import Object
-
-from Crypto.Cipher import AES
-import base58
-import math
 
 from sys import platform
 
 
 class Bucket(Object):
     """Storage bucket.
+
     A bucket is a logical grouping of files
     which the user can assign permissions and limits to.
+
     Attributes:
         id (str): unique identifier.
         name (str): name.
         status (str): bucket status (Active, ...).
         user (str): user email address.
-        created (:py:class:`datetime.datetime`):
-            time when the bucket was created.
+        created (:py:class:`datetime.datetime`): time when the bucket was created.
         storage (int): storage limit (in GB).
         transfer (int): transfer limit (in GB).
         pubkeys ():
@@ -74,12 +76,10 @@ class Bucket(Object):
         else:
             self.created = None
 
-    def delete(self):
-        BucketManager.delete(bucket_id=self.id)
-
 
 class Contact(Object):
     """Contact.
+
     Attributes:
         address (str): hostname or IP address.
         port (str): .
@@ -149,14 +149,6 @@ class File(Object):
     @property
     def name(self):
         return self.filename
-
-    def download(self):
-        return api_client.file_download(bucket_id=self.bucket,
-                                        file_hash=self.hash)
-
-    def delete(self):
-        bucket_files = FileManager(bucket_id=self.bucket)
-        bucket_files.delete(self.id)
 
 
 class FilePointer(Object):
@@ -311,14 +303,17 @@ class IdecdsaCipher(Object):
 
     def decrypt(self, data, key, iv):
         """Decrypt data.
+
         The steps are:
         1. decrypt the data
         2. remove padding
         3. decode result from hexadecimal format
+
         Args:
             data (str/bytes): encrypted data.
             key (str):
             iv (str):
+
         Returns:
             (str): original data.
         """
@@ -327,14 +322,17 @@ class IdecdsaCipher(Object):
 
     def encrypt(self, data, key, iv):
         """Encrypt data.
+
         The steps are:
         1. encode data to hexadecimal format
         2. add padding
         3. encrypt the result
+
         Args:
             data (str/bytes): original data.
             key (str):
             iv (str):
+
         Returns:
             (str): encrypted data
         """
@@ -371,9 +369,11 @@ class IdecdsaCipher(Object):
 
     def simpleEncrypt(self, passphrase, data):
         """Encrypt data.
+
         Args:
             passphrase (str): passphrase to use for encryption.
             data (str/bytes): original data.
+
         Returns:
             (str): base58-encoded encrypted data.
         """
@@ -382,9 +382,11 @@ class IdecdsaCipher(Object):
 
     def simpleDecrypt(self, passphrase, base58_data):
         """Decrypt data.
-         Args:
+
+        Args:
             passphrase (str): passphrase to use for decryption.
             base58_data (str/bytes): base58-encoded encrypted data.
+
         Returns:
             (str): original data.
         """
@@ -452,12 +454,14 @@ class Keyring(Object):
 
 
 class MerkleTree(Object):
-    """
-    Simple merkle hash tree. Nodes are stored as strings in rows.
+    """Simple merkle hash tree.
+    Nodes are stored as strings in rows.
     Row 0 is the root node, row 1 is its children, row 2 is their children, etc
+
     Arguments
         leaves (list[str]/types.generator[str]):
             leaves of the tree, as hex digests
+
     Attributes:
         leaves (list[str]): leaves of the tree, as hex digests
         depth (int): the number of levels in the tree
@@ -477,6 +481,7 @@ class MerkleTree(Object):
     @property
     def depth(self):
         """Calculates the depth of the tree.
+
         Returns:
             (int): tree depth.
         """
@@ -562,6 +567,7 @@ class MerkleTree(Object):
 
 class Mirror(Object):
     """Mirror or file replica settings.
+
     Attributes:
         hash (str):
         mirrors (int): number of file replicas.
@@ -576,6 +582,7 @@ class Mirror(Object):
 
 class FileMirrors(Object):
     """File mirrors
+
     Attributes:
         available (str): list of available mirrors
         established (str): list of established
@@ -588,6 +595,7 @@ class FileMirrors(Object):
 
 class Shard(Object):
     """Shard.
+
     Attributes:
         id (str): unique identifier.
         hash (str): hash of the data.
@@ -636,6 +644,7 @@ class Shard(Object):
 
     def add_challenge(self, challenge):
         """Append challenge.
+
         Args:
             challenge (str):.
         """
@@ -677,7 +686,6 @@ class ShardManager(Object):
         self.nchallenges = nchallenges
         self.shard_size = shard_size
         self.filepath = filepath
-
 
     @property
     def filepath(self):
@@ -803,7 +811,7 @@ class ShardManager(Object):
 
             self.shard_size = chunksz
 
-            if self.tmp_path == None:
+            if self.tmp_path is None:
                 if platform == 'linux' or platform == 'linux2':
                     # linux
                     self.tmp_path = '/tmp/'
@@ -814,7 +822,6 @@ class ShardManager(Object):
                     # Windows
                     self.tmp_path = 'C://Windows/temp/'
             print self.tmp_path
-
 
             try:
                 print('Writing file %s' % chunkfilename)

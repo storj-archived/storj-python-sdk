@@ -327,7 +327,7 @@ class IdecdsaCipher(Object):
         3. decode result from hexadecimal format
 
         Args:
-            data (str): encrypted data.
+            data (str/bytes): encrypted data.
             key (str):
             iv (str):
 
@@ -346,7 +346,7 @@ class IdecdsaCipher(Object):
         3. encrypt the result
 
         Args:
-            data (str): original data.
+            data (str/bytes): original data.
             key (str):
             iv (str):
 
@@ -361,18 +361,27 @@ class IdecdsaCipher(Object):
         # equivalent to OpenSSL's EVP_BytesToKey() with count 1
         # so that we make the same key and iv as nodejs version
         m = []
+        len_m = 0
         i = 0
-        while len(''.join(m)) < (key_len + iv_len):
+        utf8_password = password.encode('utf-8')  # in python3 this is bytes
+        while len_m < (key_len + iv_len):
             md5 = hashlib.md5()
-            data = password
+            data = utf8_password
             if i > 0:
-                data = m[i - 1] + password
+                data = m[i - 1] + utf8_password
             md5.update(data)
-            m.append(md5.digest())
+            md5_digest = md5.digest()
+            m.append(md5_digest)
+            len_m += len(md5_digest)
             i += 1
-        ms = ''.join(m)
+
+        ms = ''.encode('utf-8')
+        for mi in m:
+            ms += mi
+
         key = ms[:key_len]
         iv = ms[key_len:key_len + iv_len]
+
         return key, iv
 
     def simpleEncrypt(self, passphrase, data):
@@ -380,7 +389,7 @@ class IdecdsaCipher(Object):
 
         Args:
             passphrase (str): passphrase to use for encryption.
-            data (str): original data.
+            data (str/bytes): original data.
 
         Returns:
             (str): base58-encoded encrypted data.
@@ -393,7 +402,7 @@ class IdecdsaCipher(Object):
 
          Args:
             passphrase (str): passphrase to use for decryption.
-            base58_data (str): base58-encoded encrypted data.
+            base58_data (str/bytes): base58-encoded encrypted data.
 
         Returns:
             (str): original data.

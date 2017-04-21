@@ -42,14 +42,16 @@ class Client(object):
 
     logger = logging.getLogger('%s.Client' % __name__)
 
-    def __init__(self, email, password):
+    def __init__(self, email, password, do_hashing=True):
         self.api_url = 'https://api.storj.io/'
         self.session = requests.Session()
         self.email = email
+        self.do_hashing = do_hashing
         self.password = password
         self.private_key = None
         self.public_key = None
         self.public_key_hex = None
+
 
     @property
     def password(self):
@@ -58,7 +60,11 @@ class Client(object):
 
     @password.setter
     def password(self, value):
-        self._password = sha256(value.encode('ascii')).hexdigest()
+        if self.do_hashing:
+            self._password = sha256(value.encode('ascii')).hexdigest()
+        else:
+            self._password = value
+
 
     def authenticate(self, ecdsa_private_key=None):
         self.logger.debug('authenticate')

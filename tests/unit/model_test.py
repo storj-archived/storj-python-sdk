@@ -348,7 +348,10 @@ class ShardManagerTestCase(AbstractTestCase):
 
             size = 10
             nchallenges = 2
-            sm = ShardManager(tmpfile.name, size, nchallenges)
+            sm = ShardManager(
+                tmpfile.name,
+                shard_size=size,
+                nchallenges=nchallenges)
 
             assert sm.filepath == tmpfile.name
             assert sm.shard_size == size

@@ -318,34 +318,43 @@ class IdecdsaCipher(Object):
         """removes padding from input data and returns unpadded data"""
         return data[0:-ord(data[-1])]
 
-    def decrypt(self, hex_data, key, iv):
-        """Decrypt data in hexadecimal format.
-        
+    def decrypt(self, data, key, iv):
+        """Decrypt data.
+
+        The steps are:
+        1. decrypt the data
+        2. remove padding
+        3. decode result from hexadecimal format
+
         Args:
-            hex_data (str): data encoded in hexadecimal format.
-            key ():
-            iv ():
-        
+            data (str): encrypted data.
+            key (str):
+            iv (str):
+
         Returns:
             (str): original data.
         """
-        data = ''.join(map(chr, bytearray.fromhex(hex_data)))
         aes = AES.new(key, AES.MODE_CBC, iv)
-        return self.unpad(aes.decrypt(data))
+        return self.unpad(aes.decrypt(data)).decode('hex')
 
-    def encrypt(self, hex_data, key, iv):
-        """Encrypt data in hexadecimal format.
-        
+    def encrypt(self, data, key, iv):
+        """Encrypt data.
+
+        The steps are:
+        1. encode data to hexadecimal format
+        2. add padding
+        3. encrypt the result
+
         Args:
-            hex_data (str): data encoded in hexadecimal format.
-            key ():
-            iv ():            
-        
+            data (str): original data.
+            key (str):
+            iv (str):
+
         Returns:
             (str): encrypted data
         """
         aes = AES.new(key, AES.MODE_CBC, iv)
-        return aes.encrypt(self.pad(hex_data))
+        return aes.encrypt(self.pad(data.encode('hex')))
 
     def EVP_BytesToKey(self, password, key_len, iv_len):
         """derives a key and IV from various parameters"""
@@ -377,20 +386,20 @@ class IdecdsaCipher(Object):
             (str): base58-encoded encrypted data.
         """
         key, iv = self.EVP_BytesToKey(passphrase, 32, 16)
-        return base58.b58encode(self.encrypt(data.encode('hex'), key, iv))
+        return base58.b58encode(self.encrypt(data, key, iv))
 
-    def simpleDecrypt(self, passphrase, data):
+    def simpleDecrypt(self, passphrase, base58_data):
         """Decrypt data.
 
          Args:
             passphrase (str): passphrase to use for decryption.
-            data (str): base58-encoded encrypted data.
+            base58_data (str): base58-encoded encrypted data.
 
         Returns:
             (str): original data.
         """
         key, iv = self.EVP_BytesToKey(passphrase, 32, 16)
-        return self.decrypt(base58.b58decode(data), key, iv)
+        return self.decrypt(base58.b58decode(base58_data), key, iv)
 
 
 class Keyring(Object):

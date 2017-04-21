@@ -5,6 +5,7 @@ import base58
 import base64
 import binascii
 import hashlib
+import logging
 import math
 import io
 import random
@@ -670,6 +671,9 @@ class ShardingException(Exception):
 
 
 class ShardManager(Object):
+
+    __logger = logging.getLogger('%s.ShardManager' % __name__)
+
     global SHARD_MULTIPLES_BACK, MAX_SHARD_SIZE
 
     MAX_SHARD_SIZE = 4294967296  # 4Gb
@@ -714,10 +718,12 @@ class ShardManager(Object):
             shard_size = self.determine_shard_size(file_size, accumulator)
             accumulator += 1
 
-        print(shard_size)
-        print(file_size)
+        self.__logger.debug('shard_size=%s file_size=%s', shard_size, file_size)
+
         if shard_size == 0:
             shard_size = file_size
+
+        self.__logger.debug('shard_size=%s file_size=%s', shard_size, file_size)
 
         shard_parameters['shard_size'] = str(shard_size)
         shard_parameters['shard_count'] = math.ceil(file_size / shard_size)
@@ -737,7 +743,7 @@ class ShardManager(Object):
             # if accumulator != True:
             # accumulator  = 0
 
-        print(accumulator)
+        self.__logger.debug('acumulator=%s', accumulator)
 
         # Determine hops back by accumulator
 
@@ -785,7 +791,7 @@ class ShardManager(Object):
             self.get_optimal_shard_parametrs(fsize)
 
         self.__numchunks = int(optimal_shard_parametrs['shard_count'])
-        print('Number of chunks %d\n' % self.__numchunks)
+        self.__logger.debug('Number of chunks %d', self.__numchunks)
 
         try:
             f = open(self.filepath, 'rb')
@@ -821,10 +827,10 @@ class ShardManager(Object):
                 elif platform == 'win32':
                     # Windows
                     self.tmp_path = 'C://Windows/temp/'
-            print self.tmp_path
+            self.__logger.debug('self.tmp_path=%s', self.tmp_path)
 
             try:
-                print('Writing file %s' % chunkfilename)
+                self.__logger.debug('Writing file %s', chunkfilename)
                 data = f.read(chunksz)
                 total_bytes += len(data)
                 inc = len(data)
@@ -845,10 +851,10 @@ class ShardManager(Object):
                 index += 1
                 i += 1
             except (OSError, IOError) as e:
-                print(e)
+                self.__logger.error(e)
                 continue
             except EOFError as e:
-                print(e)
+                self.__logger.error(e)
                 break
 
         self.index = len(self.shards)

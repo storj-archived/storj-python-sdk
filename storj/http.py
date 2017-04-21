@@ -616,11 +616,7 @@ class Client(object):
         print("This will replace your public and private keys in 3 seconds...")
         time.sleep(3)
 
-        self.private_key = SigningKey.generate(
-                curve=SECP256k1,
-                hashfunc=sha256,
-        )
-
+        self.private_key = SigningKey.generate(curve=SECP256k1, hashfunc=sha256)
         self.public_key = self.private_key.get_verifying_key()
 
         s = raw_input('Export keys to file for later use? [Y/N]')

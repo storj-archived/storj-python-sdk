@@ -350,35 +350,31 @@ class IdecdsaCipher(Object):
         iv = ms[key_len:key_len + iv_len]
         return key, iv
 
-    def simpleEncrypt(self, password, data):
-        """Encrypts the given data with the supplied password and returning it
-        base58 encoded
+    def simpleEncrypt(self, passphrase, data):
+        """Encrypt data.
 
         Args:
-            password (str): The passphrase to use for encryption
-            data (str): The string to encrypt
+            passphrase (str): passphrase to use for encryption.
+            data (str): original data.
 
         Returns:
-            (str): encrypted string
-
+            (str): base58-encoded encrypted data.
         """
-        key, iv = self.EVP_BytesToKey(password, 32, 16)
-        return base58.b58encode(self.encrypt(data, key, iv))
+        key, iv = self.EVP_BytesToKey(passphrase, 32, 16)
+        return base58.b58encode(self.encrypt(data.encode('hex'), key, iv))
 
-    def simpleDecrypt(self, password, data):
-        """Decrypts the given base58 encoded data with the supplied password and
-        return unencrypted data
+    def simpleDecrypt(self, passphrase, data):
+        """Decrypt data.
 
          Args:
-            password (str): The passphrase to use for decryption
-            data (str): The string to decrypt
+            passphrase (str): passphrase to use for decryption.
+            data (str): base58-encoded encrypted data.
 
         Returns:
-            (str): unencrypted string
+            (str): original data.
         """
-        strdata = base58.b58decode(data)
-        key, iv = self.EVP_BytesToKey(password, 32, 16)
-        return self.decrypt(strdata.encode('hex'), key, iv)
+        key, iv = self.EVP_BytesToKey(passphrase, 32, 16)
+        return self.decrypt(base58.b58decode(data), key, iv)
 
 
 class Keyring(Object):

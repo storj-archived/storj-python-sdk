@@ -829,7 +829,7 @@ class ShardManager(Object):
                 total_bytes += len(data)
                 inc = len(data)
 
-                with open('%s%s' % (self.tmp_path + "/", chunkfilename), 'wb') as chunkf:
+                with open('%s/%s' % (self.tmp_path, chunkfilename), 'wb') as chunkf:
                     chunkf.write(data)
 
                 challenges = self._make_challenges(self.nchallenges)

@@ -10,6 +10,7 @@ import time
 
 from base64 import b64encode
 from binascii import b2a_hex
+
 from ecdsa import SigningKey, SECP256k1, VerifyingKey
 from ecdsa.util import sigencode_der
 from hashlib import sha256

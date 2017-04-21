@@ -193,6 +193,11 @@ class IdecdsaCipherTestCase(AbstractTestCase):
                                     cipher.simpleEncrypt(password,
                                                          data)) == data
 
+    def test_pad_unpad(self):
+        data = '0123456789abcdef'
+
+        assert data == IdecdsaCipher.unpad(IdecdsaCipher.pad(data))
+
 
 class MirrorTestCase(AbstractTestCase):
     """Test case for the Mirror class."""

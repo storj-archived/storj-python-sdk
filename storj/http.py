@@ -11,7 +11,7 @@ import time
 
 from base64 import b64encode
 from binascii import b2a_hex
-from ecdsa import SigningKey
+from ecdsa import SigningKey, VerifyingKey
 from hashlib import sha256
 from io import BytesIO
 from six.moves.urllib.parse import urlencode, urljoin
@@ -584,9 +584,8 @@ class Client(object):
         self.logger.info('key_dump()')
 
         if self.private_key is not None and \
-                        self.public_key is not None:
-            print('Local Private Key: %s' % self.private_key
-                  + '\nLocal Public Key: %s' % self.public_key)
+                self.public_key is not None:
+            print('Local Private Key: %s\nLocal Public Key: %s' % (self.private_key, self.public_key))
 
         keys = self.key_list()
 
@@ -773,7 +772,6 @@ class Client(object):
             })
 
         return response
-        #self.authenticate(email=email, password=password)
 
     def user_deactivate(self, token):
         """Discard activation token.

@@ -259,7 +259,8 @@ class ClientTestCase(AbstractTestCase):
         self.mock_request.assert_called_once_with(
             method='GET',
             path='/buckets/%s/files/%s/' % (test_bucket_id, test_file_id),
-            headers={'x-token': None})
+            headers={'x-token': None, 'skip': 'None', 'limit': 'None'},
+            json={'skip': 'None', 'limit': 'None'})
 
         mock_token_create.assert_called_once_with(
             test_bucket_id, operation='PULL')
@@ -323,7 +324,7 @@ class ClientTestCase(AbstractTestCase):
             'hash': '5775772',
             'index': 7,
             'challenges': ['0118', 999, 88199, 9119, 725, 3],
-            'tree': test_tree,
+            'tree': test_tree.leaves,
             'size': 3810}
 
         test_frame_id = '8193'
@@ -590,9 +591,8 @@ class ClientTestCase(AbstractTestCase):
             path='/activations/token',
             json={'email': 'email'})
 
-    @mock.patch.object(http.Client, 'authenticate', return_value=None)
     @mock.patch('storj.http.sha256')
-    def test_user_create(self, mock_sha256, mock_authenticate):
+    def test_user_create(self, mock_sha256):
         """Test Client.user_create()."""
         test_email = 'a@b.com'
         test_password = 'toast'
@@ -604,10 +604,6 @@ class ClientTestCase(AbstractTestCase):
 
         mock_sha256.assert_called_once_with(test_password)
         mock_sha256.return_value.hexdigest.assert_called_once_with()
-
-        mock_authenticate.assert_called_once_with(
-            email=test_email,
-            password=test_hashed_password)
 
         self.mock_request.assert_called_once_with(
             method='POST',

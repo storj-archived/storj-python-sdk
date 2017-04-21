@@ -591,9 +591,8 @@ class ClientTestCase(AbstractTestCase):
             path='/activations/token',
             json={'email': 'email'})
 
-    @mock.patch.object(http.Client, 'authenticate', return_value=None)
     @mock.patch('storj.http.sha256')
-    def test_user_create(self, mock_sha256, mock_authenticate):
+    def test_user_create(self, mock_sha256):
         """Test Client.user_create()."""
         test_email = 'a@b.com'
         test_password = 'toast'
@@ -605,10 +604,6 @@ class ClientTestCase(AbstractTestCase):
 
         mock_sha256.assert_called_once_with(test_password)
         mock_sha256.return_value.hexdigest.assert_called_once_with()
-
-        mock_authenticate.assert_called_once_with(
-            email=test_email,
-            password=test_hashed_password)
 
         self.mock_request.assert_called_once_with(
             method='POST',

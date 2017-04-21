@@ -6,12 +6,12 @@ import os
 import logging
 import json
 import requests
-import storj
 import time
 
 from base64 import b64encode
 from binascii import b2a_hex
-from ecdsa import SigningKey
+from ecdsa import SigningKey, SECP256k1, VerifyingKey
+from ecdsa.util import sigencode_der
 from hashlib import sha256
 from io import BytesIO
 from six.moves.urllib.parse import urlencode, urljoin
@@ -22,10 +22,10 @@ except ImportError:
     # Python 2
     JSONDecodeError = ValueError
 
-from . import model
-from .api import ecdsa_to_hex
-from .exception import StorjBridgeApiError
-from storj import web_socket
+import model
+from api import ecdsa_to_hex
+from exception import StorjBridgeApiError
+import web_socket
 
 
 class Client(object):
@@ -66,7 +66,7 @@ class Client(object):
         if isinstance(ecdsa_private_key, SigningKey):
             self.private_key = ecdsa_private_key
             self.public_key = self.private_key.get_verifying_key()
-            self.public_key_hex = ecdsa_to_hex(self.public_key)
+            self.public_key_hex = ecdsa_to_hex(self.public_key.to_string())
 
     def _add_basic_auth(self, request_kwargs):
         self.logger.debug('using basic auth')
@@ -101,7 +101,7 @@ class Client(object):
         request_kwargs['headers'].update(
             {
                 'x-signature': signature,
-                'x-pubkey': ecdsa_to_hex(self.public_key),
+                'x-pubkey': ecdsa_to_hex(self.public_key.to_string()),
             })
 
     def _prepare_request(self, **kwargs):
@@ -610,11 +610,18 @@ class Client(object):
         print('Wrote keyfiles to dir: %s' % os.getcwd())
 
     def key_generate(self):
+
         self.logger.info('key_generate()')
 
         print("This will replace your public and private keys in 3 seconds...")
         time.sleep(3)
-        (self.private_key, self.public_key) = storj.generate_new_key_pair()
+
+        self.private_key = SigningKey.generate(
+                curve=SECP256k1,
+                hashfunc=sha256,
+        )
+
+        self.public_key = self.private_key.get_verifying_key()
 
         s = raw_input('Export keys to file for later use? [Y/N]')
         if 'Y' in s.upper():
@@ -662,7 +669,7 @@ class Client(object):
         self._request(
             method='POST',
             path='/keys',
-            json={'key': ecdsa_to_hex(public_key)})
+            json={'key': ecdsa_to_hex(public_key.to_string())})
 
     def token_create(self, bucket_id, operation):
         """Creates a token for the specified operation.

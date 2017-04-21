@@ -5,7 +5,6 @@ import io
 
 
 from abc import ABCMeta
-from hashlib import sha256
 
 from .api import ecdsa_to_hex
 from .configuration import read_config

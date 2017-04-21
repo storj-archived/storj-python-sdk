@@ -53,7 +53,6 @@ class Client(object):
         self.public_key = None
         self.public_key_hex = None
 
-
     @property
     def password(self):
         """(str): user password"""
@@ -65,7 +64,6 @@ class Client(object):
             self._password = sha256(value.encode('ascii')).hexdigest()
         else:
             self._password = value
-
 
     def authenticate(self, ecdsa_private_key=None):
         self.logger.debug('authenticate')

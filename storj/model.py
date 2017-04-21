@@ -319,17 +319,33 @@ class IdecdsaCipher(Object):
         return data[0:-ord(data[-1])]
 
     def decrypt(self, hex_data, key, iv):
-        """returns aes dencrypted data from hex_data, dencrypted
-        with key and iv"""
+        """Decrypt data in hexadecimal format.
+        
+        Args:
+            hex_data (str): data encoded in hexadecimal format.
+            key ():
+            iv ():
+        
+        Returns:
+            (str): original data.
+        """
         data = ''.join(map(chr, bytearray.fromhex(hex_data)))
         aes = AES.new(key, AES.MODE_CBC, iv)
         return self.unpad(aes.decrypt(data))
 
-    def encrypt(self, data, key, iv):
-        """returns aes encrypted data from hex_data, encrypted
-        with key and iv"""
+    def encrypt(self, hex_data, key, iv):
+        """Encrypt data in hexadecimal format.
+        
+        Args:
+            hex_data (str): data encoded in hexadecimal format.
+            key ():
+            iv ():            
+        
+        Returns:
+            (str): encrypted data
+        """
         aes = AES.new(key, AES.MODE_CBC, iv)
-        return aes.encrypt(self.pad(data))
+        return aes.encrypt(self.pad(hex_data))
 
     def EVP_BytesToKey(self, password, key_len, iv_len):
         """derives a key and IV from various parameters"""

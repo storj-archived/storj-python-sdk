@@ -35,10 +35,8 @@ from sys import platform
 
 class Bucket(Object):
     """Storage bucket.
-
     A bucket is a logical grouping of files
     which the user can assign permissions and limits to.
-
     Attributes:
         id (str): unique identifier.
         name (str): name.
@@ -82,7 +80,6 @@ class Bucket(Object):
 
 class Contact(Object):
     """Contact.
-
     Attributes:
         address (str): hostname or IP address.
         port (str): .
@@ -164,13 +161,11 @@ class File(Object):
 
 class FilePointer(Object):
     """File pointer.
-
     Args:
         hash (str):
         token (str): token unique identifier.
         operation (str):
         channel (str):
-
     Attributes:
         hash (str):
         token (:py:class:`storj.model.Token`): token.
@@ -187,7 +182,6 @@ class FilePointer(Object):
 
 class Frame(Object):
     """File staging frame.
-
     Attributes:
         id (str): unique identifier.
         created (:py:class:`datetime.datetime`):
@@ -216,14 +210,11 @@ class Frame(Object):
 class KeyPair(object):
     """
     ECDSA key pair.
-
     Args:
         pkey (str): hexadecimal representation of the private key (secret exponent).
         secret (str): master password.
-
     Attributes:
         keypair (:py:class:`pycoin.key.Key.Key`): BIP0032-style hierarchical wallet.
-
     Raises:
         NotImplementedError when
             a randomness source is not found.
@@ -320,17 +311,14 @@ class IdecdsaCipher(Object):
 
     def decrypt(self, data, key, iv):
         """Decrypt data.
-
         The steps are:
         1. decrypt the data
         2. remove padding
         3. decode result from hexadecimal format
-
         Args:
             data (str/bytes): encrypted data.
             key (str):
             iv (str):
-
         Returns:
             (str): original data.
         """
@@ -339,17 +327,14 @@ class IdecdsaCipher(Object):
 
     def encrypt(self, data, key, iv):
         """Encrypt data.
-
         The steps are:
         1. encode data to hexadecimal format
         2. add padding
         3. encrypt the result
-
         Args:
             data (str/bytes): original data.
             key (str):
             iv (str):
-
         Returns:
             (str): encrypted data
         """
@@ -386,11 +371,9 @@ class IdecdsaCipher(Object):
 
     def simpleEncrypt(self, passphrase, data):
         """Encrypt data.
-
         Args:
             passphrase (str): passphrase to use for encryption.
             data (str/bytes): original data.
-
         Returns:
             (str): base58-encoded encrypted data.
         """
@@ -399,11 +382,9 @@ class IdecdsaCipher(Object):
 
     def simpleDecrypt(self, passphrase, base58_data):
         """Decrypt data.
-
          Args:
             passphrase (str): passphrase to use for decryption.
             base58_data (str/bytes): base58-encoded encrypted data.
-
         Returns:
             (str): original data.
         """
@@ -474,11 +455,9 @@ class MerkleTree(Object):
     """
     Simple merkle hash tree. Nodes are stored as strings in rows.
     Row 0 is the root node, row 1 is its children, row 2 is their children, etc
-
     Arguments
         leaves (list[str]/types.generator[str]):
             leaves of the tree, as hex digests
-
     Attributes:
         leaves (list[str]): leaves of the tree, as hex digests
         depth (int): the number of levels in the tree
@@ -498,7 +477,6 @@ class MerkleTree(Object):
     @property
     def depth(self):
         """Calculates the depth of the tree.
-
         Returns:
             (int): tree depth.
         """
@@ -584,7 +562,6 @@ class MerkleTree(Object):
 
 class Mirror(Object):
     """Mirror or file replica settings.
-
     Attributes:
         hash (str):
         mirrors (int): number of file replicas.
@@ -599,7 +576,6 @@ class Mirror(Object):
 
 class FileMirrors(Object):
     """File mirrors
-
     Attributes:
         available (str): list of available mirrors
         established (str): list of established
@@ -612,7 +588,6 @@ class FileMirrors(Object):
 
 class Shard(Object):
     """Shard.
-
     Attributes:
         id (str): unique identifier.
         hash (str): hash of the data.
@@ -661,7 +636,6 @@ class Shard(Object):
 
     def add_challenge(self, challenge):
         """Append challenge.
-
         Args:
             challenge (str):.
         """
@@ -696,13 +670,14 @@ class ShardManager(Object):
             self,
             filepath,
             shard_size=None,
-            tmp_path='/tmp/',
+            tmp_path=None,
             nchallenges=2,
     ):
+        self.tmp_path = tmp_path
         self.nchallenges = nchallenges
         self.shard_size = shard_size
         self.filepath = filepath
-        self.tmp_path = tmp_path
+
 
     @property
     def filepath(self):
@@ -827,15 +802,19 @@ class ShardManager(Object):
                 chunksz = fsize - total_bytes
 
             self.shard_size = chunksz
-            if platform == 'linux' or platform == 'linux2':
-                # linux
-                self.tmp_path = '/tmp/'
-            elif platform == 'darwin':
-                # OS X
-                self.tmp_path = '/tmp/'
-            elif platform == 'win32':
-                # Windows
-                self.tmp_path = 'C://Windows/temp/'
+
+            if self.tmp_path == None:
+                if platform == 'linux' or platform == 'linux2':
+                    # linux
+                    self.tmp_path = '/tmp/'
+                elif platform == 'darwin':
+                    # OS X
+                    self.tmp_path = '/tmp/'
+                elif platform == 'win32':
+                    # Windows
+                    self.tmp_path = 'C://Windows/temp/'
+            print self.tmp_path
+
 
             try:
                 print('Writing file %s' % chunkfilename)
@@ -843,7 +822,7 @@ class ShardManager(Object):
                 total_bytes += len(data)
                 inc = len(data)
 
-                with open('%s%s' % (self.tmp_path, chunkfilename), 'wb') as chunkf:
+                with open('%s%s' % (self.tmp_path + "/", chunkfilename), 'wb') as chunkf:
                     chunkf.write(data)
 
                 challenges = self._make_challenges(self.nchallenges)
@@ -870,10 +849,8 @@ class ShardManager(Object):
     @staticmethod
     def hash(data):
         """Returns ripemd160 of sha256 of a string as a string of hex.
-
         Args:
             data (str): content to be digested.
-
         Returns:
             (str): the ripemd160 of sha256 digest.
         """
@@ -886,10 +863,8 @@ class ShardManager(Object):
     @staticmethod
     def _ripemd160(b):
         """Returns the ripemd160 digest of bytes as bytes.
-
         Args:
             b (str): content to be ripemd160 digested.
-
         Returns:
             (str): the ripemd160 digest.
         """
@@ -899,10 +874,8 @@ class ShardManager(Object):
     @staticmethod
     def _sha256(b):
         """Returns the sha256 digest of bytes as bytes.
-
         Args:
             b (str): content to be sha256 digested.
-
         Returns:
             (str): the sha256 digest.
         """
@@ -911,10 +884,8 @@ class ShardManager(Object):
 
     def _make_challenges(self, challenges=12):
         """Generates the challenge strings.
-
         Args:
             challenges (int): number of challenges to be generated.
-
         Returns:
             (list[str]): list of challenges.
         """
@@ -925,11 +896,9 @@ class ShardManager(Object):
 
     def _make_tree(self, challenges, data):
         """Creates a Storj Merkle tree.
-
         Args:
             challenges (list[str]): A list of random challenges.
             data (str): data to be audited.
-
         Returns:
             (:py:class:`MerkleTree`): audit tree.
         """
@@ -938,14 +907,12 @@ class ShardManager(Object):
 
 class Token(Object):
     """Token.
-
     Args:
         token (str): token unique identifier.
         bucket (str): bucket unique identifier.
         operation ():
         expires (str): expiration date, in the RFC3339 format.
         encryptionKey (str):
-
     Attributes:
         id (str): token unique identifier.
         bucket (:py:class:`storj.model.Bucket`): bucket.

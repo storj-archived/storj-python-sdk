@@ -198,6 +198,14 @@ class IdecdsaCipherTestCase(AbstractTestCase):
 
         assert data == IdecdsaCipher.unpad(IdecdsaCipher.pad(data))
 
+    def test_bytes_to_key(self):
+        password = 'secret'
+        cipher = IdecdsaCipher()
+
+        assert ('^\xbe"\x94\xec\xd0\xe0\xf0\x8e\xab',
+                'v\x90\xd2\xa6\xeei&\xae\\\xc8T\xe3kk\xdf\xca6hH\xde') == \
+            cipher.EVP_BytesToKey(password, 10, 20)
+
 
 class MirrorTestCase(AbstractTestCase):
     """Test case for the Mirror class."""
@@ -208,8 +216,7 @@ class MirrorTestCase(AbstractTestCase):
         kwargs = dict(
             hash='fde400fe0b6a5488e10d7317274a096aaa57914d',
             mirrors=3,
-            status='pending'
-        )
+            status='pending')
 
         mirror = Mirror(**kwargs)
 

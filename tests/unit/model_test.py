@@ -182,19 +182,28 @@ class KeyPairTestCase(AbstractTestCase):
 class IdecdsaCipherTestCase(AbstractTestCase):
     """Test case for the IdecdsaCipher class."""
 
-    def test_init(self):
+    def test_encrypt_decrypt(self):
         password = 'testpassword'
         data = ('c7d360e0d7d6820ea8d33cc7ad81bf9d'
                 '04c2f9c793f21cbf0a4a004350346ab8')
 
         cipher = IdecdsaCipher()
 
-        assert cipher.simpleDecrypt(password,
-                                    cipher.simpleEncrypt(password,
-                                                         data)) == data
+        assert cipher.simpleDecrypt(
+            password, cipher.simpleEncrypt(password, data)) == \
+            data
+
+        bytes_data = 'testpassword'.encode('utf-8')
+        assert cipher.simpleDecrypt(
+            password, cipher.simpleEncrypt(password, bytes_data)) == \
+            bytes_data
 
     def test_pad_unpad(self):
         data = '0123456789abcdef'
+
+        assert data == IdecdsaCipher.unpad(IdecdsaCipher.pad(data))
+
+        data = b'0123456789abcdef'
 
         assert data == IdecdsaCipher.unpad(IdecdsaCipher.pad(data))
 

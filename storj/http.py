@@ -11,7 +11,7 @@ import time
 
 from base64 import b64encode
 from binascii import b2a_hex
-from ecdsa import SigningKey
+from ecdsa import SigningKey, VerifyingKey
 from hashlib import sha256
 from io import BytesIO
 from six.moves.urllib.parse import urlencode, urljoin

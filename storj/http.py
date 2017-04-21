@@ -10,6 +10,7 @@ import time
 
 from base64 import b64encode
 from binascii import b2a_hex
+
 from ecdsa import SigningKey, SECP256k1, VerifyingKey
 from ecdsa.util import sigencode_der
 from hashlib import sha256
@@ -584,9 +585,8 @@ class Client(object):
         self.logger.info('key_dump()')
 
         if self.private_key is not None and \
-                        self.public_key is not None:
-            print('Local Private Key: %s' % self.private_key
-                  + '\nLocal Public Key: %s' % self.public_key)
+                self.public_key is not None:
+            print('Local Private Key: %s\nLocal Public Key: %s' % (self.private_key, self.public_key))
 
         keys = self.key_list()
 
@@ -616,11 +616,7 @@ class Client(object):
         print("This will replace your public and private keys in 3 seconds...")
         time.sleep(3)
 
-        self.private_key = SigningKey.generate(
-                curve=SECP256k1,
-                hashfunc=sha256,
-        )
-
+        self.private_key = SigningKey.generate(curve=SECP256k1, hashfunc=sha256)
         self.public_key = self.private_key.get_verifying_key()
 
         s = raw_input('Export keys to file for later use? [Y/N]')
@@ -669,7 +665,7 @@ class Client(object):
         self._request(
             method='POST',
             path='/keys',
-            json={'key': ecdsa_to_hex(public_key.to_string())})
+            json={'key': ecdsa_to_hex(str(public_key))})
 
     def token_create(self, bucket_id, operation):
         """Creates a token for the specified operation.
@@ -780,7 +776,6 @@ class Client(object):
             })
 
         return response
-        #self.authenticate(email=email, password=password)
 
     def user_deactivate(self, token):
         """Discard activation token.

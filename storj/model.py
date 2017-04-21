@@ -318,67 +318,97 @@ class IdecdsaCipher(Object):
         """removes padding from input data and returns unpadded data"""
         return data[0:-ord(data[-1])]
 
-    def decrypt(self, hex_data, key, iv):
-        """returns aes dencrypted data from hex_data, dencrypted
-        with key and iv"""
-        data = ''.join(map(chr, bytearray.fromhex(hex_data)))
+    def decrypt(self, data, key, iv):
+        """Decrypt data.
+
+        The steps are:
+        1. decrypt the data
+        2. remove padding
+        3. decode result from hexadecimal format
+
+        Args:
+            data (str/bytes): encrypted data.
+            key (str):
+            iv (str):
+
+        Returns:
+            (str): original data.
+        """
         aes = AES.new(key, AES.MODE_CBC, iv)
-        return self.unpad(aes.decrypt(data))
+        return self.unpad(aes.decrypt(data)).decode('hex')
 
     def encrypt(self, data, key, iv):
-        """returns aes encrypted data from hex_data, encrypted
-        with key and iv"""
+        """Encrypt data.
+
+        The steps are:
+        1. encode data to hexadecimal format
+        2. add padding
+        3. encrypt the result
+
+        Args:
+            data (str/bytes): original data.
+            key (str):
+            iv (str):
+
+        Returns:
+            (str): encrypted data
+        """
         aes = AES.new(key, AES.MODE_CBC, iv)
-        return aes.encrypt(self.pad(data))
+        return aes.encrypt(self.pad(data.encode('hex')))
 
     def EVP_BytesToKey(self, password, key_len, iv_len):
         """derives a key and IV from various parameters"""
         # equivalent to OpenSSL's EVP_BytesToKey() with count 1
         # so that we make the same key and iv as nodejs version
         m = []
+        len_m = 0
         i = 0
-        while len(''.join(m)) < (key_len + iv_len):
+        utf8_password = password.encode('utf-8')  # in python3 this is bytes
+        while len_m < (key_len + iv_len):
             md5 = hashlib.md5()
-            data = password
+            data = utf8_password
             if i > 0:
-                data = m[i - 1] + password
+                data = m[i - 1] + utf8_password
             md5.update(data)
-            m.append(md5.digest())
+            md5_digest = md5.digest()
+            m.append(md5_digest)
+            len_m += len(md5_digest)
             i += 1
-        ms = ''.join(m)
+
+        ms = ''.encode('utf-8')
+        for mi in m:
+            ms += mi
+
         key = ms[:key_len]
         iv = ms[key_len:key_len + iv_len]
+
         return key, iv
 
-    def simpleEncrypt(self, password, data):
-        """Encrypts the given data with the supplied password and returning it
-        base58 encoded
+    def simpleEncrypt(self, passphrase, data):
+        """Encrypt data.
 
         Args:
-            password (str): The passphrase to use for encryption
-            data (str): The string to encrypt
+            passphrase (str): passphrase to use for encryption.
+            data (str/bytes): original data.
 
         Returns:
-            (str): encrypted string
-
+            (str): base58-encoded encrypted data.
         """
-        key, iv = self.EVP_BytesToKey(password, 32, 16)
+        key, iv = self.EVP_BytesToKey(passphrase, 32, 16)
         return base58.b58encode(self.encrypt(data, key, iv))
 
-    def simpleDecrypt(self, password, data):
-        """Decrypts the given base58 encoded data with the supplied password and
-        return unencrypted data
+    def simpleDecrypt(self, passphrase, base58_data):
+        """Decrypt data.
 
          Args:
-            password (str): The passphrase to use for decryption
-            data (str): The string to decrypt
+            passphrase (str): passphrase to use for decryption.
+            base58_data (str/bytes): base58-encoded encrypted data.
 
         Returns:
-            (str): unencrypted string
+            (str): original data.
         """
-        strdata = base58.b58decode(data)
-        key, iv = self.EVP_BytesToKey(password, 32, 16)
-        return self.decrypt(strdata.encode('hex'), key, iv)
+        key, iv = self.EVP_BytesToKey(passphrase, 32, 16)
+        return self.decrypt(base58.b58decode(base58_data), key, iv)
 
 
 class Keyring(Object):
@@ -400,7 +430,7 @@ class Keyring(Object):
         self.salt = salt
 
     def get_encryption_key(self, user_pass):
-        #user_pass = raw_input("Enter your keyring password: ")
+        # user_pass = raw_input("Enter your keyring password: ")
         password = hex(random.getrandbits(512 * 8))[2:-1]
         salt = hex(random.getrandbits(32 * 8))[2:-1]
 
@@ -408,19 +438,17 @@ class Keyring(Object):
 
         key = hashlib.new('sha256', pbkdf2).hexdigest()
         IV = salt[:16]
-        #self.export_keyring(password, salt, user_pass)
+        # self.export_keyring(password, salt, user_pass)
         self.password = password
         self.salt = salt
 
         return key
 
-
     def export_keyring(self, password, salt, user_pass):
-        plain = pad("{\"pass\" : \"%s\", \n\"salt\" : \"%s\"\n}"
-                    % (password, salt))
+        plain = self.pad('{"pass" : "%s", \n"salt" : "%s"\n}' % (password, salt))
         IV = hex(random.getrandbits(8 * 8))[2:-1]
 
-        aes = AES.new(pad(user_pass), AES.MODE_CBC, IV)
+        aes = AES.new(self.pad(user_pass), AES.MODE_CBC, IV)
 
         with open('key.b64', 'wb') as f:
             f.write(base64.b64encode(IV + aes.encrypt(plain)))
@@ -433,7 +461,7 @@ class Keyring(Object):
 
         key_enc = base64.b64decode(keyb64)
         IV = key_enc[:16]
-        key = AES.new(pad(user_pass), AES.MODE_CBC, IV)
+        key = AES.new(self.pad(user_pass), AES.MODE_CBC, IV)
 
         # returns the salt and password as a dict
         creds = eval(key.decrypt(key_enc[16:])[:-4])
@@ -679,7 +707,6 @@ class ShardManager(Object):
     @property
     def filepath(self):
         """(str): path to the file."""
-
         return self._filepath
 
     @filepath.setter
@@ -699,18 +726,20 @@ class ShardManager(Object):
         shard_parameters = {}
         accumulator = 0
         shard_size = None
-        while shard_size == None:
-            shard_size = self.determine_shard_size(file_size,
-                                                   accumulator)
+
+        while shard_size is None:
+            shard_size = self.determine_shard_size(file_size, accumulator)
             accumulator += 1
-        print shard_size
-        print file_size
+
+        print(shard_size)
+        print(file_size)
         if shard_size == 0:
             shard_size = file_size
+
         shard_parameters['shard_size'] = str(shard_size)
-        shard_parameters['shard_count'] = math.ceil(file_size
-                                                    / shard_size)
+        shard_parameters['shard_count'] = math.ceil(file_size / shard_size)
         shard_parameters['file_size'] = file_size
+
         return shard_parameters
 
     def determine_shard_size(self, file_size, accumulator):
@@ -725,7 +754,7 @@ class ShardManager(Object):
             # if accumulator != True:
             # accumulator  = 0
 
-        print accumulator
+        print(accumulator)
 
         # Determine hops back by accumulator
 
@@ -740,8 +769,6 @@ class ShardManager(Object):
         byte_multiple = self.shard_size_const(accumulator)
 
         check = file_size / byte_multiple
-
-        # print check
 
         if check > 0 and check <= 1:
             while hops > 0 and self.shard_size_const(hops) \
@@ -775,17 +802,16 @@ class ShardManager(Object):
             self.get_optimal_shard_parametrs(fsize)
 
         self.__numchunks = int(optimal_shard_parametrs['shard_count'])
-        print 'Number of chunks', self.__numchunks, '\n'
+        print('Number of chunks %d\n' % self.__numchunks)
 
         try:
             f = open(self.filepath, 'rb')
-        except (OSError, IOError), e:
-            raise ShardingException, str(e)
+        except (OSError, IOError) as e:
+            raise ShardingException(str(e))
 
         bname = os.path.split(self.filepath)[1]
 
-        # Get size of each chunk
-
+        # get chunk size
         self.__chunksize = int(float(fsize) / float(self.__numchunks))
 
         chunksz = self.__chunksize
@@ -794,49 +820,49 @@ class ShardManager(Object):
         for x in range(self.__numchunks):
             chunkfilename = bname + '-' + str(x + 1) + self.__postfix
 
-            # if reading the last section, calculate correct
-            # chunk size.
+            # if reading the last section,
+            # calculate correct chunk size.
 
             if x == self.__numchunks - 1:
                 chunksz = fsize - total_bytes
 
             self.shard_size = chunksz
-            if platform == "linux" or platform == "linux2":
+            if platform == 'linux' or platform == 'linux2':
                 # linux
                 self.tmp_path = '/tmp/'
-            elif platform == "darwin":
+            elif platform == 'darwin':
                 # OS X
                 self.tmp_path = '/tmp/'
-            elif platform == "win32":
+            elif platform == 'win32':
                 # Windows
-                self.tmp_path = "C://Windows/temp/"
+                self.tmp_path = 'C://Windows/temp/'
 
             try:
-                print 'Writing file', chunkfilename
+                print('Writing file %s' % chunkfilename)
                 data = f.read(chunksz)
                 total_bytes += len(data)
                 inc = len(data)
-                chunkf = file(self.tmp_path + chunkfilename, 'wb')
-                chunkf.write(data)
-                chunkf.close()
+
+                with open('%s%s' % (self.tmp_path, chunkfilename), 'wb') as chunkf:
+                    chunkf.write(data)
+
                 challenges = self._make_challenges(self.nchallenges)
 
                 shard = Shard(size=self.shard_size, index=index,
                               hash=ShardManager.hash(data),
-                              tree=self._make_tree(challenges, data[i:i
-                                                                      + inc]),
-                              challenges=challenges)  # hash=ShardManager.hash(data[i:i + inc]),
-
-                # print chunk
+                              tree=self._make_tree(challenges, data[i:i + inc]),
+                              challenges=challenges)
+                # hash=ShardManager.hash(data[i:i + inc]),
 
                 self.shards.append(shard)
+
                 index += 1
                 i += 1
-            except (OSError, IOError), e:
-                print e
+            except (OSError, IOError) as e:
+                print(e)
                 continue
-            except EOFError, e:
-                print e
+            except EOFError as e:
+                print(e)
                 break
 
         self.index = len(self.shards)
@@ -855,8 +881,7 @@ class ShardManager(Object):
         if not isinstance(data, six.binary_type):
             data = bytes(data.encode('utf-8'))
 
-        return binascii.hexlify(ShardManager._ripemd160(ShardManager._sha256(data))).decode('utf-8'
-                                                                                            )
+        return binascii.hexlify(ShardManager._ripemd160(ShardManager._sha256(data))).decode('utf-8')
 
     @staticmethod
     def _ripemd160(b):
@@ -893,9 +918,7 @@ class ShardManager(Object):
         Returns:
             (list[str]): list of challenges.
         """
-
-        return [self._make_challenge_string() for _ in
-                xrange(challenges)]
+        return [self._make_challenge_string() for _ in xrange(challenges)]
 
     def _make_challenge_string(self):
         return binascii.hexlify(''.join(os.urandom(32)))
@@ -910,9 +933,7 @@ class ShardManager(Object):
         Returns:
             (:py:class:`MerkleTree`): audit tree.
         """
-
-        return MerkleTree(ShardManager.hash('%s%s' % (c, data))
-                          for c in challenges)
+        return MerkleTree(ShardManager.hash('%s%s' % (c, data)) for c in challenges)
 
 
 class Token(Object):

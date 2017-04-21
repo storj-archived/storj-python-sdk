@@ -182,16 +182,38 @@ class KeyPairTestCase(AbstractTestCase):
 class IdecdsaCipherTestCase(AbstractTestCase):
     """Test case for the IdecdsaCipher class."""
 
-    def test_init(self):
+    def test_encrypt_decrypt(self):
         password = 'testpassword'
         data = ('c7d360e0d7d6820ea8d33cc7ad81bf9d'
                 '04c2f9c793f21cbf0a4a004350346ab8')
 
         cipher = IdecdsaCipher()
 
-        assert cipher.simpleDecrypt(password,
-                                    cipher.simpleEncrypt(password,
-                                                         data)) == data
+        assert cipher.simpleDecrypt(
+            password, cipher.simpleEncrypt(password, data)) == \
+            data
+
+        bytes_data = 'testpassword'.encode('utf-8')
+        assert cipher.simpleDecrypt(
+            password, cipher.simpleEncrypt(password, bytes_data)) == \
+            bytes_data
+
+    def test_pad_unpad(self):
+        data = '0123456789abcdef'
+
+        assert data == IdecdsaCipher.unpad(IdecdsaCipher.pad(data))
+
+        data = b'0123456789abcdef'
+
+        assert data == IdecdsaCipher.unpad(IdecdsaCipher.pad(data))
+
+    def test_bytes_to_key(self):
+        password = 'secret'
+        cipher = IdecdsaCipher()
+
+        assert ('^\xbe"\x94\xec\xd0\xe0\xf0\x8e\xab',
+                'v\x90\xd2\xa6\xeei&\xae\\\xc8T\xe3kk\xdf\xca6hH\xde') == \
+            cipher.EVP_BytesToKey(password, 10, 20)
 
 
 class MirrorTestCase(AbstractTestCase):
@@ -203,8 +225,7 @@ class MirrorTestCase(AbstractTestCase):
         kwargs = dict(
             hash='fde400fe0b6a5488e10d7317274a096aaa57914d',
             mirrors=3,
-            status='pending'
-        )
+            status='pending')
 
         mirror = Mirror(**kwargs)
 
@@ -323,10 +344,10 @@ class ShardManagerTestCase(AbstractTestCase):
         tmpfile = tempfile.NamedTemporaryFile(mode, delete=False)
         try:
             tmpfile.write(content)
-            tmpfile.close()
+            tmpfile.flush()
 
             size = 10
-            nchallenges = 20
+            nchallenges = 2
             sm = ShardManager(tmpfile.name, size, nchallenges)
 
             assert sm.filepath == tmpfile.name

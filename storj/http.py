@@ -665,7 +665,7 @@ class Client(object):
         self._request(
             method='POST',
             path='/keys',
-            json={'key': ecdsa_to_hex(public_key.to_string())})
+            json={'key': ecdsa_to_hex(str(public_key))})
 
     def token_create(self, bucket_id, operation):
         """Creates a token for the specified operation.

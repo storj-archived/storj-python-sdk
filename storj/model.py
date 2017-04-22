@@ -820,13 +820,13 @@ class ShardManager(Object):
             if self.tmp_path is None:
                 if platform == 'linux' or platform == 'linux2':
                     # linux
-                    self.tmp_path = '/tmp/'
+                    self.tmp_path = '/tmp'
                 elif platform == 'darwin':
                     # OS X
-                    self.tmp_path = '/tmp/'
+                    self.tmp_path = '/tmp'
                 elif platform == 'win32':
                     # Windows
-                    self.tmp_path = 'C://Windows/temp/'
+                    self.tmp_path = 'C://Windows/temp'
             self.__logger.debug('self.tmp_path=%s', self.tmp_path)
 
             try:
@@ -835,7 +835,8 @@ class ShardManager(Object):
                 total_bytes += len(data)
                 inc = len(data)
 
-                with open('%s/%s' % (self.tmp_path, chunkfilename), 'wb') as chunkf:
+                with open(os.path.join(self.tmp_path, chunkfilename),
+                          'wb') as chunkf:
                     chunkf.write(data)
 
                 challenges = self._make_challenges(self.nchallenges)

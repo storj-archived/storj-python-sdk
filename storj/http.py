@@ -361,9 +361,8 @@ class Client(object):
 
         response = self._request(
             method='GET',
-            path='/buckets/%s/files/%s/' % (bucket_id, file_id),
-            headers={'x-token': pull_token.id, 'skip': str(skip), 'limit': str(limit)},
-            json={'skip': str(skip), 'limit': str(limit)})
+            path='/buckets/%s/files/%s/?skip=%s&limit=%s' % (bucket_id, file_id, skip, limit),
+            headers={'x-token': pull_token.id})
 
         return response
 

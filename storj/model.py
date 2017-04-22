@@ -10,7 +10,6 @@ import math
 import io
 import random
 import os
-import os.path
 
 import six
 import strict_rfc3339

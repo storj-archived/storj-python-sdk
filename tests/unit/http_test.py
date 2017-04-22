@@ -261,7 +261,7 @@ class ClientTestCase(AbstractTestCase):
         self.mock_request.assert_called_once_with(
             method='GET',
             path='/buckets/%s/files/%s/?skip=%s&limit=%s' % (test_bucket_id, test_file_id, test_skip, test_limit),
-            headers={'x-token': pull_token.id})
+            headers={'x-token': None})
 
         mock_token_create.assert_called_once_with(
             test_bucket_id, operation='PULL')

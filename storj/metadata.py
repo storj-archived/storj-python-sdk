@@ -17,7 +17,7 @@ __author_email__ = ';'.join([
     'f483@storj.io',
     'james@storj.io',
     'marc.schubert@gmail.com',
-    '',
+    'marcor165@hotmail.it',
     'mibgranny@aol.com',
     'steenzout@ymail.com',
     '',

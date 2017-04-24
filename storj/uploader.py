@@ -109,7 +109,7 @@ class Uploader:
                 print "URL: " + url
 
                 # begin recording exchange report
-                #exchange_report = model.ExchangeReport()
+                # exchange_report = model.ExchangeReport()
 
                 current_timestamp = int(time.time())
 
@@ -175,7 +175,7 @@ class Uploader:
                             str(self.shards_already_uploaded) + " sent"
                         if int(self.all_shards_count) <= int(self.shards_already_uploaded):
                             print "Finish upload"
-                            #finish_upload(self)
+                            # finish_upload(self)
                         break
 
                 print response.content
@@ -302,7 +302,7 @@ class Uploader:
         print "End sharding"
         print "There are " + str(shards_count) + " shards"
         # create file hash
-        #self.client.logger.debug('file_upload() push_token=%s', push_token)
+        # self.client.logger.debug('file_upload() push_token=%s', push_token)
 
         # upload shards to frame
 

@@ -459,7 +459,7 @@ class MerkleTree(Object):
     Nodes are stored as strings in rows.
     Row 0 is the root node, row 1 is its children, row 2 is their children, etc
 
-    Arguments
+    Args:
         leaves (list[str]/types.generator[str]):
             leaves of the tree, as hex digests
 
@@ -862,8 +862,10 @@ class ShardManager(Object):
     @staticmethod
     def hash(data):
         """Returns ripemd160 of sha256 of a string as a string of hex.
+
         Args:
             data (str): content to be digested.
+
         Returns:
             (str): the ripemd160 of sha256 digest.
         """
@@ -876,8 +878,10 @@ class ShardManager(Object):
     @staticmethod
     def _ripemd160(b):
         """Returns the ripemd160 digest of bytes as bytes.
+
         Args:
             b (str): content to be ripemd160 digested.
+
         Returns:
             (str): the ripemd160 digest.
         """
@@ -887,8 +891,10 @@ class ShardManager(Object):
     @staticmethod
     def _sha256(b):
         """Returns the sha256 digest of bytes as bytes.
+
         Args:
             b (str): content to be sha256 digested.
+
         Returns:
             (str): the sha256 digest.
         """
@@ -897,8 +903,10 @@ class ShardManager(Object):
 
     def _make_challenges(self, challenges=12):
         """Generates the challenge strings.
+
         Args:
             challenges (int): number of challenges to be generated.
+
         Returns:
             (list[str]): list of challenges.
         """
@@ -920,12 +928,14 @@ class ShardManager(Object):
 
 class Token(Object):
     """Token.
+
     Args:
         token (str): token unique identifier.
         bucket (str): bucket unique identifier.
         operation ():
         expires (str): expiration date, in the RFC3339 format.
         encryptionKey (str):
+
     Attributes:
         id (str): token unique identifier.
         bucket (:py:class:`storj.model.Bucket`): bucket.

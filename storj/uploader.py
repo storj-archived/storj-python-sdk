@@ -4,6 +4,7 @@ import hmac
 
 import json
 import os
+import requests
 import threading
 import time
 
@@ -16,13 +17,14 @@ from Crypto.Cipher import AES
 from Crypto import Random
 
 MAX_RETRIES_UPLOAD_TO_SAME_FARMER = 3
-MAX_RETRIES_NEGOTIATE_CONTRACT = 10
+MAX_RETRIES_NEGOTIATE_CONTRACT = 5
 
 
 class Uploader:
 
     def __init__(self, email, password):
         self.client = Client(email, password)
+        self.shards_already_uploaded = 0
 
     def _calculate_hmac(self, base_string, key):
         """
@@ -90,13 +92,14 @@ class Uploader:
 
     def upload_shard(self, shard, chapters, frame, file_name_ready_to_shard_upload):
         contract_negotiation_tries = 0
+        exchange_report = model.ExchangeReport()
         while MAX_RETRIES_NEGOTIATE_CONTRACT > contract_negotiation_tries:
             contract_negotiation_tries += 1
             print "Negotiating contract"
             print "Trying to negotiate storage contract for shard at \
                     index " + str(chapters) + "..."
             try:
-                frame_content = self.storj_engine.storj_client.frame_add_shard(shard, frame.id)
+                frame_content = self.client.frame_add_shard(shard, frame.id)
 
                 farmerNodeID = frame_content["farmer"]["nodeID"]
 
@@ -107,7 +110,7 @@ class Uploader:
                 print "URL: " + url
 
                 # begin recording exchange report
-                exchange_report = model.ExchangeReport()
+                #exchange_report = model.ExchangeReport()
 
                 current_timestamp = int(time.time())
 
@@ -128,9 +131,10 @@ class Uploader:
                             ":" +\
                             str(frame_content["farmer"]["port"])
 
-                        mypath = os.path.join(tmpPath,
+                        mypath = os.path.join(self.tmp_path,
                                               file_name_ready_to_shard_upload +
                                               '-' + str(chapters + 1))
+                        print ">>>TEST " + mypath
                         with open(mypath, 'rb') as f:
                             response = requests.post(url,
                                                      data=self._read_in_chunks(
@@ -140,6 +144,8 @@ class Uploader:
                                                      timeout=1)
 
                         j = json.loads(str(response.content))
+                        print "MARCO response "
+                        print j
                         if (j.get("result") == "The supplied token is not accepted"):
                             raise exception.StorjFarmerError(
                                 exception.StorjFarmerError.SUPPLIED_TOKEN_NOT_ACCEPTED)
@@ -179,11 +185,11 @@ class Uploader:
 
                 j = json.loads(str(response.content))
                 if j.get("result") == "The supplied token is not accepted":
-                    raise exception.StorjFarmerError(storj.exception.StorjFarmerError.SUPPLIED_TOKEN_NOT_ACCEPTED)
+                    raise exception.StorjFarmerError(exception.StorjFarmerError.SUPPLIED_TOKEN_NOT_ACCEPTED)
 
             except exception.StorjBridgeApiError as e:
                 # upload failed due to Storj Bridge failure
-                print "Exception raised while trying to negitiate \
+                print "Exception raised while trying to negotiate \
                              contract: "
                 print e
                 continue
@@ -198,12 +204,12 @@ class Uploader:
                     contract for shard at index " +\
                     str(chapters) +\
                     " . Retrying..."
-                current_timestamp = int(time.time())
 
+                current_timestamp = int(time.time())
                 exchange_report.exchangeEnd = str(current_timestamp)
                 exchange_report.exchangeResultCode = (exchange_report.FAILURE)
                 exchange_report.exchangeResultMessage = (exchange_report.STORJ_REPORT_UPLOAD_ERROR)
-                # self.storj_engine.storj_client.send_exchange_report(exchange_report) # send exchange report
+                # self.client.send_exchange_report(exchange_report) # send exchange report
                 continue
             else:
                 # uploaded with success
@@ -213,7 +219,7 @@ class Uploader:
                 exchange_report.exchangeResultCode = exchange_report.SUCCESS
                 exchange_report.exchangeResultMessage = exchange_report.STORJ_REPORT_SHARD_UPLOADED
                 print "Shard " + str(chapters + 1) + " successfully added and exchange report sent."
-                # self.storj_engine.storj_client.send_exchange_report(exchange_report) # send exchange report
+                # self.client.send_exchange_report(exchange_report) # send exchange report
                 break
 
 
@@ -257,7 +263,7 @@ class Uploader:
         hash_sha512_hmac_b64 = self.prepare_bucket_entry_hmac(shards_manager.shards)
         hash_sha512_hmac = hashlib.sha224(str(hash_sha512_hmac_b64["SHA-512"])).hexdigest()
 
-        logger.debug("Now upload file")
+        print "Now upload file"
 
         data = {
             'x-token': push_token.id,
@@ -277,8 +283,8 @@ class Uploader:
         success = False
         try:
             # TODO
-            # Da qui tornare a file upload
-            response = self.storj_engine.storj_client._request(
+            # This is the actual upload_file method
+            response = self.client._request(
                 method='POST', path='/buckets/%s/files' % bucket_id,
                 # files={'file' : file},
                 headers={
@@ -302,12 +308,14 @@ class Uploader:
         bucket_id = self.bid
         file_path = self.file_path
         tmpPath = self.tmp_path
+        print "Upload " + file_path + " in bucket " + bucket_id
+        print "Temp folder >>> " + tmpPath
 
         encryption_enabled = True
 
         bname = os.path.split(file_path)[1]  # File name
 
-        print bname + "TEST FILE NAME"
+        print bname + " TEST FILE NAME"
 
         file_mime_type = "text/plain"
 
@@ -318,6 +326,7 @@ class Uploader:
         # Path where to save the encrypted file in temp dir
         file_path_ready = os.path.join(tmpPath,
                                        bname + ".encrypted")
+        print "temp path: >>>> " + file_path_ready
         # begin file encryption")
         file_crypto_tools.encrypt_file(
             "AES",
@@ -354,14 +363,17 @@ class Uploader:
 
         # Now generate shards
         print "Sharding"
-        shards_manager = model.ShardManager(filepath=file_path_ready, tmp_path=tmpPath)
+        print tmpPath
+        shards_manager = model.ShardManager(filepath=file_path_ready,
+                                            tmp_path=self.tmp_path)
+        print "End sharding"
 
         shards_count = shards_manager.index
         # create file hash
         #self.client.logger.debug('file_upload() push_token=%s', push_token)
 
         # upload shards to frame
-        print "Shards count" + str(shards_count)
+        print "Shards count: " + str(shards_count)
 
         # set shards count
         self.all_shards_count = shards_count
@@ -376,7 +388,7 @@ class Uploader:
 
         # delete encrypted file (if encrypted and duplicated)
         if encryption_enabled:
-            logger.info("Remove file " + file_path_ready)
+            print "Remove file " + file_path_ready
             os.remove(file_path_ready)
 
 

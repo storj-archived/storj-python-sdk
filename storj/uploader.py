@@ -29,7 +29,6 @@ class Uploader:
     def _calculate_hmac(self, base_string, key):
         """
         HMAC hash calculation and returning the results in dictionary collection
-        FROM: <https://janusznawrat.wordpress.com/2015/04/08/wyliczanie-kryptograficznych-sum-kontrolnych-hmac-plikow-i-lancuchow-znakowych/>
         """
         hmacs = dict()
         # --- MD5 ---

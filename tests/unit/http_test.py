@@ -252,7 +252,8 @@ class ClientTestCase(AbstractTestCase):
 
         mock_token_create.return_value = model.Token(token='test_token')
 
-        response = self.client.file_pointers(test_bucket_id, test_file_id)
+        response = self.client.file_pointers(
+            test_bucket_id, test_file_id, test_skip, test_limit)
 
         assert response is not None
         for pointer in response:
@@ -260,7 +261,8 @@ class ClientTestCase(AbstractTestCase):
 
         self.mock_request.assert_called_once_with(
             method='GET',
-            path='/buckets/%s/files/%s/?skip=%s&limit=%s' % (test_bucket_id, test_file_id, test_skip, test_limit),
+            path='/buckets/%s/files/%s/?skip=%s&limit=%s' % (
+                test_bucket_id, test_file_id, test_skip, test_limit),
             headers={'x-token': None})
 
         mock_token_create.assert_called_once_with(

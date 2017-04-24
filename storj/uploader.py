@@ -89,7 +89,6 @@ class Uploader:
             args=())
         upload_thread.start()
 
-
     def upload_shard(self, shard, chapters, frame, file_name_ready_to_shard_upload):
         contract_negotiation_tries = 0
         exchange_report = model.ExchangeReport()
@@ -218,20 +217,6 @@ class Uploader:
                 # self.client.send_exchange_report(exchange_report) # send exchange report
                 break
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def _read_in_chunks(self, file_object, shard_size, blocksize=4096, chunks=-1, shard_index=None):
         """Lazy function (generator) to read a file piece by piece.
         Default chunk size: 1k."""
@@ -251,11 +236,6 @@ class Uploader:
             print "chunk %d" % i
             chunks -= 1
 
-
-
-
-
-
     def file_upload_begin(self):
 
         bucket_id = self.bid
@@ -263,48 +243,6 @@ class Uploader:
         tmpPath = self.tmp_path
         print "Upload " + file_path + " in bucket " + bucket_id
         print "Temp folder " + tmpPath
-
-        # Begin finish upload function
-        def finish_upload(self):
-            print "Generating HMAC..."
-            hash_sha512_hmac_b64 = self._prepare_bucket_entry_hmac(shards_manager.shards)
-            hash_sha512_hmac = hashlib.sha224(str(hash_sha512_hmac_b64["SHA-512"])).hexdigest()
-            print "Now upload file"
-            data = {
-                'x-token': push_token.id,
-                'x-filesize': str(file_size),
-                'frame': frame.id,
-                'mimetype': file_mime_type,
-                'filename': str(bname) + str(self.fileisdecrypted_str),
-                'hmac': {
-                    'type': "sha512",
-                    'value': hash_sha512_hmac
-                },
-            }
-
-            print "Finishing upload"
-            print "Adding file " + str(bname) + " to bucket..."
-
-            success = False
-            try:
-                # TODO
-                # This is the actual upload_file method
-                response = self.client._request(
-                    method='POST', path='/buckets/%s/files' % bucket_id,
-                    # files={'file' : file},
-                    headers={
-                        'x-token': push_token.id,
-                        'x-filesize': str(file_size),
-                    },
-                    json=data,
-                )
-                success = True
-            except exception.StorjBridgeApiError as e:
-                print "Unhandled bridge exception"
-                print e
-            if success:
-                print "File uploaded successfully!"
-        # End finish upload
 
         encryption_enabled = True
 
@@ -377,21 +315,50 @@ class Uploader:
             self.createNewShardUploadThread(shard, chapters, frame, file_name_ready_to_shard_upload)
             chapters += 1
 
-        finish_upload(self)
+        # finish_upload
+        print "Generating HMAC..."
+        hash_sha512_hmac_b64 = self._prepare_bucket_entry_hmac(shards_manager.shards)
+        hash_sha512_hmac = hashlib.sha224(str(hash_sha512_hmac_b64["SHA-512"])).hexdigest()
+        print "Now upload file"
+        data = {
+            'x-token': push_token.id,
+            'x-filesize': str(file_size),
+            'frame': frame.id,
+            'mimetype': file_mime_type,
+            'filename': str(bname) + str(self.fileisdecrypted_str),
+            'hmac': {
+                'type': "sha512",
+                'value': hash_sha512_hmac
+            },
+        }
+
+        print "Finishing upload"
+        print "Adding file " + str(bname) + " to bucket..."
+
+        success = False
+        try:
+            # TODO
+            # This is the actual upload_file method
+            response = self.client._request(
+                method='POST', path='/buckets/%s/files' % bucket_id,
+                # files={'file' : file},
+                headers={
+                    'x-token': push_token.id,
+                    'x-filesize': str(file_size),
+                },
+                json=data,
+            )
+            success = True
+        except exception.StorjBridgeApiError as e:
+            print "Unhandled bridge exception"
+            print e
+        if success:
+            print "File uploaded successfully!"
 
         # delete encrypted file (if encrypted and duplicated)
         if encryption_enabled and file_path_ready != "":
             print "Remove file " + file_path_ready
             os.remove(file_path_ready + "*")
-
-
-
-
-
-
-
-
-
 
 
 class FileCrypto:

@@ -339,7 +339,7 @@ class Client(object):
             method='GET',
             path='/contacts/%s' % node_id))
 
-    def file_pointers(self, bucket_id, file_id, skip=None, limit=None):
+    def file_pointers(self, bucket_id, file_id, skip, limit, exclude=None):
         """Get list of pointers associated with a file.
 
         See `API buckets: GET /buckets/{id}/files/{file_id}
@@ -350,20 +350,28 @@ class Client(object):
             file_id (str): file unique identifier.
             skip (str): pointer index to start the file slice.
             limit (str): number of pointers to resolve tokens for.
+            exclude (list[str]): separated list of farmer node unique identifiers to exclude from token retrieval.
 
         Returns:
             (generator[:py:class:`storj.model.FilePointer`]): file pointers.
         """
-        self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
+        self.logger.debug('bucket_files(%s, %s, %s, %s, %s)', bucket_id, file_id, skip, limit, exclude)
+
+        if bucket_id is None:
+            raise ValueError('bucket unique identifier is None')
+        if file_id is None:
+            raise ValueError('file unique identifier is None')
+        if skip is None:
+            raise ValueError('starting pointer index is None')
+        if limit is None:
+            raise ValueError('number of tokens to resolve is None')
 
         pull_token = self.token_create(bucket_id, operation='PULL')
 
-        response = self._request(
+        return self._request(
             method='GET',
             path='/buckets/%s/files/%s/?skip=%s&limit=%s' % (bucket_id, file_id, skip, limit),
             headers={'x-token': pull_token.id})
-
-        return response
 
     def file_download(self, bucket_id, file_id):
         self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)

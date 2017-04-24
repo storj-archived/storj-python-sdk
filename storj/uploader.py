@@ -17,7 +17,7 @@ from Crypto.Cipher import AES
 from Crypto import Random
 
 MAX_RETRIES_UPLOAD_TO_SAME_FARMER = 3
-MAX_RETRIES_NEGOTIATE_CONTRACT = 5
+MAX_RETRIES_NEGOTIATE_CONTRACT = 10
 
 
 class Uploader:

@@ -380,9 +380,9 @@ class Uploader:
         finish_upload(self)
 
         # delete encrypted file (if encrypted and duplicated)
-        if encryption_enabled:
+        if encryption_enabled and file_path_ready != "":
             print "Remove file " + file_path_ready
-            os.remove(file_path_ready)
+            os.remove(file_path_ready + "*")
 
 
 

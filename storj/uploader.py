@@ -73,7 +73,7 @@ class Uploader:
         self.file_path = file_path
         self.tmp_path = tmp_file_path
         upload_thread = threading.Thread(
-            target=self.file_upload_begin,
+            target=self.file_upload,
             args=())
         upload_thread.start()
 
@@ -236,7 +236,7 @@ class Uploader:
             print "chunk %d" % i
             chunks -= 1
 
-    def file_upload_begin(self):
+    def file_upload(self):
 
         bucket_id = self.bid
         file_path = self.file_path

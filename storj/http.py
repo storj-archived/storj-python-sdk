@@ -354,7 +354,6 @@ class Client(object):
         Returns:
             (generator[:py:class:`storj.model.FilePointer`]): file pointers.
         """
-        # print "test"
         self.logger.info('bucket_files(%s, %s)', bucket_id, file_id)
 
         pull_token = self.token_create(bucket_id, operation='PULL')

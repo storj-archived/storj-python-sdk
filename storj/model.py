@@ -1,34 +1,36 @@
 # -*- coding: utf-8 -*-
 """Storj model module."""
 
+import base58
 import base64
 import binascii
 import hashlib
+import logging
+import math
+import io
+import random
 import os
 import os.path
-import random
 
 import six
 import strict_rfc3339
 import types
 
-from os import urandom
+from Crypto.Cipher import AES
 from datetime import datetime
 
-import io
+from micropayment_core import keys
+
+from os import urandom
+
 from pycoin.key.Key import Key
 from pycoin.serialize import b2h
 from pycoin.key.BIP32Node import BIP32Node
 from pycoin.serialize.bitcoin_streamer import stream_bc_string
 from pycoin.ecdsa import numbertheory, generator_secp256k1
 from pycoin.encoding import to_bytes_32, from_bytes_32, double_sha256
-from micropayment_core import keys
 
 from steenzout.object import Object
-
-from Crypto.Cipher import AES
-import base58
-import math
 
 from sys import platform
 
@@ -44,8 +46,7 @@ class Bucket(Object):
         name (str): name.
         status (str): bucket status (Active, ...).
         user (str): user email address.
-        created (:py:class:`datetime.datetime`):
-            time when the bucket was created.
+        created (:py:class:`datetime.datetime`): time when the bucket was created.
         storage (int): storage limit (in GB).
         transfer (int): transfer limit (in GB).
         pubkeys ():
@@ -75,9 +76,6 @@ class Bucket(Object):
                 strict_rfc3339.rfc3339_to_timestamp(created))
         else:
             self.created = None
-
-    def delete(self):
-        BucketManager.delete(bucket_id=self.id)
 
 
 class Contact(Object):
@@ -153,24 +151,14 @@ class File(Object):
     def name(self):
         return self.filename
 
-    def download(self):
-        return api_client.file_download(bucket_id=self.bucket,
-                                        file_hash=self.hash)
-
-    def delete(self):
-        bucket_files = FileManager(bucket_id=self.bucket)
-        bucket_files.delete(self.id)
-
 
 class FilePointer(Object):
     """File pointer.
-
     Args:
         hash (str):
         token (str): token unique identifier.
         operation (str):
         channel (str):
-
     Attributes:
         hash (str):
         token (:py:class:`storj.model.Token`): token.
@@ -187,7 +175,6 @@ class FilePointer(Object):
 
 class Frame(Object):
     """File staging frame.
-
     Attributes:
         id (str): unique identifier.
         created (:py:class:`datetime.datetime`):
@@ -216,14 +203,11 @@ class Frame(Object):
 class KeyPair(object):
     """
     ECDSA key pair.
-
     Args:
         pkey (str): hexadecimal representation of the private key (secret exponent).
         secret (str): master password.
-
     Attributes:
         keypair (:py:class:`pycoin.key.Key.Key`): BIP0032-style hierarchical wallet.
-
     Raises:
         NotImplementedError when
             a randomness source is not found.
@@ -400,7 +384,7 @@ class IdecdsaCipher(Object):
     def simpleDecrypt(self, passphrase, base58_data):
         """Decrypt data.
 
-         Args:
+        Args:
             passphrase (str): passphrase to use for decryption.
             base58_data (str/bytes): base58-encoded encrypted data.
 
@@ -471,11 +455,11 @@ class Keyring(Object):
 
 
 class MerkleTree(Object):
-    """
-    Simple merkle hash tree. Nodes are stored as strings in rows.
+    """Simple merkle hash tree.
+    Nodes are stored as strings in rows.
     Row 0 is the root node, row 1 is its children, row 2 is their children, etc
 
-    Arguments
+    Args:
         leaves (list[str]/types.generator[str]):
             leaves of the tree, as hex digests
 
@@ -687,6 +671,9 @@ class ShardingException(Exception):
 
 
 class ShardManager(Object):
+
+    __logger = logging.getLogger('%s.ShardManager' % __name__)
+
     global SHARD_MULTIPLES_BACK, MAX_SHARD_SIZE
 
     MAX_SHARD_SIZE = 4294967296  # 4Gb
@@ -696,13 +683,13 @@ class ShardManager(Object):
             self,
             filepath,
             shard_size=None,
-            tmp_path='/tmp/',
+            tmp_path=None,
             nchallenges=2,
     ):
+        self.tmp_path = tmp_path
         self.nchallenges = nchallenges
         self.shard_size = shard_size
         self.filepath = filepath
-        self.tmp_path = tmp_path
 
     @property
     def filepath(self):
@@ -731,10 +718,12 @@ class ShardManager(Object):
             shard_size = self.determine_shard_size(file_size, accumulator)
             accumulator += 1
 
-        print(shard_size)
-        print(file_size)
+        self.__logger.debug('shard_size=%s file_size=%s', shard_size, file_size)
+
         if shard_size == 0:
             shard_size = file_size
+
+        self.__logger.debug('shard_size=%s file_size=%s', shard_size, file_size)
 
         shard_parameters['shard_size'] = str(shard_size)
         shard_parameters['shard_count'] = math.ceil(file_size / shard_size)
@@ -754,7 +743,7 @@ class ShardManager(Object):
             # if accumulator != True:
             # accumulator  = 0
 
-        print(accumulator)
+        self.__logger.debug('acumulator=%s', accumulator)
 
         # Determine hops back by accumulator
 
@@ -802,7 +791,7 @@ class ShardManager(Object):
             self.get_optimal_shard_parametrs(fsize)
 
         self.__numchunks = int(optimal_shard_parametrs['shard_count'])
-        print('Number of chunks %d\n' % self.__numchunks)
+        self.__logger.debug('Number of chunks %d', self.__numchunks)
 
         try:
             f = open(self.filepath, 'rb')
@@ -827,23 +816,26 @@ class ShardManager(Object):
                 chunksz = fsize - total_bytes
 
             self.shard_size = chunksz
-            if platform == 'linux' or platform == 'linux2':
-                # linux
-                self.tmp_path = '/tmp/'
-            elif platform == 'darwin':
-                # OS X
-                self.tmp_path = '/tmp/'
-            elif platform == 'win32':
-                # Windows
-                self.tmp_path = 'C://Windows/temp/'
+
+            if self.tmp_path is None:
+                if platform == 'linux' or platform == 'linux2':
+                    # linux
+                    self.tmp_path = '/tmp/'
+                elif platform == 'darwin':
+                    # OS X
+                    self.tmp_path = '/tmp/'
+                elif platform == 'win32':
+                    # Windows
+                    self.tmp_path = 'C://Windows/temp/'
+            self.__logger.debug('self.tmp_path=%s', self.tmp_path)
 
             try:
-                print('Writing file %s' % chunkfilename)
+                self.__logger.debug('Writing file %s', chunkfilename)
                 data = f.read(chunksz)
                 total_bytes += len(data)
                 inc = len(data)
 
-                with open('%s%s' % (self.tmp_path, chunkfilename), 'wb') as chunkf:
+                with open('%s/%s' % (self.tmp_path, chunkfilename), 'wb') as chunkf:
                     chunkf.write(data)
 
                 challenges = self._make_challenges(self.nchallenges)
@@ -859,10 +851,10 @@ class ShardManager(Object):
                 index += 1
                 i += 1
             except (OSError, IOError) as e:
-                print(e)
+                self.__logger.error(e)
                 continue
             except EOFError as e:
-                print(e)
+                self.__logger.error(e)
                 break
 
         self.index = len(self.shards)
@@ -925,11 +917,9 @@ class ShardManager(Object):
 
     def _make_tree(self, challenges, data):
         """Creates a Storj Merkle tree.
-
         Args:
             challenges (list[str]): A list of random challenges.
             data (str): data to be audited.
-
         Returns:
             (:py:class:`MerkleTree`): audit tree.
         """

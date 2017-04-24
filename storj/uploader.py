@@ -64,7 +64,7 @@ class Uploader:
         current_hmac = ""
         for shard in shard_array:
             base64_decoded = str(base64.decodestring(shard.hash)) + str(current_hmac)
-            current_hmac = self.calculate_hmac(base64_decoded, encryption_key)
+            current_hmac = self._calculate_hmac(base64_decoded, encryption_key)
         print current_hmac
         return current_hmac
 
@@ -134,7 +134,6 @@ class Uploader:
                         mypath = os.path.join(self.tmp_path,
                                               file_name_ready_to_shard_upload +
                                               '-' + str(chapters + 1))
-                        print ">>>TEST " + mypath
                         with open(mypath, 'rb') as f:
                             response = requests.post(url,
                                                      data=self._read_in_chunks(
@@ -144,7 +143,6 @@ class Uploader:
                                                      timeout=1)
 
                         j = json.loads(str(response.content))
-                        print "MARCO response "
                         print j
                         if (j.get("result") == "The supplied token is not accepted"):
                             raise exception.StorjFarmerError(
@@ -175,10 +173,10 @@ class Uploader:
                             str(frame_content["farmer"]["port"])
 
                         print str(self.all_shards_count) + " shards, " +\
-                            str(self.shards_already_uploaded) + "sent"
+                            str(self.shards_already_uploaded) + " sent"
                         if int(self.all_shards_count) <= int(self.shards_already_uploaded):
                             print "Finish upload"
-                            self.finish_upload()
+                            #finish_upload(self)
                         break
 
                 print response.content
@@ -199,11 +197,9 @@ class Uploader:
                 print "Error occured while trying to upload shard or\
                              negotiate contract. Retrying... "
                 print e
-                print "Unhandled exception occured\
-                    while trying to upload shard or negotiate \
-                    contract for shard at index " +\
-                    str(chapters) +\
-                    " . Retrying..."
+                print "Unhandled exception occured while trying to upload \
+                    shard or negotiate contract for shard at index " +\
+                    str(chapters) + " . Retrying..."
 
                 current_timestamp = int(time.time())
                 exchange_report.exchangeEnd = str(current_timestamp)
@@ -251,54 +247,11 @@ class Uploader:
             if shard_size <= blocksize:
                 t1 = 1
 
-            percent_uploaded = int(round((100.0 * i) / t1))
-
+            # percent_uploaded = int(round((100.0 * i) / t1))
             print "chunk %d" % i
             chunks -= 1
 
 
-    def finish_upload(self):
-        print "Generating HMAC..."
-
-        hash_sha512_hmac_b64 = self.prepare_bucket_entry_hmac(shards_manager.shards)
-        hash_sha512_hmac = hashlib.sha224(str(hash_sha512_hmac_b64["SHA-512"])).hexdigest()
-
-        print "Now upload file"
-
-        data = {
-            'x-token': push_token.id,
-            'x-filesize': str(file_size),
-            'frame': frame.id,
-            'mimetype': file_mime_type,
-            'filename': str(bname) + str(self.fileisdecrypted_str),
-            'hmac': {
-                'type': "sha512",
-                'value': hash_sha512_hmac
-            },
-        }
-
-        print "Finishing upload"
-        print "Adding file " + str(bname) + " to bucket..."
-
-        success = False
-        try:
-            # TODO
-            # This is the actual upload_file method
-            response = self.client._request(
-                method='POST', path='/buckets/%s/files' % bucket_id,
-                # files={'file' : file},
-                headers={
-                    'x-token': push_token.id,
-                    'x-filesize': str(file_size),
-                },
-                json=data,
-            )
-            success = True
-        except exception.StorjBridgeApiError as e:
-            print "Unhandled bridge exception"
-            print e
-        if success:
-            print "File uploaded successfully!"
 
 
 
@@ -309,13 +262,55 @@ class Uploader:
         file_path = self.file_path
         tmpPath = self.tmp_path
         print "Upload " + file_path + " in bucket " + bucket_id
-        print "Temp folder >>> " + tmpPath
+        print "Temp folder " + tmpPath
+
+        # Begin finish upload function
+        def finish_upload(self):
+            print "Generating HMAC..."
+            hash_sha512_hmac_b64 = self._prepare_bucket_entry_hmac(shards_manager.shards)
+            hash_sha512_hmac = hashlib.sha224(str(hash_sha512_hmac_b64["SHA-512"])).hexdigest()
+            print "Now upload file"
+            data = {
+                'x-token': push_token.id,
+                'x-filesize': str(file_size),
+                'frame': frame.id,
+                'mimetype': file_mime_type,
+                'filename': str(bname) + str(self.fileisdecrypted_str),
+                'hmac': {
+                    'type': "sha512",
+                    'value': hash_sha512_hmac
+                },
+            }
+
+            print "Finishing upload"
+            print "Adding file " + str(bname) + " to bucket..."
+
+            success = False
+            try:
+                # TODO
+                # This is the actual upload_file method
+                response = self.client._request(
+                    method='POST', path='/buckets/%s/files' % bucket_id,
+                    # files={'file' : file},
+                    headers={
+                        'x-token': push_token.id,
+                        'x-filesize': str(file_size),
+                    },
+                    json=data,
+                )
+                success = True
+            except exception.StorjBridgeApiError as e:
+                print "Unhandled bridge exception"
+                print e
+            if success:
+                print "File uploaded successfully!"
+        # End finish upload
 
         encryption_enabled = True
 
         bname = os.path.split(file_path)[1]  # File name
 
-        print bname + " TEST FILE NAME"
+        print bname
 
         file_mime_type = "text/plain"
 
@@ -326,8 +321,8 @@ class Uploader:
         # Path where to save the encrypted file in temp dir
         file_path_ready = os.path.join(tmpPath,
                                        bname + ".encrypted")
-        print "temp path: >>>> " + file_path_ready
-        # begin file encryption")
+        print "temp path: " + file_path_ready
+        # begin file encryption"
         file_crypto_tools.encrypt_file(
             "AES",
             file_path,
@@ -363,17 +358,15 @@ class Uploader:
 
         # Now generate shards
         print "Sharding"
-        print tmpPath
         shards_manager = model.ShardManager(filepath=file_path_ready,
                                             tmp_path=self.tmp_path)
-        print "End sharding"
-
         shards_count = shards_manager.index
+        print "End sharding"
+        print "There are " + str(shards_count) + " shards"
         # create file hash
         #self.client.logger.debug('file_upload() push_token=%s', push_token)
 
         # upload shards to frame
-        print "Shards count: " + str(shards_count)
 
         # set shards count
         self.all_shards_count = shards_count
@@ -384,7 +377,7 @@ class Uploader:
             self.createNewShardUploadThread(shard, chapters, frame, file_name_ready_to_shard_upload)
             chapters += 1
 
-        # finish_upload(self)
+        finish_upload(self)
 
         # delete encrypted file (if encrypted and duplicated)
         if encryption_enabled:

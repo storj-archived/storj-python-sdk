@@ -1,7 +1,7 @@
 # coding: utf-8
 """Storj metadata module."""
 
-__author__ = (
+__author__ = ','.join([
     'Daniel Hawkins',
     'Fabian Barkhau',
     'James Prestwich',
@@ -11,7 +11,7 @@ __author__ = (
     'Pedro Salgado',
     'Shawn Wilkinson',
     'Wiktor Jezioro'
-)
+])
 __author_email__ = ';'.join([
     'hwkns@alum.mit.edu',
     'f483@storj.io',

@@ -20,7 +20,7 @@ __author_email__ = ';'.join([
     '',
     'mibgranny@aol.com',
     'steenzout@ymail.com',
-    '',
+    'shawn+pythonsdk@storj.io',
     'lakewik@lakewik.pl'
 ])
 __version__ = '0.2.0'

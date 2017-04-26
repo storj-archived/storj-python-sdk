@@ -4,10 +4,10 @@ import os
 from sys import platform
 import requests
 
-from utilities.sharder import ShardingTools
-#from crypto.file_crypto_tools import FileCrypto
+from sharder import ShardingTools
+from file_crypto import FileCrypto
 import threading
-import exception as stjex
+import exception
 
 # from logs_backend import LogsUI
 # from logs_backend import LogHandler, logger
@@ -26,9 +26,7 @@ class Downloader:
 
     def __init__(self, email, password, parent=None, bucketid=None, fileid=None):
         self.client = Client(email, password)
-        self.storj_engine = StorjEngine()  # init StorjEngine
         self.filename_from_bridge = ""
-        self.tools = Tools()
 
         self.bucket_id = bucketid
         self.file_id = fileid
@@ -48,13 +46,13 @@ class Downloader:
         temp_dir = ""
         if platform == "linux" or platform == "linux2":
             # linux
-            temp_dir = "/tmp/"
+            temp_dir = "/tmp"
         elif platform == "darwin":
             # OS X
-            temp_dir = "/tmp/"
+            temp_dir = "/tmp"
         elif platform == "win32":
             # Windows
-            temp_dir = "C:/Windows/temp/"
+            temp_dir = "C:/Windows/temp"
 
         #self.ui_single_file_download.tmp_dir.setText(str(temp_dir))
 
@@ -144,7 +142,7 @@ class Downloader:
             self.filename_from_bridge = str(file_metadata.filename)
             print "Filename from bridge: " + self.filename_from_bridge
             self.resolved_file_metadata = True
-        except storj.exception.StorjBridgeApiError as e:
+        except exception.StorjBridgeApiError as e:
             print "Error while resolving file metadata. "
             print e
         except Exception as e:
@@ -244,6 +242,9 @@ class Downloader:
             i += 1
         return 1
 
+
+
+    '''
     def retry_download_with_new_pointer(self, shard_index):
         print "ponowienie"
         tries_get_file_pointers = 0
@@ -255,7 +256,7 @@ class Downloader:
                 options_array["progressbars_enabled"] = "1"
                 options_array["file_size_is_given"] = "1"
                 options_array["shards_count"] = str(self.all_shards_count)
-                shard_pointer = self.storj_engine.storj_client.file_pointers(str(self.bucket_id), self.file_id, limit="1",
+                shard_pointer = self.client.file_pointers(str(self.bucket_id), self.file_id, limit="1",
                                                                              skip=str(shard_index))
                 print shard_pointer[0]
                 options_array["shard_index"] = shard_pointer[0]["index"]
@@ -263,7 +264,7 @@ class Downloader:
                 options_array["file_size_shard_" + str(shard_index)] = shard_pointer[0]["size"]
                 self.emit(QtCore.SIGNAL("beginShardDownloadProccess"), shard_pointer[0],
                           self.destination_file_path, options_array)
-            except stjex.StorjBridgeApiError as e:
+            except exception.StorjBridgeApiError as e:
                 logger.debug('"title": "Bridge error"')
                 logger.debug('"description": "Error while resolving file pointers \
                                                          to download file"')
@@ -273,7 +274,7 @@ class Downloader:
                 break
 
         return 1
-
+    '''
 
 
 
@@ -355,7 +356,7 @@ class Downloader:
             # TODO duplicated?
             file_metadata = self.client.file_metadata(str(bucket_id), str(file_id))
             self.file_frame = file_metadata.frame
-        except storj.exception.StorjBridgeApiError as e:
+        except exception.StorjBridgeApiError as e:
             print "Error while resolving file frame ID."
             print e
         except Exception as e:
@@ -503,10 +504,10 @@ class Downloader:
 
         try:
             # check ability to write files to selected directories
-            if self.tools.isWritable(os.path.split(file_save_path)[0]) is False:
-                raise IOError("13")
-            if self.tools.isWritable(self.tmp_path) is False:
-                raise IOError("13")
+            #if self.tools.isWritable(os.path.split(file_save_path)[0]) is False:
+            #    raise IOError("13")
+            #if self.tools.isWritable(self.tmp_path) is False:
+            #    raise IOError("13")
 
             try:
                 if options_array["file_size_is_given"] == "1":
@@ -530,11 +531,12 @@ class Downloader:
 
                 print pointer
                 options_chain["shard_file_size"] = shard_size_array[0]
-                url = "http://" + pointer.get('farmer')['address'] + \
+                url = "http://" + \
+                      str(pointer.get('farmer')['address']) + \
                       ":" + \
                       str(pointer.get('farmer')['port']) + \
-                      "/shards/" + pointer["hash"] + \
-                      "?token=" + pointer["token"]
+                      "/shards/" + str(pointer["hash"]) + \
+                      "?token=" + str(pointer["token"])
                 print url
 
                 if self.combine_tmpdir_name_with_token:

@@ -79,7 +79,7 @@ class ShardingTools():
         # Based on <http://code.activestate.com/recipes/224800-simple-file-splittercombiner-module/>
         import re
 
-        print 'Creating file' + destination_file_path
+        print 'Creating file ' + destination_file_path
 
         bname = (os.path.split(destination_file_path))[1]
         bname_input = (os.path.split(shards_filepath))[1]
@@ -98,7 +98,6 @@ class ShardingTools():
 
         chunkfiles = []
         for f in os.listdir(str(input_directory)):
-            print f
             if chunkre.match(f):
                 chunkfiles.append(f)
 

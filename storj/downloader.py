@@ -9,11 +9,6 @@ from file_crypto import FileCrypto
 import threading
 import exception
 
-# from logs_backend import LogsUI
-# from logs_backend import LogHandler, logger
-#from utilities.log_manager import logger
-
-#from resources.html_strings import html_format_begin, html_format_end
 import time
 
 from http import Client
@@ -31,16 +26,7 @@ class Downloader:
         self.bucket_id = bucketid
         self.file_id = fileid
 
-        # TODO FUNZIONE DA CHIAMARE PER INIZIARE IL DOWNLOAD
-        # self.createNewDownloadInitThread(bucketid, fileid)  # begin file downloading process
-
         self.shards_already_downloaded = 0
-
-        # 1
-        self.createNewInitializationThread(bucketid, fileid)
-
-        self.shard_download_percent_list = []
-
 
         # set default paths
         temp_dir = ""
@@ -53,8 +39,6 @@ class Downloader:
         elif platform == "win32":
             # Windows
             temp_dir = "C:/Windows/temp"
-
-        #self.ui_single_file_download.tmp_dir.setText(str(temp_dir))
 
         # set config variables
         self.combine_tmpdir_name_with_token = False
@@ -72,19 +56,6 @@ class Downloader:
 
 
 
-    def show_storj_bridge_exception(self, exception_content):
-        print "Bridge exception"
-        try:
-            j = json.loads(str(exception_content))
-            if j.get("error") == "Failed to get retrieval token":
-                print "Bridge error" + str(j["error"]) +\
-                    ". Please wait and try again."
-            else:
-                print "Bridge error" + str(j["error"])
-        except:
-            print "Bridge error" + str(exception_content)
-
-
     def createNewInitializationThread(self, bucket_id, file_id):
         """Call 1
         """
@@ -97,6 +68,7 @@ class Downloader:
     def createNewDownloadInitThread(self, bucket_id, file_id):
         """Call 2
         """
+        self.set_file_metadata(bucket_id, file_id)
         file_name_resolve_thread = threading.Thread(target=self.download_begin, args=(bucket_id, file_id))
         file_name_resolve_thread.start()
 
@@ -190,7 +162,7 @@ class Downloader:
             file_crypto_tools = FileCrypto()
             file_crypto_tools.decrypt_file("AES", str(self.destination_file_path) + ".encrypted",
                                            self.destination_file_path,
-                                           str(self.user_password))  # begin file decryption
+                                           str(self.client.password))  # begin file decryption
 
         print "Finish decryption"
         print "Downloading completed successfully!"
@@ -287,7 +259,7 @@ class Downloader:
         self.all_shards_count = self.get_file_pointers_count(bucket_id, file_id)
 
         # TODO: delete this variable?
-        #self.destination_file_path = "/tmp"
+        self.destination_file_path = "/home/marco/" + self.filename_from_bridge
         self.tmp_path = "/tmp"
         # use self.filename_from_bridge instead
         #file_name = os.path.split(self.destination_file_path)[1]
@@ -299,8 +271,9 @@ class Downloader:
 
             i = 0
             # TODO: 4 or self.all_shards_count?
-            #while i < self.all_shards_count:
-            while i < 4:
+            #while i < 4:
+            while i < self.all_shards_count:
+                print "tentativo i = %d" % i
                 tries_get_file_pointers = 0
                 while MAX_RETRIES_GET_FILE_POINTERS > tries_get_file_pointers:
                     tries_get_file_pointers += 1
@@ -312,7 +285,7 @@ class Downloader:
                         options_array["file_size_is_given"] = "1"
                         options_array["shards_count"] = str(self.all_shards_count)
                         shard_pointer = self.client.file_pointers(
-                            str(bucket_id),
+                            bucket_id,
                             file_id,
                             limit="1",
                             skip=str(i))
@@ -323,6 +296,10 @@ class Downloader:
                         #self.emit(QtCore.SIGNAL("beginShardDownloadProccess"), shard_pointer[0], self.destination_file_path, options_array)
                         print "Begin shard download process"
                         print "MARCO call shard_download function"
+                        self.shard_download(
+                            shard_pointer[0],
+                            self.destination_file_path,
+                            options_array)
                         # 2.1.2
                     except exception.StorjBridgeApiError as e:
                         print "Bridge error"
@@ -405,44 +382,12 @@ class Downloader:
             farmer_tries += 1
             try:
                 self.current_active_connections += 1
-                if options_chain["handle_progressbars"] != "1":
-                    r = requests.get(url)
-                    # requests.
-                    with open(local_filename, 'wb') as f:
-                        for chunk in r.iter_content(chunk_size=1024):
-                            if chunk:  # filter out keep-alive new chunks
-                                f.write(chunk)
-                else:
-                    r = requests.get(url, stream=True)
-                    f = open(local_filename, 'wb')
-                    if options_chain["file_size_is_given"] == "1":
-                        file_size = options_chain["shard_file_size"]
-                    else:
-                        file_size = int(r.headers['Content-Length'])
-
-                    chunk = 1
-                    num_bars = file_size / chunk
-                    t1 = float(file_size) / float(32 * 1024)
-
-                    if file_size <= (32 * 1024):
-                        t1 = 1
-                    print "t1: " + str(t1)
-
-                    i = 0
-                    print "file size " + str(file_size)
-                    for chunk in r.iter_content(32 * 1024):
-                        i += 1
-                        f.write(chunk)
-                        print str(i) + " " + str(t1)
-                        print round(float(i) / float(t1), 1)
-                        print str(int(round((100.0 * i) / t1))) + " %"
-                        if int(round((100.0 * i) / t1)) > 100:
-                            percent_downloaded = 100
-                        else:
-                            percent_downloaded = int(round((100.0 * i) / t1))
-
-                    f.close()
-                    downloaded = True
+                r = requests.get(url)
+                # Write the file
+                with open(local_filename, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=1024):
+                        if chunk:  # filter out keep-alive new chunks
+                            f.write(chunk)
                 if r.status_code != 200 and r.status_code != 304:
                     raise exception.StorjFarmerError()
             except exception.StorjFarmerError as e:
@@ -450,7 +395,6 @@ class Downloader:
                 print "First try failed. Retrying... (" + str(farmer_tries) +\
                     ")"  # update shard download state
                 continue
-
             except Exception as e:
                 print "Unhandled error"
                 print "Error occured while downloading shard at index " +\
@@ -532,11 +476,11 @@ class Downloader:
                 print pointer
                 options_chain["shard_file_size"] = shard_size_array[0]
                 url = "http://" + \
-                      str(pointer.get('farmer')['address']) + \
+                      pointer.get('farmer')['address'] + \
                       ":" + \
                       str(pointer.get('farmer')['port']) + \
-                      "/shards/" + str(pointer["hash"]) + \
-                      "?token=" + str(pointer["token"])
+                      "/shards/" + pointer["hash"] + \
+                      "?token=" + pointer["token"]
                 print url
 
                 if self.combine_tmpdir_name_with_token:
@@ -547,12 +491,16 @@ class Downloader:
                                                  str(self.filename_from_bridge) +
                                                  "-" + str(part),
                                                  options_chain,
-                                                 part, part)
+                                                 part)
                 else:
+                    # 2.2
+                    print "TEST non combinare tmpdir e token"
+                    print "TEST filename from bridge: " +\
+                    self.filename_from_bridge
                     self.createNewDownloadThread(
                         url, self.tmp_path + "/" +
                         str(self.filename_from_bridge) + "-" + str(part),
-                        options_chain, part, part)
+                        options_chain, part)
 
                 print self.tmp_path + "/" + self.filename_from_bridge +\
                     "-" + str(part) + "saved"

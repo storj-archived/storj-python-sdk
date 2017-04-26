@@ -68,7 +68,6 @@ class Downloader:
     def createNewDownloadInitThread(self, bucket_id, file_id):
         """Call 2
         """
-        self.set_file_metadata(bucket_id, file_id)
         file_name_resolve_thread = threading.Thread(target=self.download_begin, args=(bucket_id, file_id))
         file_name_resolve_thread.start()
 
@@ -184,7 +183,7 @@ class Downloader:
                 tries_get_file_pointers += 1
                 try:
                     options_array = {}
-                    options_array["tmp_path"] = self.tmp_path
+                    #options_array["tmp_path"] = self.tmp_path
                     options_array["file_size_is_given"] = "1"
                     options_array["shards_count"] = str(self.all_shards_count)
                     shard_pointer =self.client.file_pointers(
@@ -253,16 +252,12 @@ class Downloader:
     def download_begin(self, bucket_id, file_id):
         """Call 2.1
         """
-        # Call 2.1.1 and 2.1.1.1
-        # How many shards does this file have?
+        # Initialize environment
+        self.set_file_metadata(bucket_id, file_id)
         self.all_shards_count = self.get_file_pointers_count(bucket_id, file_id)
 
-        # TODO: delete this variable?
         self.destination_file_path = "/home/marco/" + self.filename_from_bridge
         self.tmp_path = "/tmp"
-        # use self.filename_from_bridge instead
-        #file_name = os.path.split(self.destination_file_path)[1]
-
 
         try:
             print "Resolving file pointers to download file with ID: " +\
@@ -279,8 +274,7 @@ class Downloader:
                     # time.sleep(1)
                     try:
                         options_array = {}
-                        options_array["tmp_path"] = self.tmp_path
-                        # options_array["progressbars_enabled"] = "1"
+                        #options_array["tmp_path"] = self.tmp_path
                         options_array["file_size_is_given"] = "1"
                         options_array["shards_count"] = str(self.all_shards_count)
                         shard_pointer = self.client.file_pointers(
@@ -292,14 +286,12 @@ class Downloader:
                         options_array["shard_index"] = shard_pointer[0]["index"]
 
                         options_array["file_size_shard_" + str(i)] = shard_pointer[0]["size"]
-                        #self.emit(QtCore.SIGNAL("beginShardDownloadProccess"), shard_pointer[0], self.destination_file_path, options_array)
                         print "Begin shard download process"
-                        print "MARCO call shard_download function"
+                        # TODO: parallelize downloads
                         self.shard_download(
                             shard_pointer[0],
                             self.destination_file_path,
                             options_array)
-                        # 2.1.2
                     except exception.StorjBridgeApiError as e:
                         print "Bridge error"
                         print "Error while resolving file pointers \
@@ -310,6 +302,7 @@ class Downloader:
                     else:
                         break
 
+                print ">>>>>>>>>>>>>>TEST<<<<<<<<<<<<<<<<<"
                 self.already_started_shard_downloads_count += 1
                 i += 1
 
@@ -443,22 +436,20 @@ class Downloader:
 
                 shards_count = int(options_array["shards_count"])
 
-                shard_size_array = []
-                shard_size_array.append(int(options_array["file_size_shard_" + str(options_array["shard_index"])]))
-                print shard_size_array
+                shard_size = int(options_array["file_size_shard_" +
+                             str(options_array["shard_index"])])
+                print "shard size array " + str(shard_size)
 
                 part = options_array["shard_index"]
 
-                print "changing tmp_path from " + self.tmp_path +\
-                    " to " + options_array["tmp_path"]
-                self.tmp_path = options_array["tmp_path"]
+                #print "changing tmp_path from " + self.tmp_path +\
+                #    " to " + options_array["tmp_path"]
+                #self.tmp_path = options_array["tmp_path"]
 
-                self.set_current_status("Starting download threads...")
+                print "Starting download threads..."
+                print "Downloading shard at index " + str(part) + "..."
 
-                self.set_current_status("Downloading shard at index " + str(part) + "...")
-
-                print pointer
-                options_chain["shard_file_size"] = shard_size_array[0]
+                options_chain["shard_file_size"] = shard_size
                 url = "http://" + \
                       pointer.get('farmer')['address'] + \
                       ":" + \
@@ -467,27 +458,27 @@ class Downloader:
                       "?token=" + pointer["token"]
                 print url
 
+                file_temp_path = self.tmp_path + "/" +\
+                    self.filename_from_bridge +\
+                    "-" + str(part)
                 if self.combine_tmpdir_name_with_token:
                     # 2.2
-                    self.createNewDownloadThread(url, self.tmp_path + "/" +
-                                                 str(pointer["token"]) +
-                                                 "/" +
-                                                 str(self.filename_from_bridge) +
-                                                 "-" + str(part),
+                    file_temp_path = self.tmp_path + "/" +\
+                        pointer["token"] + "/" +\
+                        self.filename_from_bridge +\
+                        "-" + str(part)
+                    self.createNewDownloadThread(url,
+                                                 file_temp_path,
                                                  options_chain,
                                                  part)
                 else:
                     # 2.2
-                    print "TEST non combinare tmpdir e token"
-                    print "TEST filename from bridge: " +\
-                    self.filename_from_bridge
+                    print "TEST do not combine tmpdir and token"
                     self.createNewDownloadThread(
-                        url, self.tmp_path + "/" +
-                        str(self.filename_from_bridge) + "-" + str(part),
+                        url, file_temp_path,
                         options_chain, part)
 
-                print self.tmp_path + "/" + self.filename_from_bridge +\
-                    "-" + str(part) + "saved"
+                print file_temp_path + " saved"
                 part = part + 1
 
             except Exception as e:

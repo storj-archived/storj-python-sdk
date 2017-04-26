@@ -89,8 +89,7 @@ class Downloader:
     def get_file_pointers_count(self, bucket_id, file_id):
         """Call 2.1.1
         """
-        file_frame = self.get_file_frame_id(bucket_id, file_id)
-        frame_data = self.client.frame_get(file_frame.id)
+        frame_data = self.client.frame_get(self.file_frame.id)
         return len(frame_data.shards)
 
 
@@ -113,7 +112,7 @@ class Downloader:
 
             self.filename_from_bridge = str(file_metadata.filename)
             print "Filename from bridge: " + self.filename_from_bridge
-            self.resolved_file_metadata = True
+            self.file_frame = file_metadata.frame
         except exception.StorjBridgeApiError as e:
             print "Error while resolving file metadata. "
             print e
@@ -326,21 +325,6 @@ class Downloader:
 
 
 
-    def get_file_frame_id(self, bucket_id, file_id):
-        """Call 2.1.1.1 (by get file pointers count)
-        """
-        try:
-            # TODO duplicated?
-            file_metadata = self.client.file_metadata(str(bucket_id), str(file_id))
-            self.file_frame = file_metadata.frame
-        except exception.StorjBridgeApiError as e:
-            print "Error while resolving file frame ID."
-            print e
-        except Exception as e:
-            print "Unhandled error while resolving file frame ID."
-            print e
-        else:
-            return self.file_frame
 
 
 

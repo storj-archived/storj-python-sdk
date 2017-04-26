@@ -54,8 +54,7 @@ class Downloader:
 
 
 
-
-
+    # TODO: deprecate it?
     def createNewDownloadInitThread(self, bucket_id, file_id):
         """Call 2
         """

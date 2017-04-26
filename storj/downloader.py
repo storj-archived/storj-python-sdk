@@ -56,15 +56,6 @@ class Downloader:
 
 
 
-    def createNewInitializationThread(self, bucket_id, file_id):
-        """Call 1
-        """
-        file_name_resolve_thread = threading.Thread(target=self.set_file_metadata,
-                                                    args=(bucket_id, file_id))
-        file_name_resolve_thread.start()
-
-
-
     def createNewDownloadInitThread(self, bucket_id, file_id):
         """Call 2
         """
@@ -315,21 +306,6 @@ class Downloader:
 
 
 
-
-
-
-
-
-
-
-
-
-    def set_current_status(self, current_status):
-        print 1
-
-
-    def calculate_final_hmac(self):
-        return 1
 
 
 

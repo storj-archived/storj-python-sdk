@@ -97,8 +97,6 @@ class Downloader:
         """
         try:
             file_metadata = self.client.file_metadata(str(bucket_id), str(file_id))
-            print "Test file metadata: "
-            print file_metadata
 
             self.filename_from_bridge = str(file_metadata.filename)
             print "Filename from bridge: " + self.filename_from_bridge
@@ -137,13 +135,14 @@ class Downloader:
         sharing_tools = ShardingTools()
         print "Joining shards..."
 
+        actual_path = self.tmp_path + "/" + file_name
         if fileisencrypted:
-            sharing_tools.join_shards(self.tmp_path + "/" + file_name, "-",
+            sharing_tools.join_shards(actual_path, "-",
                                       self.destination_file_path + ".encrypted")
         else:
-            sharing_tools.join_shards(self.tmp_path + "/" + str(file_name), "-", self.destination_file_path)
+            sharing_tools.join_shards(actual_path, "-", self.destination_file_path)
 
-        print "TEST: " + self.tmp_path + "/" + str(file_name) + ".encrypted"
+        print "TEST: " + actual_path + ".encrypted"
 
         if fileisencrypted:
             # decrypt file
@@ -254,48 +253,42 @@ class Downloader:
             print "Resolving file pointers to download file with ID: " +\
                 str(file_id) + "..."
 
-            i = 0
-            # TODO: 4 or self.all_shards_count?
-            #while i < 4:
-            while i < self.all_shards_count:
-                print "tentativo i = %d" % i
-                tries_get_file_pointers = 0
-                while MAX_RETRIES_GET_FILE_POINTERS > tries_get_file_pointers:
-                    tries_get_file_pointers += 1
-                    # time.sleep(1)
-                    try:
-                        options_array = {}
-                        #options_array["tmp_path"] = self.tmp_path
-                        options_array["file_size_is_given"] = "1"
-                        options_array["shards_count"] = str(self.all_shards_count)
-                        shard_pointer = self.client.file_pointers(
-                            bucket_id,
-                            file_id,
-                            limit="1",
-                            skip=str(i))
-                        print "Shard pointer: " + str(shard_pointer[0])
-                        options_array["shard_index"] = shard_pointer[0]["index"]
+            tries_get_file_pointers = 0
+            while MAX_RETRIES_GET_FILE_POINTERS > tries_get_file_pointers:
+                print "Attempt number %d of getting a pointer to the file" %\
+                    tries_get_file_pointers
+                tries_get_file_pointers += 1
+                try:
+                    options_array = {}
+                    options_array["file_size_is_given"] = "1"
+                    options_array["shards_count"] = str(self.all_shards_count)
+                    # Get 1 (=limit) file pointer
+                    shard_pointer = self.client.file_pointers(
+                        bucket_id,
+                        file_id,
+                        limit="1",
+                        skip="0")
+                    print "Shard pointer: " + str(shard_pointer[0])
+                    options_array["shard_index"] = shard_pointer[0]["index"]
 
-                        options_array["file_size_shard_" + str(i)] = shard_pointer[0]["size"]
-                        print "Begin shard download process"
-                        # TODO: parallelize downloads
-                        self.shard_download(
-                            shard_pointer[0],
-                            self.destination_file_path,
-                            options_array)
-                    except exception.StorjBridgeApiError as e:
-                        print "Bridge error"
-                        print "Error while resolving file pointers \
-                            to download file with ID: " +\
-                            str(file_id) + "..."
-                        print e
-                        continue
-                    else:
-                        break
+                    # options_array["file_size_shard_" + str(i)] = shard_pointer[0]["size"]
+                    options_array["file_size_shard_" + "0"] = shard_pointer[0]["size"]
+                    print "Begin shards download process"
+                    self.shard_download(
+                        shard_pointer[0],
+                        self.destination_file_path,
+                        options_array)
+                except exception.StorjBridgeApiError as e:
+                    print "Bridge error"
+                    print "Error while resolving file pointers \
+                        to download file with ID: " +\
+                        str(file_id) + "..."
+                    print e
+                    continue
+                else:
+                    break
 
-                print ">>>>>>>>>>>>>>TEST<<<<<<<<<<<<<<<<<"
-                self.already_started_shard_downloads_count += 1
-                i += 1
+            self.already_started_shard_downloads_count += 1
 
         except exception.StorjBridgeApiError as e:
             print "Outern Bridge error"

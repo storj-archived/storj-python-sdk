@@ -56,7 +56,7 @@ class Downloader:
 
     # TODO: deprecate it?
     def createNewDownloadInitThread(self, bucket_id, file_id):
-        """Call 2
+        """Call 1
         """
         file_name_resolve_thread = threading.Thread(target=self.download_begin, args=(bucket_id, file_id))
         file_name_resolve_thread.start()
@@ -64,7 +64,7 @@ class Downloader:
 
 
     def createNewDownloadThread(self, url, filelocation, options_chain, shard_index):
-        """Call 2.2
+        """Call 2.1
         """
         download_thread = threading.Thread(target=self.create_download_connection,
                                            args=(url,
@@ -160,7 +160,7 @@ class Downloader:
 
 
     def request_and_download_next_set_of_pointers(self):
-        """Call 2.2.1.2
+        """Call 3
         """
         print "request and download next set of pointers"
         i = self.already_started_shard_downloads_count
@@ -172,10 +172,9 @@ class Downloader:
                 tries_get_file_pointers += 1
                 try:
                     options_array = {}
-                    #options_array["tmp_path"] = self.tmp_path
                     options_array["file_size_is_given"] = "1"
                     options_array["shards_count"] = str(self.all_shards_count)
-                    shard_pointer =self.client.file_pointers(
+                    shard_pointer = self.client.file_pointers(
                         self.bucket_id,
                         self.file_id,
                         limit="1",
@@ -187,8 +186,10 @@ class Downloader:
                     # TODO: MARCO ??
                     #self.emit(QtCore.SIGNAL("beginShardDownloadProccess"), shard_pointer[0], self.destination_file_path, options_array)
                     print "Begin shard download process"
-                    print "MARCO call shard_download function"
-                    # 2.1.2
+                    print "Call shard_download function"
+                    self.shard_download(shard_pointer[0],
+                                        self.destination_file_path,
+                                        options_array)
                 except exception.StorjBridgeApiError as e:
                     print "Bridge error"
                     print "Error while resolving file pointers to download \
@@ -239,7 +240,7 @@ class Downloader:
 
 
     def download_begin(self, bucket_id, file_id):
-        """Call 2.1
+        """Call 1a
         """
         # Initialize environment
         self.set_file_metadata(bucket_id, file_id)
@@ -313,9 +314,8 @@ class Downloader:
 
 
     def create_download_connection(self, url, path_to_save, options_chain, shard_index):
-        """Call 2.2.1
+        """Call 2.2
         """
-        local_filename = path_to_save
         downloaded = False
         farmer_tries = 0
 
@@ -329,7 +329,7 @@ class Downloader:
                 self.current_active_connections += 1
                 r = requests.get(url)
                 # Write the file
-                with open(local_filename, 'wb') as f:
+                with open(path_to_save, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=1024):
                         if chunk:  # filter out keep-alive new chunks
                             f.write(chunk)
@@ -353,26 +353,29 @@ class Downloader:
         if not downloaded:
             self.current_active_connections -= 1
             # TODO: MARCO chiamare la funzione?
-            # 2.2.1.1
+            # TODO: retry with another pointer
+            # 3a
             #self.emit(QtCore.SIGNAL("retryWithNewDownloadPointer"),
             #          shard_index)  # retry download with new download pointer
 
         else:
             # Get next set of pointers
             # MARCO: qui?
-            # 2.2.1.2
-            self.request_and_download_next_set_of_pointers()
+            # 3
             #self.emit(QtCore.SIGNAL("getNextSetOfPointers"))
             self.current_active_connections -= 1
             print "Shard downloaded"
             print "Shard at index " + str(shard_index) +\
                 " downloaded successfully."
             self.shards_already_downloaded += 1
+            self.request_and_download_next_set_of_pointers()
             if int(self.all_shards_count) <= int(self.shards_already_downloaded):
                 # TODO
                 # 2.2.1.3
                 #self.create_download_finish_thread(os.path.split(str(self.ui_single_file_download.file_save_path.text()))[1])
-                self.create_download_finish_thread(self.filename_from_bridge)
+                # TODO: does threading make sense, here?
+                #self.create_download_finish_thread(self.filename_from_bridge)
+                self.finish_download(self.filename_from_bridge)
                 #self.emit(QtCore.SIGNAL("finishDownload"))  # send signal to begin file shards joind and decryption after all shards are downloaded
             return
 
@@ -384,7 +387,7 @@ class Downloader:
 
 
     def shard_download(self, pointer, file_save_path, options_array):
-        """Call 2.1.2
+        """Call 2
         """
         print "Beginning download proccess..."
         options_chain = {}
@@ -393,10 +396,10 @@ class Downloader:
 
         try:
             # check ability to write files to selected directories
-            #if self.tools.isWritable(os.path.split(file_save_path)[0]) is False:
-            #    raise IOError("13")
-            #if self.tools.isWritable(self.tmp_path) is False:
-            #    raise IOError("13")
+            # if self.tools.isWritable(os.path.split(file_save_path)[0]) is False:
+            #     raise IOError("13")
+            # if self.tools.isWritable(self.tmp_path) is False:
+            #     raise IOError("13")
 
             if options_array["file_size_is_given"] == "1":
                 options_chain["file_size_is_given"] = "1"
@@ -430,7 +433,7 @@ class Downloader:
                 self.filename_from_bridge +\
                 "-" + str(part)
             if self.combine_tmpdir_name_with_token:
-                # 2.2
+                # 2.1
                 file_temp_path = self.tmp_path + "/" +\
                     pointer["token"] + "/" +\
                     self.filename_from_bridge +\
@@ -440,7 +443,7 @@ class Downloader:
                                              options_chain,
                                              part)
             else:
-                # 2.2
+                # 2.1
                 print "TEST do not combine tmpdir and token"
                 self.createNewDownloadThread(
                     url, file_temp_path,

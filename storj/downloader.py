@@ -13,6 +13,8 @@ import time
 
 from http import Client
 
+from multiprocessing import Pool
+
 MAX_RETRIES_DOWNLOAD_FROM_SAME_FARMER = 3
 MAX_RETRIES_GET_FILE_POINTERS = 10
 
@@ -40,11 +42,6 @@ class Downloader:
         # set config variables
         self.combine_tmpdir_name_with_token = False
 
-        # set overall progress to 0
-        #self.ui_single_file_download.overall_progress.setValue(0)
-
-        self.current_active_connections = 0
-
         self.already_started_shard_downloads_count = 0
 
 
@@ -60,13 +57,12 @@ class Downloader:
 
 
 
-    def createNewDownloadThread(self, url, filelocation, options_chain, shard_index):
+    def createNewDownloadThread(self, url, filelocation, shard_index):
         """Call 2.1
         """
         download_thread = threading.Thread(target=self.create_download_connection,
                                            args=(url,
                                                  filelocation,
-                                                 options_chain,
                                                  shard_index))
         download_thread.start()
 
@@ -151,85 +147,6 @@ class Downloader:
 
 
 
-    def request_and_download_next_set_of_pointers(self):
-        """Call 3
-        """
-        print "request and download next set of pointers"
-        i = self.already_started_shard_downloads_count
-        i2 = 1
-        while i < self.all_shards_count and self.current_active_connections + i2 < 4:
-            print "Get pointer %d of %d" % (i, self.all_shards_count)
-            print "TEST bid " + self.bucket_id
-            print "TEST fid " + self.file_id
-            i2 += 1
-            tries_get_file_pointers = 0
-            while MAX_RETRIES_GET_FILE_POINTERS > tries_get_file_pointers:
-                tries_get_file_pointers += 1
-                try:
-                    options_array = {}
-                    options_array["file_size_is_given"] = "1"
-                    options_array["shards_count"] = str(self.all_shards_count)
-                    shard_pointer = self.client.file_pointers(
-                        self.bucket_id,
-                        self.file_id,
-                        limit="1",
-                        skip=str(i))
-                    print shard_pointer[0]
-                    options_array["shard_index"] = shard_pointer[0]["index"]
-
-                    options_array["file_size_shard_" + str(i)] = shard_pointer[0]["size"]
-                    # TODO: MARCO ??
-                    #self.emit(QtCore.SIGNAL("beginShardDownloadProccess"), shard_pointer[0], self.destination_file_path, options_array)
-                    print "Begin shard download process"
-                    print "Call shard_download function"
-                    self.shard_download(shard_pointer[0],
-                                        self.destination_file_path,
-                                        options_array)
-                except exception.StorjBridgeApiError as e:
-                    print "Bridge error"
-                    print "Error while resolving file pointers to download \
-                        file with ID: " + str(self.file_id)
-                    continue
-                else:
-                    break
-
-            self.already_started_shard_downloads_count += 1
-            i += 1
-        return 1
-
-
-
-    '''
-    def retry_download_with_new_pointer(self, shard_index):
-        print "ponowienie"
-        tries_get_file_pointers = 0
-        while MAX_RETRIES_GET_FILE_POINTERS > tries_get_file_pointers:
-            tries_get_file_pointers += 1
-            try:
-                options_array = {}
-                options_array["tmp_path"] = self.tmp_path
-                options_array["progressbars_enabled"] = "1"
-                options_array["file_size_is_given"] = "1"
-                options_array["shards_count"] = str(self.all_shards_count)
-                shard_pointer = self.client.file_pointers(str(self.bucket_id), self.file_id, limit="1",
-                                                                             skip=str(shard_index))
-                print shard_pointer[0]
-                options_array["shard_index"] = shard_pointer[0]["index"]
-
-                options_array["file_size_shard_" + str(shard_index)] = shard_pointer[0]["size"]
-                self.emit(QtCore.SIGNAL("beginShardDownloadProccess"), shard_pointer[0],
-                          self.destination_file_path, options_array)
-            except exception.StorjBridgeApiError as e:
-                logger.debug('"title": "Bridge error"')
-                logger.debug('"description": "Error while resolving file pointers \
-                                                         to download file"')
-                self.emit(QtCore.SIGNAL("showStorjBridgeException"), str(e))  # emit Storj Bridge Exception
-                continue
-            else:
-                break
-
-        return 1
-    '''
 
 
 
@@ -246,6 +163,7 @@ class Downloader:
         self.destination_file_path = "/home/marco/" + self.filename_from_bridge
         self.tmp_path = "/tmp"
 
+        mp = Pool()
         try:
             print "Resolving file pointers to download file with ID: " +\
                 str(file_id) + "..."
@@ -256,25 +174,25 @@ class Downloader:
                     tries_get_file_pointers
                 tries_get_file_pointers += 1
                 try:
-                    options_array = {}
-                    options_array["file_size_is_given"] = "1"
-                    options_array["shards_count"] = str(self.all_shards_count)
-                    # Get 1 (=limit) file pointer
-                    shard_pointer = self.client.file_pointers(
+                    # Get all the pointers to the shards
+                    shard_pointers = self.client.file_pointers(
                         bucket_id,
                         file_id,
-                        limit="1",
+                        limit=str(self.all_shards_count),
                         skip="0")
-                    print "Shard pointer: " + str(shard_pointer[0])
-                    options_array["shard_index"] = shard_pointer[0]["index"]
+                    print "Shard pointers: " + str(shard_pointers)
 
-                    # options_array["file_size_shard_" + str(i)] = shard_pointer[0]["size"]
-                    options_array["file_size_shard_" + "0"] = shard_pointer[0]["size"]
                     print "Begin shards download process"
-                    self.shard_download(
-                        shard_pointer[0],
-                        self.destination_file_path,
-                        options_array)
+                    # TODO: parallelizzare qui
+                    for p in range(len(shard_pointers)):
+                        self.shard_download(shard_pointers[p], p)
+                    #mp.map(lambda p: self.shard_download(
+                    #    p,
+                    #    shard_pointers.index(i)),
+                    #    shard_pointers)
+                    # self.shard_download(
+                    #      shard_pointer[0],
+                    #      self.destination_file_path)
                 except exception.StorjBridgeApiError as e:
                     print "Bridge error"
                     print "Error while resolving file pointers \
@@ -285,8 +203,6 @@ class Downloader:
                 else:
                     break
 
-            self.already_started_shard_downloads_count += 1
-
         except exception.StorjBridgeApiError as e:
             print "Outern Bridge error"
             print "Error while resolving file pointers to \
@@ -294,6 +210,10 @@ class Downloader:
                 str(file_id)
 
 
+        # QUI I DOWNLOAD SONO FINITI
+        # All the shards have been downloaded
+        self.finish_download(self.filename_from_bridge)
+        return
 
 
 
@@ -309,8 +229,7 @@ class Downloader:
 
 
 
-
-    def create_download_connection(self, url, path_to_save, options_chain, shard_index):
+    def create_download_connection(self, url, path_to_save, shard_index):
         """Call 2.2
         """
         downloaded = False
@@ -344,32 +263,9 @@ class Downloader:
                 print e
                 continue
             else:
-                downloaded = True
+                # downloaded = True
                 break
 
-        if not downloaded:
-            self.current_active_connections -= 1
-            # TODO: MARCO chiamare la funzione?
-            # TODO: retry with another pointer
-            # 3a
-            #self.emit(QtCore.SIGNAL("retryWithNewDownloadPointer"),
-            #          shard_index)  # retry download with new download pointer
-
-        else:
-            # Get next set of pointers
-            # MARCO: qui?
-            # 3
-            #self.emit(QtCore.SIGNAL("getNextSetOfPointers"))
-            self.current_active_connections -= 1
-            print "Shard downloaded"
-            print "Shard at index " + str(shard_index) +\
-                " downloaded successfully."
-            self.shards_already_downloaded += 1
-            self.request_and_download_next_set_of_pointers()
-            if int(self.all_shards_count) <= int(self.shards_already_downloaded):
-                # All the shards have been downloaded
-                self.finish_download(self.filename_from_bridge)
-            return
 
 
 
@@ -378,13 +274,10 @@ class Downloader:
 
 
 
-    def shard_download(self, pointer, file_save_path, options_array):
+    def shard_download(self, pointer, shard_index):
         """Call 2
         """
         print "Beginning download proccess..."
-        options_chain = {}
-
-        ##### End file download finish point #####
 
         try:
             # check ability to write files to selected directories
@@ -393,25 +286,8 @@ class Downloader:
             # if self.tools.isWritable(self.tmp_path) is False:
             #     raise IOError("13")
 
-            if options_array["file_size_is_given"] == "1":
-                options_chain["file_size_is_given"] = "1"
-
-            shards_count = int(options_array["shards_count"])
-
-            shard_size = int(options_array["file_size_shard_" +
-                         str(options_array["shard_index"])])
-            print "shard size array " + str(shard_size)
-
-            part = options_array["shard_index"]
-
-            #print "changing tmp_path from " + self.tmp_path +\
-            #    " to " + options_array["tmp_path"]
-            #self.tmp_path = options_array["tmp_path"]
-
             print "Starting download threads..."
-            print "Downloading shard at index " + str(part) + "..."
-
-            options_chain["shard_file_size"] = shard_size
+            print "Downloading shard at index " + str(shard_index) + "..."
 
             url = "http://" + \
                   pointer.get('farmer')['address'] + \
@@ -423,26 +299,28 @@ class Downloader:
 
             file_temp_path = self.tmp_path + "/" +\
                 self.filename_from_bridge +\
-                "-" + str(part)
+                "-" + str(shard_index)
             if self.combine_tmpdir_name_with_token:
                 # 2.1
                 file_temp_path = self.tmp_path + "/" +\
                     pointer["token"] + "/" +\
                     self.filename_from_bridge +\
-                    "-" + str(part)
-                self.createNewDownloadThread(url,
-                                             file_temp_path,
-                                             options_chain,
-                                             part)
+                    "-" + str(shard_index)
+                self.create_download_connection(url, file_temp_path, shard_index)
+                # self.createNewDownloadThread(url,
+                #                              file_temp_path,
+                #                              shard_index)
             else:
                 # 2.1
                 print "TEST do not combine tmpdir and token"
-                self.createNewDownloadThread(
-                    url, file_temp_path,
-                    options_chain, part)
+                self.create_download_connection(url, file_temp_path, shard_index)
+                # self.createNewDownloadThread(
+                #     url, file_temp_path,
+                #     shard_index)
 
+            print "Shard downloaded"
+            print "Shard at index " + str(shard_index) + " downloaded successfully."
             print file_temp_path + " saved"
-            part = part + 1
 
         except IOError as e:
             print " perm error " + str(e)

@@ -251,3 +251,4 @@ class Downloader:
         except Exception as e:
             self.__logger.error("Unhalded error")
             self.__logger.error(e)
+

@@ -54,9 +54,6 @@ class FarmerError(RuntimeError):
         message (str): error message.
     """
 
-    SUPPLIED_TOKEN_NOT_ACCEPTED = 10002
-    CALCULATED_HASH_NOT_MATCH_EXPECTED_RESULT = 10003
-
     def __init__(self, code, message=''):
         super(RuntimeError, self).__init__()
 

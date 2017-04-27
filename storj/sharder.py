@@ -27,7 +27,8 @@ class ShardingTools():
 
     def determine_shard_size(self, file_size, accumulator):
 
-        # Based on <https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c>
+        # Based on <https://github.com/aleitner/shard-size-calculator
+        # /blob/master/src/shard_size.c>
 
         hops = 0
 
@@ -76,7 +77,8 @@ class ShardingTools():
             return i2 - i1
 
     def join_shards(self, shards_filepath, pattern, destination_file_path):
-        # Based on <http://code.activestate.com/recipes/224800-simple-file-splittercombiner-module/>
+        # Based on <http://code.activestate.com/recipes/224800
+        # -simple-file-splittercombiner-module/>
         import re
 
         print 'Creating file ' + destination_file_path
@@ -108,7 +110,8 @@ class ShardingTools():
         for f in chunkfiles:
             try:
                 print 'Appending chunk', os.path.join(input_directory, f)
-                data += open(os.path.join(input_directory, str(f)), 'rb').read()
+                data += open(
+                    os.path.join(input_directory, str(f)), 'rb').read()
             except (OSError, IOError, EOFError) as e:
                 print e
                 continue

@@ -33,7 +33,7 @@ class Downloader:
 
     def set_file_metadata(self, bucket_id, file_id):
         try:
-            file_metadata = self.client.file_metadata(str(bucket_id), str(file_id))
+            file_metadata = self.client.file_metadata(bucket_id, file_id)
             # Get file name
             self.filename_from_bridge = str(file_metadata.filename)
             print "Filename from bridge: " + self.filename_from_bridge
@@ -172,7 +172,8 @@ class Downloader:
             str(shard_index) + " from farmer: " + str(url)
 
         tries_download_from_same_farmer = 0
-        while MAX_RETRIES_DOWNLOAD_FROM_SAME_FARMER > tries_download_from_same_farmer:
+        while MAX_RETRIES_DOWNLOAD_FROM_SAME_FARMER > \
+                tries_download_from_same_farmer:
             tries_download_from_same_farmer += 1
             farmer_tries += 1
             try:
@@ -192,7 +193,8 @@ class Downloader:
             except Exception as e:
                 print "Unhandled error"
                 print "Error occured while downloading shard at index " +\
-                    str(shard_index) + ". Retrying... (" + str(farmer_tries) + ")"
+                    str(shard_index) + ". Retrying... (" + \
+                    str(farmer_tries) + ")"
                 print e
                 continue
             else:
@@ -202,7 +204,8 @@ class Downloader:
         print "Beginning download proccess..."
         try:
             # check ability to write files to selected directories
-            # if self.tools.isWritable(os.path.split(file_save_path)[0]) is False:
+            # if self.tools.isWritable(os.path.split(file_save_path)[0])
+            #                                   is False:
             #     raise IOError("13")
             # if self.tools.isWritable(self.tmp_path) is False:
             #     raise IOError("13")
@@ -231,7 +234,8 @@ class Downloader:
             self.create_download_connection(url, file_temp_path, shard_index)
 
             print "Shard downloaded"
-            print "Shard at index " + str(shard_index) + " downloaded successfully."
+            print "Shard at index " + str(shard_index) + \
+                " downloaded successfully."
             print file_temp_path + " saved"
 
         except IOError as e:

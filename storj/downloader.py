@@ -19,12 +19,9 @@ MAX_RETRIES_GET_FILE_POINTERS = 10
 
 class Downloader:
 
-    def __init__(self, email, password, parent=None, bucketid=None, fileid=None):
+    def __init__(self, email, password):
         self.client = Client(email, password)
         self.filename_from_bridge = ""
-
-        self.bucket_id = bucketid
-        self.file_id = fileid
 
         self.shards_already_downloaded = 0
 
@@ -241,6 +238,8 @@ class Downloader:
         """Call 1a
         """
         # Initialize environment
+        self.bucket_id = bucket_id
+        self.file_id = file_id
         self.set_file_metadata(bucket_id, file_id)
         self.all_shards_count = self.get_file_pointers_count(bucket_id, file_id)
 

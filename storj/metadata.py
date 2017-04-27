@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 """Storj metadata module."""
 
 __author__ = ', '.join([

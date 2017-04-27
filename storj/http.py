@@ -23,10 +23,25 @@ except ImportError:
     # Python 2
     JSONDecodeError = ValueError
 
-import model
 from api import ecdsa_to_hex
-from exception import StorjBridgeApiError
-import web_socket
+from exception import BridgeError, ClientError
+
+from . import web_socket
+from . import model
+
+
+__logger = logging.getLogger(__name__)
+
+
+def handle_nonhttp_errors(func):
+    """Handle non-HTTP errors."""
+    def decorator(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except requests.exceptions.RequestException as e:
+            __logger.error('Failed to contact the bridge: %s', e)
+            raise ClientError(message='Failed to contact the bridge')
+    return decorator
 
 
 class Client(object):
@@ -139,7 +154,7 @@ class Client(object):
         Args:
             kwargs (dict): keyword arguments.
         Raises:
-            :py:class:`StorjBridgeApiError`: in case::
+            :py:class:`BridgeError`: in case::
                 - internal server error
                 - error attribute is present in the JSON response
                 - HTTP response JSON decoding failed
@@ -153,7 +168,7 @@ class Client(object):
         except requests.exceptions.RequestException as e:
             self.logger.error(e)
             self.logger.debug('response.text=%s', response.text)
-            raise StorjBridgeApiError(response.text)
+            raise BridgeError(response.text)
 
         # Raise any errors as exceptions
         try:
@@ -163,15 +178,16 @@ class Client(object):
                 return {}
 
             if 'error' in response_json:
-                raise StorjBridgeApiError(response_json['error'])
+                raise BridgeError(response_json['error'])
 
             return response_json
 
         except JSONDecodeError as e:
             self.logger.error(e)
             self.logger.error('_request body %s', response.text)
-            raise StorjBridgeApiError('Could not decode response.')
+            raise BridgeError('Could not decode response.')
 
+    @handle_nonhttp_errors
     def bucket_create(self, name, storage=None, transfer=None):
         """Create storage bucket.
         See `API buckets: POST /buckets
@@ -193,6 +209,7 @@ class Client(object):
 
         return model.Bucket(**self._request(method='POST', path='/buckets', json=data))
 
+    @handle_nonhttp_errors
     def bucket_delete(self, bucket_id):
         """Destroy a storage bucket.
         See `API buckets: DELETE /buckets/{id}
@@ -203,6 +220,7 @@ class Client(object):
         self.logger.info('bucket_delete(%s)', bucket_id)
         self._request(method='DELETE', path='/buckets/%s' % bucket_id)
 
+    @handle_nonhttp_errors
     def bucket_files(self, bucket_id):
         """List all the file metadata stored in the bucket.
         See `API buckets: GET /buckets/{id}/files
@@ -218,6 +236,7 @@ class Client(object):
             method='GET',
             path='/buckets/%s/files/' % (bucket_id), )
 
+    @handle_nonhttp_errors
     def bucket_get(self, bucket_id):
         """Return the bucket object.
         See `API buckets: GET /buckets
@@ -239,8 +258,9 @@ class Client(object):
                 return None
             else:
                 self.logger.error('bucket_get() error=%s', e)
-                raise StorjBridgeApiError()
+                raise BridgeError()
 
+    @handle_nonhttp_errors
     def bucket_list(self):
         """List all of the buckets belonging to the user.
         See `API buckets: GET /buckets
@@ -258,6 +278,7 @@ class Client(object):
         else:
             raise StopIteration
 
+    @handle_nonhttp_errors
     def bucket_set_keys(self, bucket_id, bucket_name, keys):
         """Update the bucket with the given public keys.
         See `API buckets: PATCH /buckets/{bucket_id}
@@ -278,6 +299,7 @@ class Client(object):
                 'name': bucket_name,
                 'pubkeys': keys}))
 
+    @handle_nonhttp_errors
     def bucket_set_mirrors(self, bucket_id, file_id, redundancy):
         """Establishes a series of mirrors for the given file.
         See `API buckets: POST /buckets/{id}/mirrors
@@ -299,6 +321,7 @@ class Client(object):
                 'redundancy': redundancy
             }))
 
+    @handle_nonhttp_errors
     def contact_list(self, page=1, address=None, protocol=None, user_agent=None, connected=None):
         """Lists contacts.
         See `API contacts: GET /contacts
@@ -324,6 +347,7 @@ class Client(object):
         else:
             raise StopIteration
 
+    @handle_nonhttp_errors
     def contact_lookup(self, node_id):
         """Lookup for contact information of a node.
         See `API contacts: GET /contacts/{nodeID}
@@ -339,6 +363,7 @@ class Client(object):
             method='GET',
             path='/contacts/%s' % node_id))
 
+    @handle_nonhttp_errors
     def file_pointers(self, bucket_id, file_id, skip, limit, exclude=None):
         """Get list of pointers associated with a file.
 
@@ -373,6 +398,7 @@ class Client(object):
             path='/buckets/%s/files/%s/?skip=%s&limit=%s' % (bucket_id, file_id, skip, limit),
             headers={'x-token': pull_token.id})
 
+    @handle_nonhttp_errors
     def file_download(self, bucket_id, file_id):
         self.logger.info('file_pointers(%s, %s)', bucket_id, file_id)
 
@@ -388,6 +414,7 @@ class Client(object):
 
         return file_contents
 
+    @handle_nonhttp_errors
     def file_metadata(self, bucket_id, file_id):
         """Get file metadata.
         See `API buckets: GET /buckets/{id}/files/{file_id}/info
@@ -408,6 +435,7 @@ class Client(object):
         if response is not None:
             return model.File(**response)
 
+    @handle_nonhttp_errors
     def file_upload(self, bucket_id, file, frame):
         """Upload file.
         See `API buckets: POST /buckets/{id}/files
@@ -446,6 +474,7 @@ class Client(object):
                 'filename': file.filename,
             })
 
+    @handle_nonhttp_errors
     def file_remove(self, bucket_id, file_id):
         """Delete a file pointer from a specified bucket.
         See `API buckets: DELETE /buckets/{id}/files/{file_id}
@@ -460,6 +489,7 @@ class Client(object):
             method='DELETE',
             path='/buckets/%s/files/%s' % (bucket_id, file_id))
 
+    @handle_nonhttp_errors
     def frame_add_shard(self, shard, frame_id):
         """Adds a shard item to the staging frame and negotiates a storage contract.
 
@@ -487,6 +517,7 @@ class Client(object):
 
         return response
 
+    @handle_nonhttp_errors
     def file_mirrors(self, bucket_id, file_id):
         """Get list of established and available mirrors associated with a file.
         Args:
@@ -511,6 +542,7 @@ class Client(object):
         else:
             raise StopIteration
 
+    @handle_nonhttp_errors
     def frame_create(self):
         """Creates a file staging frame.
         See `API frames: POST /frames
@@ -527,6 +559,7 @@ class Client(object):
         if response is not None:
             return model.Frame(**response)
 
+    @handle_nonhttp_errors
     def frame_delete(self, frame_id):
         """Destroys the file staging frame by it's unique ID.
         See `API frames: DELETE	/frames/{frame_id}
@@ -541,6 +574,7 @@ class Client(object):
             path='/frames/%s' % frame_id,
             json={'frame_id': frame_id})
 
+    @handle_nonhttp_errors
     def frame_get(self, frame_id):
         """Fetches the file staging frame by it's unique ID.
         See `API frame: GET /frames/{frame_id}
@@ -560,6 +594,7 @@ class Client(object):
         if response is not None:
             return model.Frame(**response)
 
+    @handle_nonhttp_errors
     def frame_list(self):
         """Returns all open file staging frames.
         See `API frame: GET /frames
@@ -579,6 +614,7 @@ class Client(object):
         else:
             raise StopIteration
 
+    @handle_nonhttp_errors
     def key_delete(self, public_key):
         """Removes a public ECDSA keys.
         See `API keys: DELETE /keys/{pubkey}
@@ -649,6 +685,7 @@ class Client(object):
 
         self.key_register(self.public_key)
 
+    @handle_nonhttp_errors
     def key_list(self):
         """Lists the public ECDSA keys associated with the user.
         See `API keys: GET /keys
@@ -663,6 +700,7 @@ class Client(object):
             path='/keys'
         )]
 
+    @handle_nonhttp_errors
     def key_register(self, public_key):
         """Register an ECDSA public key.
         See `API keys: POST /keys
@@ -677,6 +715,7 @@ class Client(object):
             path='/keys',
             json={'key': ecdsa_to_hex(str(public_key))})
 
+    @handle_nonhttp_errors
     def token_create(self, bucket_id, operation):
         """Creates a token for the specified operation.
         See `API buckets: POST /buckets/{id}/tokens
@@ -694,6 +733,7 @@ class Client(object):
             path='/buckets/%s/tokens' % bucket_id,
             json={'operation': operation}))
 
+    @handle_nonhttp_errors
     def send_exchange_report(self, exchange_report_data):
         """Send exchange report to bridge
             Args:
@@ -719,6 +759,7 @@ class Client(object):
             path='/reports/exchanges',
             json=data))
 
+    @handle_nonhttp_errors
     def user_activate(self, token):
         """Activate user.
         See `API users: GET /activations/{token}
@@ -748,6 +789,7 @@ class Client(object):
         else:
             return False
 
+    @handle_nonhttp_errors
     def user_activation_email(self, email, token):
         """Send user activation email.
         See `API users: POST /activations/{token}
@@ -765,6 +807,7 @@ class Client(object):
                 'email': email,
             })
 
+    @handle_nonhttp_errors
     def user_create(self, email, password):
         """Create a new user with Storj bridge.
         See `API users: POST /users
@@ -787,6 +830,7 @@ class Client(object):
 
         return response
 
+    @handle_nonhttp_errors
     def user_deactivate(self, token):
         """Discard activation token.
         See `API users: GET /activations/{token}
@@ -800,6 +844,7 @@ class Client(object):
             method='DELETE',
             path='/activations/%s' % token)
 
+    @handle_nonhttp_errors
     def user_delete(self, email):
         """Delete user account.
         See `API users: DELETE /users/{email}
@@ -813,6 +858,7 @@ class Client(object):
             method='DELETE',
             path='/users/%s' % email)
 
+    @handle_nonhttp_errors
     def user_reset_password(self, email):
         """Request a password reset.
         See `API users: PATCH /users/{email}
@@ -826,6 +872,7 @@ class Client(object):
             method='PATCH',
             path='/users/%s' % email)
 
+    @handle_nonhttp_errors
     def user_reset_password_confirmation(self, token):
         """Confirm a password reset request.
         See `API users: GET /resets/{token}

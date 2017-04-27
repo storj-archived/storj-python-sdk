@@ -16,6 +16,14 @@ class BridgeError(RuntimeError):
         self.code = code
         self.message = message
 
+    def __str__(self):
+        """Returns a string representation of this error.
+
+        Returns:
+            str: string representation of this error.
+        """
+        return '[%s] %s' % (self.code, self.message)
+
 
 class ClientError(RuntimeError):
     """Storj client runtime exception.
@@ -28,6 +36,14 @@ class ClientError(RuntimeError):
         super(RuntimeError, self).__init__()
 
         self.message = message
+
+    def __str__(self):
+        """Returns a string representation of this error.
+
+        Returns:
+            str: string representation of this error.
+        """
+        return self.message
 
 
 class FarmerError(RuntimeError):

@@ -1,7 +1,7 @@
 # coding: utf-8
 """Storj metadata module."""
 
-__author__ = ','.join([
+__author__ = ', '.join([
     'Daniel Hawkins',
     'Fabian Barkhau',
     'James Prestwich',

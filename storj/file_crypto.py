@@ -6,12 +6,12 @@ import hashlib
 class FileCrypto:
 
     def encrypt_file(self, algorithm, file_path, encrypted_file_save_path, password):
-        if algorithm == "AES":
+        if algorithm == 'AES':
             with open(file_path, 'rb') as in_file, open(encrypted_file_save_path, 'wb') as out_file:
                 self.encrypt_file_aes(in_file, out_file, password)
 
     def decrypt_file(self, algorithm, file_path, decrypted_file_save_path, password):
-        if algorithm == "AES":
+        if algorithm == 'AES':
             with open(file_path, 'rb') as in_file, open(decrypted_file_save_path, 'wb') as out_file:
                 self.decrypt_file_aes(in_file, out_file, password)
 
@@ -49,11 +49,11 @@ class FileCrypto:
             if len(next_chunk) == 0:
                 padding_length = ord(chunk[-1])
                 if padding_length < 1 or padding_length > bs:
-                    raise ValueError("bad decrypt pad (%d)" % padding_length)
+                    raise ValueError('bad decrypt pad (%d)' % padding_length)
                 # all the pad-bytes must be the same
                 if chunk[-padding_length:] != (padding_length * chr(padding_length)):
                     # this is similar to the bad decrypt:evp_enc.c from openssl program
-                    raise ValueError("bad decrypt")
+                    raise ValueError('bad decrypt')
                 chunk = chunk[:-padding_length]
                 finished = True
             out_file.write(chunk)

@@ -66,13 +66,10 @@ class Downloader:
 
     def download_begin(self, bucket_id, file_id):
         # Initialize environment
-        self.bucket_id = bucket_id
-        self.file_id = file_id
-        # set file name and file frame
         self.set_file_metadata(bucket_id, file_id)
-        # get the number of shards
+        # Get the number of shards
         self.all_shards_count = self.get_file_pointers_count(bucket_id, file_id)
-        # set the paths
+        # Set the paths
         self.tmp_path, self.destination_file_path = self.get_paths()
         self.__logger.debug("temp path " + self.tmp_path)
         self.__logger.debug("destination path " + self.destination_file_path)

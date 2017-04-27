@@ -151,6 +151,18 @@ class Downloader:
 
         print "Finish decryption"
         print "Downloading completed successfully!"
+
+        # Remove temp files
+        try:
+            # Remove shards
+            file_shards = map(lambda i: actual_path + "-" + str(i),
+                              range(self.all_shards_count))
+            print "TEST ", file_shards
+            map(os.remove, file_shards)
+            # Remove encrypted file
+            os.remove(actual_path + ".encrypted")
+        except OSError as e:
+            print e
         return True
 
     def create_download_connection(self, url, path_to_save, shard_index):

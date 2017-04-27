@@ -37,6 +37,8 @@ class ClientTestCase(AbstractTestCase):
         """Test Client.__init__()."""
         assert self.email == self.client.email
         assert self.password_digest == self.client.password
+        assert self.client.do_hashing
+        assert self.client.timeout is None
 
     def test_add_basic_auth(self):
         """Test Client._add_basic_auth()."""

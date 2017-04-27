@@ -54,11 +54,14 @@ class Client(object):
         private_key ():
         public_key ():
         public_key_hex ():
+        timeout (float or tuple): (optional) how long to wait for the server to
+            send data before giving up, as a float, or
+            a (connect timeout, read timeout) tuple.
     """
 
     logger = logging.getLogger('%s.Client' % __name__)
 
-    def __init__(self, email, password, do_hashing=True):
+    def __init__(self, email, password, do_hashing=True, timeout=None):
         self.api_url = 'https://api.storj.io/'
         self.session = requests.Session()
         self.email = email
@@ -67,6 +70,7 @@ class Client(object):
         self.private_key = None
         self.public_key = None
         self.public_key_hex = None
+        self.timeout = timeout
 
     @property
     def password(self):
@@ -160,7 +164,9 @@ class Client(object):
                 - HTTP response JSON decoding failed
         """
 
-        response = self.session.send(self._prepare_request(**kwargs))
+        response = self.session.send(
+            self._prepare_request(**kwargs),
+            timeout=self.timeout)
         self.logger.debug('_request response %s', response.text)
 
         try:

@@ -129,7 +129,7 @@ class ClientTestCase(AbstractTestCase):
 
         self.mock_request.side_effect = mock_error
 
-        with pytest.raises(exception.StorjBridgeApiError):
+        with pytest.raises(exception.BridgeError):
             self.client.bucket_get('error')
 
         self.mock_request.assert_called_once_with(

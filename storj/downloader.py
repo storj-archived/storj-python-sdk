@@ -398,60 +398,56 @@ class Downloader:
             #if self.tools.isWritable(self.tmp_path) is False:
             #    raise IOError("13")
 
-            try:
-                if options_array["file_size_is_given"] == "1":
-                    options_chain["file_size_is_given"] = "1"
+            if options_array["file_size_is_given"] == "1":
+                options_chain["file_size_is_given"] = "1"
 
-                shards_count = int(options_array["shards_count"])
+            shards_count = int(options_array["shards_count"])
 
-                shard_size = int(options_array["file_size_shard_" +
-                             str(options_array["shard_index"])])
-                print "shard size array " + str(shard_size)
+            shard_size = int(options_array["file_size_shard_" +
+                         str(options_array["shard_index"])])
+            print "shard size array " + str(shard_size)
 
-                part = options_array["shard_index"]
+            part = options_array["shard_index"]
 
-                #print "changing tmp_path from " + self.tmp_path +\
-                #    " to " + options_array["tmp_path"]
-                #self.tmp_path = options_array["tmp_path"]
+            #print "changing tmp_path from " + self.tmp_path +\
+            #    " to " + options_array["tmp_path"]
+            #self.tmp_path = options_array["tmp_path"]
 
-                print "Starting download threads..."
-                print "Downloading shard at index " + str(part) + "..."
+            print "Starting download threads..."
+            print "Downloading shard at index " + str(part) + "..."
 
-                options_chain["shard_file_size"] = shard_size
-                url = "http://" + \
-                      pointer.get('farmer')['address'] + \
-                      ":" + \
-                      str(pointer.get('farmer')['port']) + \
-                      "/shards/" + pointer["hash"] + \
-                      "?token=" + pointer["token"]
-                print url
+            options_chain["shard_file_size"] = shard_size
 
+            url = "http://" + \
+                  pointer.get('farmer')['address'] + \
+                  ":" + \
+                  str(pointer.get('farmer')['port']) + \
+                  "/shards/" + pointer["hash"] + \
+                  "?token=" + pointer["token"]
+            print url
+
+            file_temp_path = self.tmp_path + "/" +\
+                self.filename_from_bridge +\
+                "-" + str(part)
+            if self.combine_tmpdir_name_with_token:
+                # 2.2
                 file_temp_path = self.tmp_path + "/" +\
+                    pointer["token"] + "/" +\
                     self.filename_from_bridge +\
                     "-" + str(part)
-                if self.combine_tmpdir_name_with_token:
-                    # 2.2
-                    file_temp_path = self.tmp_path + "/" +\
-                        pointer["token"] + "/" +\
-                        self.filename_from_bridge +\
-                        "-" + str(part)
-                    self.createNewDownloadThread(url,
-                                                 file_temp_path,
-                                                 options_chain,
-                                                 part)
-                else:
-                    # 2.2
-                    print "TEST do not combine tmpdir and token"
-                    self.createNewDownloadThread(
-                        url, file_temp_path,
-                        options_chain, part)
+                self.createNewDownloadThread(url,
+                                             file_temp_path,
+                                             options_chain,
+                                             part)
+            else:
+                # 2.2
+                print "TEST do not combine tmpdir and token"
+                self.createNewDownloadThread(
+                    url, file_temp_path,
+                    options_chain, part)
 
-                print file_temp_path + " saved"
-                part = part + 1
-
-            except Exception as e:
-                print e
-                print "Unhalded error"
+            print file_temp_path + " saved"
+            part = part + 1
 
         except IOError as e:
             print " perm error " + str(e)

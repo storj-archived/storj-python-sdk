@@ -131,8 +131,8 @@ class Downloader:
         actual_path = os.path.join(self.tmp_path, self.filename_from_bridge)
         destination_path = os.path.join(self.destination_file_path,
                                         self.filename_from_bridge)
-        print "TEST: actual path " + actual_path
-        print "TEST destination path " + destination_path
+        print "Actual path " + actual_path
+        print "Destination path " + destination_path
         if fileisencrypted:
             sharing_tools.join_shards(actual_path, "-",
                                       actual_path + ".encrypted")
@@ -157,7 +157,6 @@ class Downloader:
             # Remove shards
             file_shards = map(lambda i: actual_path + "-" + str(i),
                               range(self.all_shards_count))
-            print "TEST ", file_shards
             map(os.remove, file_shards)
             # Remove encrypted file
             os.remove(actual_path + ".encrypted")
@@ -228,7 +227,7 @@ class Downloader:
                                               self.filename_from_bridge) +\
                     "-" + str(shard_index)
             else:
-                print "TEST do not combine tmpdir and token"
+                print "Do not combine tmpdir and token"
             self.create_download_connection(url, file_temp_path, shard_index)
 
             print "Shard downloaded"

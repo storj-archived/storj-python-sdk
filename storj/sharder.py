@@ -81,12 +81,12 @@ class ShardingTools():
 
         print 'Creating file ' + destination_file_path
 
-        bname = (os.path.split(destination_file_path))[1]
-        bname_input = (os.path.split(shards_filepath))[1]
+        bname = os.path.split(destination_file_path)[1]
+        bname_input = os.path.split(shards_filepath)[1]
         bname2_input = bname_input
 
-        input_directory = (os.path.split(shards_filepath))[0]
-        output_directory = (os.path.split(destination_file_path))[0]
+        input_directory = os.path.split(shards_filepath)[0]
+        output_directory = os.path.split(destination_file_path)[0]
 
         # bugfix: if file contains characters like +,.,[]
         # properly escape them, otherwise re will fail to match.
@@ -106,20 +106,17 @@ class ShardingTools():
         print chunkfiles
         data = ''
         for f in chunkfiles:
-
             try:
-                print 'Appending chunk', os.path.join(str(input_directory), f)
-                data += open(str(input_directory) + "/" + str(f), 'rb').read()
-                print str(input_directory) + "/" + str(f) + " katalog wejsciowy"
+                print 'Appending chunk', os.path.join(input_directory, f)
+                data += open(os.path.join(input_directory, str(f)), 'rb').read()
             except (OSError, IOError, EOFError) as e:
                 print e
                 continue
 
         try:
-            print str(output_directory) + " katalog wyjsciowy"
-            f = open(str(output_directory) + "/" + str(bname), 'wb')
-            f.write(data)
-            f.close()
+            print "Write joined file in " + output_directory
+            with open(os.path.join(output_directory, bname), 'wb') as f:
+                f.write(data)
         except (OSError, IOError, EOFError) as e:
             raise ShardingException(str(e))
 

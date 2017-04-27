@@ -6,6 +6,7 @@ class BridgeError(RuntimeError):
     """Storj bridge runtime exception.
 
     Attributes:
+        code (int): error code.
         message (str): error message.
     """
 
@@ -13,6 +14,19 @@ class BridgeError(RuntimeError):
         super(RuntimeError, self).__init__()
 
         self.code = code
+        self.message = message
+
+
+class ClientError(RuntimeError):
+    """Storj client runtime exception.
+
+    Attributes:
+        message (str): error message.
+    """
+
+    def __init__(self, message=''):
+        super(RuntimeError, self).__init__()
+
         self.message = message
 
 

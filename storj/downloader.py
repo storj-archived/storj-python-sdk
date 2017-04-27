@@ -113,12 +113,6 @@ class Downloader:
 
 
 
-    def create_download_finish_thread(self, file_name):
-        """Call 2.2.1.3
-        """
-        download_finish_thread = threading.Thread(target=self.finish_download(file_name=file_name), args=())
-        download_finish_thread.start()
-
     #### Begin file download finish function ####
     # Wait for signal to do shards joining and encryption
     def finish_download(self, file_name):
@@ -147,9 +141,10 @@ class Downloader:
             # decrypt file
             print "Decrypting file..."
             file_crypto_tools = FileCrypto()
+            # Begin file decryption
             file_crypto_tools.decrypt_file("AES", str(self.destination_file_path) + ".encrypted",
                                            self.destination_file_path,
-                                           str(self.client.password))  # begin file decryption
+                                           str(self.client.password))
 
         print "Finish decryption"
         print "Downloading completed successfully!"
@@ -166,6 +161,9 @@ class Downloader:
         i = self.already_started_shard_downloads_count
         i2 = 1
         while i < self.all_shards_count and self.current_active_connections + i2 < 4:
+            print "Get pointer %d of %d" % (i, self.all_shards_count)
+            print "TEST bid " + self.bucket_id
+            print "TEST fid " + self.file_id
             i2 += 1
             tries_get_file_pointers = 0
             while MAX_RETRIES_GET_FILE_POINTERS > tries_get_file_pointers:
@@ -370,13 +368,8 @@ class Downloader:
             self.shards_already_downloaded += 1
             self.request_and_download_next_set_of_pointers()
             if int(self.all_shards_count) <= int(self.shards_already_downloaded):
-                # TODO
-                # 2.2.1.3
-                #self.create_download_finish_thread(os.path.split(str(self.ui_single_file_download.file_save_path.text()))[1])
-                # TODO: does threading make sense, here?
-                #self.create_download_finish_thread(self.filename_from_bridge)
+                # All the shards have been downloaded
                 self.finish_download(self.filename_from_bridge)
-                #self.emit(QtCore.SIGNAL("finishDownload"))  # send signal to begin file shards joind and decryption after all shards are downloaded
             return
 
 

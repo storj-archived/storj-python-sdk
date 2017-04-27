@@ -54,7 +54,7 @@ setup(
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Internet :: WWW/HTTP',
     ],
-    keywords=','.join([
+    keywords=', '.join([
         'storj', 'bridge', 'metadisk', 'api', 'client', 'sdk', 'python'
     ]),
     extras_require={

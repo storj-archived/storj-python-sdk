@@ -24,10 +24,29 @@ class Downloader:
 
     def __init__(self, email, password):
         self.client = Client(email, password)
-        self.filename_from_bridge = ""
+        # set config variables
+        self.combine_tmpdir_name_with_token = False
 
-        self.shards_already_downloaded = 0
+    def get_file_pointers_count(self, bucket_id, file_id):
+        frame_data = self.client.frame_get(self.file_frame.id)
+        return len(frame_data.shards)
 
+    def set_file_metadata(self, bucket_id, file_id):
+        try:
+            file_metadata = self.client.file_metadata(str(bucket_id), str(file_id))
+            # Get file name
+            self.filename_from_bridge = str(file_metadata.filename)
+            print "Filename from bridge: " + self.filename_from_bridge
+            # Get file frame
+            self.file_frame = file_metadata.frame
+        except exception.StorjBridgeApiError as e:
+            print "Error while resolving file metadata. "
+            print e
+        except Exception as e:
+            print "Unhandled error while resolving file metadata. "
+            print e
+
+    def get_paths(self):
         # set default paths
         temp_dir = ""
         if platform == "linux" or platform == "linux2":
@@ -39,45 +58,21 @@ class Downloader:
         elif platform == "win32":
             # Windows
             temp_dir = "C:/Windows/temp"
-
-        # set config variables
-        self.combine_tmpdir_name_with_token = False
-
-        self.already_started_shard_downloads_count = 0
-
-    def get_file_pointers_count(self, bucket_id, file_id):
-        """Call 2.1.1
-        """
-        frame_data = self.client.frame_get(self.file_frame.id)
-        return len(frame_data.shards)
-
-    def set_file_metadata(self, bucket_id, file_id):
-        """Call 1.1
-        """
-        try:
-            file_metadata = self.client.file_metadata(str(bucket_id), str(file_id))
-
-            self.filename_from_bridge = str(file_metadata.filename)
-            print "Filename from bridge: " + self.filename_from_bridge
-            self.file_frame = file_metadata.frame
-        except exception.StorjBridgeApiError as e:
-            print "Error while resolving file metadata. "
-            print e
-        except Exception as e:
-            print "Unhandled error while resolving file metadata. "
-            print e
+        home = os.path.expanduser('~')
+        return temp_dir, home
 
     def download_begin(self, bucket_id, file_id):
-        """Call 1a
-        """
         # Initialize environment
         self.bucket_id = bucket_id
         self.file_id = file_id
+        # set file name and file frame
         self.set_file_metadata(bucket_id, file_id)
+        # get the number of shards
         self.all_shards_count = self.get_file_pointers_count(bucket_id, file_id)
-
-        self.destination_file_path = "/home/marco/" + self.filename_from_bridge
-        self.tmp_path = "/tmp"
+        # set the paths
+        self.tmp_path, self.destination_file_path = self.get_paths()
+        print "temp path " + self.tmp_path
+        print "destination path " + self.destination_file_path
 
         mp = Pool()
         try:
@@ -99,8 +94,6 @@ class Downloader:
                     print "There are %d shard pointers: " % len(shard_pointers)
 
                     print "Begin shards download process"
-                    # for p in range(len(shard_pointers)):
-                    #     self.shard_download(shard_pointers[p], p)
                     mp.map(foo, [(self, p, shard_pointers.index(p)) for p in
                            shard_pointers])
                 except exception.StorjBridgeApiError as e:
@@ -120,10 +113,10 @@ class Downloader:
                 str(file_id)
 
         # All the shards have been downloaded
-        self.finish_download(self.filename_from_bridge)
+        self.finish_download()
         return
 
-    def finish_download(self, file_name):
+    def finish_download(self):
         print "Finish download"
         fileisencrypted = False
         if "[DECRYPTED]" in self.filename_from_bridge:
@@ -132,26 +125,28 @@ class Downloader:
             fileisencrypted = True
 
         # Join shards
-        # TODO
         sharing_tools = ShardingTools()
         print "Joining shards..."
 
-        actual_path = self.tmp_path + "/" + file_name
+        actual_path = os.path.join(self.tmp_path, self.filename_from_bridge)
+        destination_path = os.path.join(self.destination_file_path,
+                                        self.filename_from_bridge)
+        print "TEST: actual path " + actual_path
+        print "TEST destination path " + destination_path
         if fileisencrypted:
             sharing_tools.join_shards(actual_path, "-",
-                                      self.destination_file_path + ".encrypted")
+                                      actual_path + ".encrypted")
         else:
-            sharing_tools.join_shards(actual_path, "-", self.destination_file_path)
-
-        print "TEST: " + actual_path + ".encrypted"
+            sharing_tools.join_shards(actual_path, "-", destination_path)
 
         if fileisencrypted:
             # decrypt file
             print "Decrypting file..."
             file_crypto_tools = FileCrypto()
             # Begin file decryption
-            file_crypto_tools.decrypt_file("AES", str(self.destination_file_path) + ".encrypted",
-                                           self.destination_file_path,
+            file_crypto_tools.decrypt_file("AES",
+                                           actual_path + ".encrypted",
+                                           destination_path,
                                            str(self.client.password))
 
         print "Finish decryption"
@@ -159,12 +154,11 @@ class Downloader:
         return True
 
     def create_download_connection(self, url, path_to_save, shard_index):
-        """Call 2.2
-        """
         downloaded = False
         farmer_tries = 0
 
-        print "Downloading shard at index " + str(shard_index) + " from farmer: " + str(url)
+        print "Downloading shard at index " + \
+            str(shard_index) + " from farmer: " + str(url)
 
         tries_download_from_same_farmer = 0
         while MAX_RETRIES_DOWNLOAD_FROM_SAME_FARMER > tries_download_from_same_farmer:
@@ -191,14 +185,10 @@ class Downloader:
                 print e
                 continue
             else:
-                # downloaded = True
                 break
 
     def shard_download(self, pointer, shard_index):
-        """Call 2
-        """
         print "Beginning download proccess..."
-
         try:
             # check ability to write files to selected directories
             # if self.tools.isWritable(os.path.split(file_save_path)[0]) is False:
@@ -217,27 +207,24 @@ class Downloader:
                   "?token=" + pointer["token"]
             print url
 
-            file_temp_path = self.tmp_path + "/" +\
-                self.filename_from_bridge +\
+            file_temp_path = os.path.join(self.tmp_path,
+                                          self.filename_from_bridge) +\
                 "-" + str(shard_index)
             if self.combine_tmpdir_name_with_token:
-                # 2.1
-                file_temp_path = self.tmp_path + "/" +\
-                    pointer["token"] + "/" +\
-                    self.filename_from_bridge +\
+                file_temp_path = os.path.join(self.tmp_path,
+                                              pointer["token"],
+                                              self.filename_from_bridge) +\
                     "-" + str(shard_index)
-                self.create_download_connection(url, file_temp_path, shard_index)
             else:
-                # 2.1
                 print "TEST do not combine tmpdir and token"
-                self.create_download_connection(url, file_temp_path, shard_index)
+            self.create_download_connection(url, file_temp_path, shard_index)
 
             print "Shard downloaded"
             print "Shard at index " + str(shard_index) + " downloaded successfully."
             print file_temp_path + " saved"
 
         except IOError as e:
-            print " perm error " + str(e)
+            print "Perm error " + str(e)
             if str(e) == str(13):
                 print """Error while saving or reading file or temporary file.
                 Probably this is caused by insufficient permisions. Please check

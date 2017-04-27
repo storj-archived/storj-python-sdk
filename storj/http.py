@@ -432,7 +432,7 @@ class Client(object):
             (:py:class:`storj.model.File`): file metadata.
         """
 
-        self.logger.info('file_metadata(%s, %s, %s)', bucket_id, file_id)
+        self.logger.info('file_metadata(%s, %s)', bucket_id, file_id)
 
         response = self._request(
             method='GET',
@@ -442,21 +442,21 @@ class Client(object):
             return model.File(**response)
 
     @handle_nonhttp_errors
-    def file_upload(self, bucket_id, file, frame):
+    def file_upload(self, bucket_id, f, frame):
         """Upload file.
         See `API buckets: POST /buckets/{id}/files
         <https://storj.github.io/bridge/#!/buckets/post_buckets_id_files>`_
         Args:
             bucket_id (str): bucket unique identifier.
-            file (:py:class:`storj.model.File`): file to be uploaded.
+            f (:py:class:`storj.model.File`): file to be uploaded.
             frame (:py:class:`storj.model.Frame`): frame used to stage file.
         """
-        self.logger.info('file_upload(%s, %s, %s)', bucket_id, file, frame)
+        self.logger.info('file_upload(%s, %s, %s)', bucket_id, f, frame)
 
         def get_size(file_like_object):
             return os.stat(file_like_object.name).st_size
 
-        file_size = get_size(file)
+        file_size = get_size(f)
 
         # TODO:
         # encrypt file
@@ -476,8 +476,8 @@ class Client(object):
                 #    'x-token': push_token.id,
                 #    'x-filesize': str(file_size)}
                 'frame': frame.id,
-                'mimetype': file.mimetype,
-                'filename': file.filename,
+                'mimetype': f.mimetype,
+                'filename': f.filename,
             })
 
     @handle_nonhttp_errors
@@ -782,8 +782,8 @@ class Client(object):
     def check_file_existence_in_bucket(self, bucket_id, filepath, file_id=None):
         # checking if file with same name or hash exist in bucket
 
-        with open(filepath, mode='rb') as file:  # b is important -> binary
-            fileContent = file.read()
+        with open(filepath, mode='rb') as f:  # b is important -> binary
+            fileContent = f.read()
         bname = (os.path.split(filepath))[1]
         file_metadata = self.file_metadata(bucket_id, file_id)
         file_hash = model.ShardManager.hash(fileContent)

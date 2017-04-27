@@ -22,6 +22,15 @@ def get_client():
     return Client(*read_config())
 
 
+def version():
+    """Returns the client version.
+
+    Returns:
+        str: client version.
+    """
+    return __version__
+
+
 class BucketManager(ABCMeta):
     """Class to manage buckets."""
 
@@ -61,7 +70,7 @@ class BucketManager(ABCMeta):
         get_client().bucket_delete(bucket_id=bucket_id)
 
 
-class BucketKeyManager:
+class BucketKeyManager(object):
     """
 
     Attributes:
@@ -83,8 +92,9 @@ class BucketKeyManager:
 
         self._authorized_public_keys.append(key)
         get_client().bucket_set_keys(
-            bucket_id=self.bucket.id,
-            keys=self._authorized_public_keys)
+            self.bucket.id,
+            self.bucket.name,
+            self._authorized_public_keys)
 
     def clear(self):
         """"""
@@ -102,16 +112,15 @@ class BucketKeyManager:
             keys=self._authorized_public_keys)
 
 
-class FileManager:
+class FileManager(object):
     """"""
 
     def __init__(self, bucket_id):
         self.bucket_id = bucket_id
 
-    def _upload(self, file, frame):
+    def _upload(self, f, frame):
         """"""
-        get_client().file_upload(
-            bucket_id=self.bucket_id, file=file, frame=frame)
+        get_client().file_upload(self.bucket_id, f, frame)
 
     def all(self):
         """"""
@@ -122,21 +131,21 @@ class FileManager:
         """"""
         get_client().file_remove(self, bucket_id, file_id)
 
-    def download(self, file_id):
+    def download(self, bucket_id, file_id):
         """"""
-        get_client().file_download(self, bucket_id, file_hash)
+        get_client().file_download(self, bucket_id, file_id)
 
-    def upload(self, file, frame):
+    def upload(self, f, frame):
         """"""
         # Support path strings as well as file-like objects
-        if isinstance(file, str):
-            with io.open(file, mode='rb') as file:
-                self._upload(file, frame)
+        if isinstance(f, str):
+            with io.open(f, mode='rb') as fh:
+                self._upload(fh, frame)
         else:
-            self._upload(file, frame)
+            self._upload(f, frame)
 
 
-class TokenManager:
+class TokenManager(object):
     """Bucket token manager.
 
     Attributes:

@@ -674,8 +674,6 @@ class ShardManager(Object):
 
     __logger = logging.getLogger('%s.ShardManager' % __name__)
 
-    global SHARD_MULTIPLES_BACK, MAX_SHARD_SIZE
-
     MAX_SHARD_SIZE = 4294967296  # 4Gb
     SHARD_MULTIPLES_BACK = 4
 
@@ -747,10 +745,10 @@ class ShardManager(Object):
 
         # Determine hops back by accumulator
 
-        if accumulator - SHARD_MULTIPLES_BACK < 0:
+        if accumulator - ShardManager.SHARD_MULTIPLES_BACK < 0:
             hops = 0
         else:
-            hops = accumulator - SHARD_MULTIPLES_BACK
+            hops = accumulator - ShardManager.SHARD_MULTIPLES_BACK
 
         # accumulator = 10
         # self.shard_size(1)
@@ -761,7 +759,7 @@ class ShardManager(Object):
 
         if check > 0 and check <= 1:
             while hops > 0 and self.shard_size_const(hops) \
-                    > MAX_SHARD_SIZE:
+                    > ShardManager.MAX_SHARD_SIZE:
                 if hops - 1 <= 0:
                     hops = 0
                 else:

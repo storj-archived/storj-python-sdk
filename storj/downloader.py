@@ -215,22 +215,22 @@ class Downloader:
             self.__logger.debug("Downloading shard at index " +
                                 str(shard_index) + "...")
 
-            url = "http://" + \
-                  pointer.get('farmer')['address'] + \
-                  ":" + \
-                  str(pointer.get('farmer')['port']) + \
-                  "/shards/" + pointer["hash"] + \
-                  "?token=" + pointer["token"]
+            url = "http://%s:%s/shards/%s?token=%s" % (
+                pointer.get('farmer')['address'],
+                str(pointer.get('farmer')['port']),
+                pointer["hash"],
+                pointer["token"])
             self.__logger.debug(url)
 
-            file_temp_path = os.path.join(self.tmp_path,
-                                          self.filename_from_bridge) +\
-                "-" + str(shard_index)
+            file_temp_path = "%s-%s" % (
+                os.path.join(self.tmp_path, self.filename_from_bridge),
+                str(shard_index))
             if self.combine_tmpdir_name_with_token:
-                file_temp_path = os.path.join(self.tmp_path,
-                                              pointer["token"],
-                                              self.filename_from_bridge) +\
-                    "-" + str(shard_index)
+                file_temp_path = "%s-%s" % (
+                    os.path.join(self.tmp_path,
+                                 pointer["token"],
+                                 self.filename_from_bridge),
+                    str(shard_index))
             else:
                 self.__logger.debug("Do not combine tmpdir and token")
             self.create_download_connection(url, file_temp_path, shard_index)

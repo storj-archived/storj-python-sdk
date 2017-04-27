@@ -15,15 +15,15 @@ import model
 from Crypto.Cipher import AES
 from Crypto import Random
 
+from exception import BridgeError, FarmerError, SuppliedTokenNotAcceptedError
 from http import Client
-from . import exception
 
 
 class Uploader:
     """
 
     Attributes:
-        client ():.
+        client (:py:class:`storj.http.Client`): the Storj HTTP client.
         shared_already_uploaded (int): number of shards already uploaded.
         max_retries_contract_negotiation (int): maximum number of contract negotiation retries (default=10).
         max_retries_upload_same_farmer (int): maximum number of uploads retries to the same farmer (default=3).
@@ -199,9 +199,9 @@ class Uploader:
                         j = json.loads(str(response.content))
 
                         if j.get('result') == 'The supplied token is not accepted':
-                            raise exception.SuppliedTokenNotAcceptedError()
+                            raise SuppliedTokenNotAcceptedError()
 
-                    except exception.FarmerError as e:
+                    except FarmerError as e:
                         self.__logger.error(e)
                         continue
 
@@ -232,9 +232,9 @@ class Uploader:
 
                 j = json.loads(str(response.content))
                 if j.get('result') == 'The supplied token is not accepted':
-                    raise exception.SuppliedTokenNotAcceptedError()
+                    raise SuppliedTokenNotAcceptedError()
 
-            except exception.APIError as e:
+            except BridgeError as e:
                 self.__logger.error(e)
 
                 # upload failed due to Storj Bridge failure
@@ -335,7 +335,7 @@ class Uploader:
         push_token = None
         try:
             push_token = self.client.token_create(bucket_id, 'PUSH')
-        except exception.APIError as e:
+        except BridgeError as e:
             self.__logger.error(e)
             self.__logger.debug('PUSH token create exception')
 
@@ -346,7 +346,7 @@ class Uploader:
 
         try:
             frame = self.client.frame_create()
-        except exception.APIError as e:
+        except BridgeError as e:
             self.__logger.error(e)
             self.__logger.debug('Unhandled exception while creating file staging frame')
 
@@ -409,7 +409,7 @@ class Uploader:
             )
             success = True
 
-        except exception.APIError as e:
+        except BridgeError as e:
             self.__logger.error(e)
             self.__logger.debug('Unhandled bridge exception')
 

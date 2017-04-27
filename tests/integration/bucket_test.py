@@ -6,7 +6,7 @@ import logging
 import pytest
 
 
-from storj.exception import StorjBridgeApiError
+from storj.exception import BridgeError
 
 from . import Integration
 
@@ -31,7 +31,7 @@ class Bucket(Integration):
         super(Bucket, self).tearDown()
         try:
             self.client.bucket_delete(self.bucket.id)
-        except StorjBridgeApiError as e:
+        except BridgeError as e:
             self.logger.error(e)
 
     def test(self):
@@ -57,7 +57,7 @@ class Bucket(Integration):
         self.client.bucket_delete(self.bucket.id)
 
         self.logger.debug('2.1')
-        with pytest.raises(StorjBridgeApiError):
+        with pytest.raises(BridgeError):
             self.client.bucket_get(self.bucket.id)
 
         self.logger.debug('2.2')

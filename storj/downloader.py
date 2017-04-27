@@ -18,6 +18,10 @@ from multiprocessing import Pool
 MAX_RETRIES_DOWNLOAD_FROM_SAME_FARMER = 3
 MAX_RETRIES_GET_FILE_POINTERS = 10
 
+def foo(args):
+    self, pointer, shard_index = args
+    return self.shard_download(pointer, shard_index)
+
 
 class Downloader:
 
@@ -47,42 +51,11 @@ class Downloader:
 
 
 
-
-    # TODO: deprecate it?
-    def createNewDownloadInitThread(self, bucket_id, file_id):
-        """Call 1
-        """
-        file_name_resolve_thread = threading.Thread(target=self.download_begin, args=(bucket_id, file_id))
-        file_name_resolve_thread.start()
-
-
-
-    def createNewDownloadThread(self, url, filelocation, shard_index):
-        """Call 2.1
-        """
-        download_thread = threading.Thread(target=self.create_download_connection,
-                                           args=(url,
-                                                 filelocation,
-                                                 shard_index))
-        download_thread.start()
-
-
-
     def get_file_pointers_count(self, bucket_id, file_id):
         """Call 2.1.1
         """
         frame_data = self.client.frame_get(self.file_frame.id)
         return len(frame_data.shards)
-
-
-
-
-
-
-
-
-
-
 
     def set_file_metadata(self, bucket_id, file_id):
         """Call 1.1
@@ -106,8 +79,6 @@ class Downloader:
 
 
 
-    #### Begin file download finish function ####
-    # Wait for signal to do shards joining and encryption
     def finish_download(self, file_name):
         print "Finish download"
         fileisencrypted = False
@@ -180,19 +151,13 @@ class Downloader:
                         file_id,
                         limit=str(self.all_shards_count),
                         skip="0")
-                    print "Shard pointers: " + str(shard_pointers)
+                    print "There are %d shard pointers: " % len(shard_pointers)
 
                     print "Begin shards download process"
-                    # TODO: parallelizzare qui
-                    for p in range(len(shard_pointers)):
-                        self.shard_download(shard_pointers[p], p)
-                    #mp.map(lambda p: self.shard_download(
-                    #    p,
-                    #    shard_pointers.index(i)),
-                    #    shard_pointers)
-                    # self.shard_download(
-                    #      shard_pointer[0],
-                    #      self.destination_file_path)
+                    # for p in range(len(shard_pointers)):
+                    #     self.shard_download(shard_pointers[p], p)
+                    mp.map(foo, [(self, p, shard_pointers.index(p)) for p in
+                           shard_pointers])
                 except exception.StorjBridgeApiError as e:
                     print "Bridge error"
                     print "Error while resolving file pointers \
@@ -209,8 +174,6 @@ class Downloader:
                 download file with ID: " +\
                 str(file_id)
 
-
-        # QUI I DOWNLOAD SONO FINITI
         # All the shards have been downloaded
         self.finish_download(self.filename_from_bridge)
         return

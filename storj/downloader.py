@@ -1,15 +1,11 @@
 import json
-# import logging
 import os
 from sys import platform
 import requests
 
 from sharder import ShardingTools
 from file_crypto import FileCrypto
-import threading
 import exception
-
-import time
 
 from http import Client
 
@@ -17,6 +13,7 @@ from multiprocessing import Pool
 
 MAX_RETRIES_DOWNLOAD_FROM_SAME_FARMER = 3
 MAX_RETRIES_GET_FILE_POINTERS = 10
+
 
 def foo(args):
     self, pointer, shard_index = args
@@ -48,9 +45,6 @@ class Downloader:
 
         self.already_started_shard_downloads_count = 0
 
-
-
-
     def get_file_pointers_count(self, bucket_id, file_id):
         """Call 2.1.1
         """
@@ -72,55 +66,6 @@ class Downloader:
         except Exception as e:
             print "Unhandled error while resolving file metadata. "
             print e
-
-
-
-
-
-
-
-    def finish_download(self, file_name):
-        print "Finish download"
-        fileisencrypted = False
-        if "[DECRYPTED]" in self.filename_from_bridge:
-            fileisencrypted = False
-        else:
-            fileisencrypted = True
-
-        # Join shards
-        # TODO
-        sharing_tools = ShardingTools()
-        print "Joining shards..."
-
-        actual_path = self.tmp_path + "/" + file_name
-        if fileisencrypted:
-            sharing_tools.join_shards(actual_path, "-",
-                                      self.destination_file_path + ".encrypted")
-        else:
-            sharing_tools.join_shards(actual_path, "-", self.destination_file_path)
-
-        print "TEST: " + actual_path + ".encrypted"
-
-        if fileisencrypted:
-            # decrypt file
-            print "Decrypting file..."
-            file_crypto_tools = FileCrypto()
-            # Begin file decryption
-            file_crypto_tools.decrypt_file("AES", str(self.destination_file_path) + ".encrypted",
-                                           self.destination_file_path,
-                                           str(self.client.password))
-
-        print "Finish decryption"
-        print "Downloading completed successfully!"
-        return True
-
-
-
-
-
-
-
-
 
     def download_begin(self, bucket_id, file_id):
         """Call 1a
@@ -178,19 +123,40 @@ class Downloader:
         self.finish_download(self.filename_from_bridge)
         return
 
+    def finish_download(self, file_name):
+        print "Finish download"
+        fileisencrypted = False
+        if "[DECRYPTED]" in self.filename_from_bridge:
+            fileisencrypted = False
+        else:
+            fileisencrypted = True
 
+        # Join shards
+        # TODO
+        sharing_tools = ShardingTools()
+        print "Joining shards..."
 
+        actual_path = self.tmp_path + "/" + file_name
+        if fileisencrypted:
+            sharing_tools.join_shards(actual_path, "-",
+                                      self.destination_file_path + ".encrypted")
+        else:
+            sharing_tools.join_shards(actual_path, "-", self.destination_file_path)
 
+        print "TEST: " + actual_path + ".encrypted"
 
+        if fileisencrypted:
+            # decrypt file
+            print "Decrypting file..."
+            file_crypto_tools = FileCrypto()
+            # Begin file decryption
+            file_crypto_tools.decrypt_file("AES", str(self.destination_file_path) + ".encrypted",
+                                           self.destination_file_path,
+                                           str(self.client.password))
 
-
-
-
-
-
-
-
-
+        print "Finish decryption"
+        print "Downloading completed successfully!"
+        return True
 
     def create_download_connection(self, url, path_to_save, shard_index):
         """Call 2.2
@@ -205,7 +171,6 @@ class Downloader:
             tries_download_from_same_farmer += 1
             farmer_tries += 1
             try:
-                self.current_active_connections += 1
                 r = requests.get(url)
                 # Write the file
                 with open(path_to_save, 'wb') as f:
@@ -228,14 +193,6 @@ class Downloader:
             else:
                 # downloaded = True
                 break
-
-
-
-
-
-
-
-
 
     def shard_download(self, pointer, shard_index):
         """Call 2
@@ -270,16 +227,10 @@ class Downloader:
                     self.filename_from_bridge +\
                     "-" + str(shard_index)
                 self.create_download_connection(url, file_temp_path, shard_index)
-                # self.createNewDownloadThread(url,
-                #                              file_temp_path,
-                #                              shard_index)
             else:
                 # 2.1
                 print "TEST do not combine tmpdir and token"
                 self.create_download_connection(url, file_temp_path, shard_index)
-                # self.createNewDownloadThread(
-                #     url, file_temp_path,
-                #     shard_index)
 
             print "Shard downloaded"
             print "Shard at index " + str(shard_index) + " downloaded successfully."
@@ -292,11 +243,6 @@ class Downloader:
                 Probably this is caused by insufficient permisions. Please check
                 if you have permissions to write or read from selected
                 directories.  """
-
         except Exception as e:
             print "Unhalded error"
             print e
-
-
-
-

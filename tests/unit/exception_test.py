@@ -100,4 +100,5 @@ class SuppliedTokenNotAcceptedErrorTestCase(FarmerErrorTestCase):
         expected = ''
         error = SuppliedTokenNotAcceptedError()
 
-        self.assertFarmerError(error, SuppliedTokenNotAcceptedError.CODE, expected)
+        self.assertFarmerError(
+            error, SuppliedTokenNotAcceptedError.CODE, expected)

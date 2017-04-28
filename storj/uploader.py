@@ -328,7 +328,7 @@ class Uploader:
         self.fileisdecrypted_str = ''
 
         file_size = os.stat(file_path).st_size
-        print "File encrypted"
+        self.__logger.debug('File encrypted')
 
         # Get the PUSH token from Storj Bridge
         self.__logger.debug('Get PUSH Token')
@@ -400,7 +400,8 @@ class Uploader:
 
             # This is the actual upload_file method
             response = self.client._request(
-                method='POST', path='/buckets/%s/files' % bucket_id,
+                method='POST',
+                path='/buckets/%s/files' % bucket_id,
                 # files={'file' : file},
                 headers={
                     'x-token': push_token.id,
@@ -418,6 +419,6 @@ class Uploader:
             self.__logger.debug('File uploaded successfully!')
 
         # delete encrypted file (if encrypted and duplicated)
-        if encryption_enabled and file_path_ready != "":
+        if encryption_enabled and file_path_ready:
             self.__logger.debug('Remove file %s', file_path_ready)
             os.remove('%s*' % file_path_ready)

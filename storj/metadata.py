@@ -23,4 +23,4 @@ __author_email__ = ';'.join([
     'shawn+pythonsdk@storj.io',
     'lakewik@lakewik.pl'
 ])
-__version__ = '0.3.2'
+__version__ = '0.3.4'

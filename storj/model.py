@@ -911,12 +911,14 @@ class ShardManager(Object):
 
 class Token(Object):
     """Token.
+
     Args:
         id (str): token unique identifier.
         bucket (str): bucket unique identifier.
         operation ():
         expires (str): expiration date, in the RFC3339 format.
         encryptionKey (str):
+
     Attributes:
         id (str): token unique identifier.
         bucket (:py:class:`storj.model.Bucket`): bucket.
@@ -926,9 +928,10 @@ class Token(Object):
     """
 
     def __init__(
-        self, bucket=None, operation=None, expires=None,
-        encryptionKey=None, id=None
+        self, token=None, bucket=None, operation=None, expires=None,
+        encryptionKey=None, id=None,
     ):
+        self.token = token
         self.bucket = Bucket(id=bucket)
         self.operation = operation
         self.id = id

@@ -50,9 +50,10 @@ class Bucket(Object):
     """
 
     def __init__(
-            self, id=None, name=None, status=None, user=None,
-            created=None, storage=None, transfer=None, pubkeys=None,
-            publicPermissions=None, encryptionKey=None, index=None):
+        self, id=None, name=None, status=None, user=None,
+        created=None, storage=None, transfer=None, pubkeys=None,
+        publicPermissions=None, encryptionKey=None, index=None
+    ):
         self.id = id
         self.name = name
         self.status = status
@@ -88,8 +89,8 @@ class Contact(Object):
     """
 
     def __init__(
-            self, address=None, port=None, nodeID=None,
-            lastSeen=None, protocol=None, userAgent=None, responseTime=None, timeoutRate=None, lastTimeout=None
+        self, address=None, port=None, nodeID=None,
+        lastSeen=None, protocol=None, userAgent=None, responseTime=None, timeoutRate=None, lastTimeout=None
     ):
         self.address = address
         self.port = port
@@ -166,7 +167,7 @@ class FilePointer(Object):
 
     def __init__(self, hash=None, token=None, operation=None, channel=None):
         self.hash = hash
-        self.token = Token(token=token)
+        self.token = Token(id=token)
         self.operation = operation
         self.channel = channel
 
@@ -583,16 +584,15 @@ class Shard(Object):
         id (str): unique identifier.
         hash (str): hash of the data.
         size (long): size of the shard in bytes.
-        index (int): numberic index of the shard in the frame.
+        index (int): numeric index of the shard in the frame.
         challenges (list[str]): list of challenge numbers
-        tree (list[str]): audit merkle tree
+        tree (list[str]): audit merkle tree.
         exclude (list[str]): list of farmer nodeIDs to exclude
     """
 
     def __init__(self, id=None, hash=None, size=None, index=None,
                  challenges=None, tree=None, exclude=None):
         self.id = id
-        # self.path = None
         self.hash = hash
         self.size = size
         self.index = index
@@ -652,22 +652,31 @@ class ShardingException(Exception):
 
 
 class ShardManager(Object):
+    """
+    Attributes:
+        tmp_path (str): directory where the chunk files will reside.
+        nchallenges : number of challenges.
+        shard_size (): .
+        shards (list[]): shards.
+        filepath (str): path to the original file.
+        num_chunks (int): number of chunks used to split the file.
+        suffix (str): suffix to be used on chunk file names.
+    """
 
     __logger = logging.getLogger('%s.ShardManager' % __name__)
 
     MAX_SHARD_SIZE = 4294967296  # 4Gb
     SHARD_MULTIPLES_BACK = 4
 
-    def __init__(
-            self,
-            filepath,
-            shard_size=None,
-            tmp_path=None,
-            nchallenges=2,
-    ):
-        self.tmp_path = tmp_path
+    def __init__(self, filepath, shard_size=None, tmp_path=None, nchallenges=2, suffix=''):
+        self.num_chunks = 0
         self.nchallenges = nchallenges
         self.shard_size = shard_size
+        self.shards = []
+        self.suffix = suffix
+        self.tmp_path = tmp_path
+
+        # IMPORTANT: set filepath last
         self.filepath = filepath
 
     @property
@@ -685,10 +694,49 @@ class ShardManager(Object):
             raise ValueError('%s must be a file' % value)
 
         self._filepath = value
-        self.index = 0
+        self._filesize = os.path.getsize(value)
         self._make_shards()
 
-    def get_optimal_shard_parametrs(self, file_size):
+    @property
+    def filesize(self):
+        """(long): file size."""
+        return self._filesize
+
+    @property
+    def tmp_path(self):
+        """(str): path to the temporary directory."""
+        return self._tmp_path
+
+    @tmp_path.setter
+    def tmp_path(self, value):
+
+        if value is not None:
+            self._tmp_path = value
+
+        elif platform == 'linux' or platform == 'linux2':
+            # linux
+            self._tmp_path = '/tmp'
+
+        elif platform == 'darwin':
+            # OS X
+            self._tmp_path = '/tmp'
+
+        elif platform == 'win32':
+            # Windows
+            self._tmp_path = 'C://Windows/temp'
+
+        self.__logger.debug('self.tmp_path=%s', self._tmp_path)
+
+    def get_optimal_shard_parameters(self, file_size):
+        """
+        Returns the optimal sharding parameters.
+
+        Args:
+            file_size (long): file size.
+
+        Returns:
+            dict: {'shard_size', 'shard_count', 'file_size'}
+        """
         shard_parameters = {}
         accumulator = 0
         shard_size = None
@@ -738,9 +786,8 @@ class ShardManager(Object):
 
         check = file_size / byte_multiple
 
-        if check > 0 and check <= 1:
-            while hops > 0 and self.shard_size_const(hops) \
-                    > ShardManager.MAX_SHARD_SIZE:
+        if 0 < check <= 1:
+            while hops > 0 and self.shard_size_const(hops) > ShardManager.MAX_SHARD_SIZE:
                 if hops - 1 <= 0:
                     hops = 0
                 else:
@@ -758,86 +805,50 @@ class ShardManager(Object):
     def _make_shards(self):
         """Populates the shard manager with shards."""
 
-        self.shards = []
-        self.__postfix = ''
+        optimal_shard_parameters = \
+            self.get_optimal_shard_parameters(self.filesize)
+
+        self.num_chunks = int(optimal_shard_parameters['shard_count'])
+        self.__logger.debug('number of chunks %d', self.num_chunks)
+
         index = 0
 
-        # Get the file size
-
-        fsize = os.path.getsize(self.filepath)
-
-        optimal_shard_parametrs = \
-            self.get_optimal_shard_parametrs(fsize)
-
-        self.__numchunks = int(optimal_shard_parametrs['shard_count'])
-        self.__logger.debug('Number of chunks %d', self.__numchunks)
-
         try:
-            f = open(self.filepath, 'rb')
+            with open(self.filepath, 'rb') as f:
+
+                bname = os.path.split(self.filepath)[1]
+                chunk_size = int(float(self.filesize) / float(self.num_chunks))
+
+                for x in range(1, self.num_chunks + 1):
+                    chunk_fn = '%s-%s%s' % (bname, x, self.suffix)
+
+                    try:
+                        data = f.read(chunk_size)
+                        bytes_read = len(data)
+
+                        self.shard_size = bytes_read
+
+                        self.__logger.debug('writing file %s', chunk_fn)
+                        with open(os.path.join(self.tmp_path, chunk_fn), 'wb') as chunkf:
+                            chunkf.write(data)
+
+                        challenges = self._make_challenges(self.nchallenges)
+
+                        self.shards.append(
+                            Shard(size=bytes_read, index=index,
+                                  hash=ShardManager.hash(data),
+                                  tree=self._make_tree(challenges, data),
+                                  challenges=challenges))
+
+                        index += 1
+
+                    except (OSError, IOError) as e:
+                        self.__logger.error(e)
+                        continue
+
         except (OSError, IOError) as e:
+            self.__logger.error(e)
             raise ShardingException(str(e))
-
-        bname = os.path.split(self.filepath)[1]
-
-        # get chunk size
-        self.__chunksize = int(float(fsize) / float(self.__numchunks))
-
-        chunksz = self.__chunksize
-        total_bytes = 0
-        i = 0
-        for x in range(self.__numchunks):
-            chunkfilename = bname + '-' + str(x + 1) + self.__postfix
-
-            # if reading the last section,
-            # calculate correct chunk size.
-
-            if x == self.__numchunks - 1:
-                chunksz = fsize - total_bytes
-
-            self.shard_size = chunksz
-
-            if self.tmp_path is None:
-                if platform == 'linux' or platform == 'linux2':
-                    # linux
-                    self.tmp_path = '/tmp'
-                elif platform == 'darwin':
-                    # OS X
-                    self.tmp_path = '/tmp'
-                elif platform == 'win32':
-                    # Windows
-                    self.tmp_path = 'C://Windows/temp'
-            self.__logger.debug('self.tmp_path=%s', self.tmp_path)
-
-            try:
-                self.__logger.debug('Writing file %s', chunkfilename)
-                data = f.read(chunksz)
-                total_bytes += len(data)
-                inc = len(data)
-
-                with open(os.path.join(self.tmp_path, chunkfilename),
-                          'wb') as chunkf:
-                    chunkf.write(data)
-
-                challenges = self._make_challenges(self.nchallenges)
-
-                shard = Shard(size=self.shard_size, index=index,
-                              hash=ShardManager.hash(data),
-                              tree=self._make_tree(challenges, data[i:i + inc]),
-                              challenges=challenges)
-                # hash=ShardManager.hash(data[i:i + inc]),
-
-                self.shards.append(shard)
-
-                index += 1
-                i += 1
-            except (OSError, IOError) as e:
-                self.__logger.error(e)
-                continue
-            except EOFError as e:
-                self.__logger.error(e)
-                break
-
-        self.index = len(self.shards)
 
     @staticmethod
     def hash(data):
@@ -901,7 +912,7 @@ class ShardManager(Object):
 class Token(Object):
     """Token.
     Args:
-        token (str): token unique identifier.
+        id (str): token unique identifier.
         bucket (str): bucket unique identifier.
         operation ():
         expires (str): expiration date, in the RFC3339 format.
@@ -915,10 +926,9 @@ class Token(Object):
     """
 
     def __init__(
-            self, token=None, bucket=None, operation=None, expires=None,
-            encryptionKey=None, id=None
+        self, bucket=None, operation=None, expires=None,
+        encryptionKey=None, id=None
     ):
-        self.id = token
         self.bucket = Bucket(id=bucket)
         self.operation = operation
         self.id = id
@@ -934,8 +944,8 @@ class Token(Object):
 
 class ExchangeReport(Object):
     def __init__(
-            self, dataHash=None, reporterId=None, farmerId=None, clientId=None,
-            exchangeStart=None, exchangeEnd=None, exchangeResultCode=None, exchangeResultMessage=None
+        self, dataHash=None, reporterId=None, farmerId=None, clientId=None,
+        exchangeStart=None, exchangeEnd=None, exchangeResultCode=None, exchangeResultMessage=None
     ):
         self.dataHash = dataHash
         self.reporterId = reporterId
@@ -957,6 +967,6 @@ class ExchangeReport(Object):
 
 class StorjParametrs(Object):
     def __init__(
-            self, tmpPath=None
+        self, tmpPath=None
     ):
         self.tmpPath = tmpPath

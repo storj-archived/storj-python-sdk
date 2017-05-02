@@ -265,7 +265,7 @@ class ClientTestCase(AbstractTestCase):
             method='GET',
             path='/buckets/%s/files/%s/?skip=%s&limit=%s' % (
                 test_bucket_id, test_file_id, test_skip, test_limit),
-            headers={'x-token': None})
+            headers={'x-token': 'test_token'})
 
         mock_token_create.assert_called_once_with(
             test_bucket_id, operation='PULL')

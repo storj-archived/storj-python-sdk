@@ -252,7 +252,7 @@ class ClientTestCase(AbstractTestCase):
         test_limit = '10'
         test_skip = '0'
 
-        mock_token_create.return_value = model.Token(token='test_token')
+        mock_token_create.return_value = model.Token(id='test_token')
 
         response = self.client.file_pointers(
             test_bucket_id, test_file_id, test_skip, test_limit)
@@ -552,7 +552,7 @@ class ClientTestCase(AbstractTestCase):
 
         # https://storj.github.io/bridge/#!/buckets/post_buckets_id_tokens
         self.mock_request.return_value = dict(
-            token='string',
+            id='string',
             bucket='string',
             expires='2016-10-13T04:23:48.183Z',
             operation='string',

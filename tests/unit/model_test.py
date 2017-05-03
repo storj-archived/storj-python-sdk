@@ -307,6 +307,8 @@ class ShardTestCase(AbstractTestCase):
 class ShardManagerTestCase(AbstractTestCase):
     """Test case for the ShardManager class."""
 
+    GB = 1024 * 1024 * 1024
+
     def _assert_init(self, args, kwargs, file_size):
 
         shard_manager = ShardManager(*args, **kwargs)
@@ -415,6 +417,16 @@ class ShardManagerTestCase(AbstractTestCase):
 
         mock_tree.reset_mock()
         mock_challenges.reset_mock()
+
+    def test_get_optimal_shard_parameters(self):
+        shard_manager = ShardManager(__file__)
+
+        for file_size, expected_shard_size, expected_shard_count in [
+                (43 * self.GB, 2 * self.GB, 21)  # 43GB -> 2GB shard / 22 shards
+        ]:
+            shard_manager._filesize = file_size
+            assert expected_shard_size == shard_manager.get_optimal_shard_parameters()['shard_size']
+            assert expected_shard_count == shard_manager.get_optimal_shard_parameters()['shard_count']
 
     @mock.patch.object(ShardManager, '_sha256')
     @mock.patch.object(ShardManager, '_ripemd160')

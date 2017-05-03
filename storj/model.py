@@ -815,6 +815,7 @@ class ShardManager(Object):
 
                 bname = os.path.split(self.filepath)[1]
                 chunk_size = int(float(self.filesize) / float(self.num_chunks))
+                self.__logger.debug('chunk_size = %d', chunk_size)
 
                 for x in range(1, self.num_chunks + 1):
                     chunk_fn = '%s-%s%s' % (bname, x, self.suffix)

@@ -750,7 +750,7 @@ class ShardManager(Object):
         self.__logger.debug('shard_size=%s file_size=%s', shard_size, self.filesize)
 
         shard_parameters['shard_size'] = shard_size
-        shard_parameters['shard_count'] = math.ceil(self.filesize / shard_size)
+        shard_parameters['shard_count'] = int(math.ceil(self.filesize / shard_size))
         shard_parameters['file_size'] = self.filesize
 
         return shard_parameters

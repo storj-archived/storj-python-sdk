@@ -396,15 +396,12 @@ class ShardManagerTestCase(AbstractTestCase):
             tmp_file.write(content)
             tmp_file.flush()
 
-            size = 10
             nchallenges = 2
             sm = ShardManager(
                 tmp_file.name,
-                shard_size=size,
                 nchallenges=nchallenges)
 
             assert sm.filepath == tmp_file.name
-            assert sm.shard_size == size
             assert len(sm.shards) > 0
 
         mock_challenges.assert_called_once_with(nchallenges)
@@ -419,14 +416,19 @@ class ShardManagerTestCase(AbstractTestCase):
         mock_challenges.reset_mock()
 
     def test_get_optimal_shard_parameters(self):
+        """Test ShardManager.get_optimal_shard_parameters()."""
         shard_manager = ShardManager(__file__)
 
         for file_size, expected_shard_size, expected_shard_count in [
-                (43 * self.GB, 2 * self.GB, 21)  # 43GB -> 2GB shard / 22 shards
+            # (file size, shard size, shard count)
+            (43 * self.GB, 4 * self.GB, 11)
         ]:
             shard_manager._filesize = file_size
-            assert expected_shard_size == shard_manager.get_optimal_shard_parameters()['shard_size']
-            assert expected_shard_count == shard_manager.get_optimal_shard_parameters()['shard_count']
+            shard_size, shard_count = \
+                shard_manager.get_optimal_shard_parameters()
+
+            assert expected_shard_size == shard_size
+            assert expected_shard_count == shard_count
 
     @mock.patch.object(ShardManager, '_sha256')
     @mock.patch.object(ShardManager, '_ripemd160')

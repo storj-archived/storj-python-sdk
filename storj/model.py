@@ -667,6 +667,7 @@ class ShardManager(Object):
 
     MAX_SHARD_SIZE = 4294967296  # 4Gb
     SHARD_MULTIPLES_BACK = 4
+    SHARD_SIZE = 8 * (1024 * 1024)  # 8Mb
 
     def __init__(self, filepath, shard_size=None, tmp_path=None, nchallenges=2, suffix=''):
         self.num_chunks = 0
@@ -731,43 +732,36 @@ class ShardManager(Object):
         """
         Returns the optimal sharding parameters.
 
+        See https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c
+
         Returns:
-            dict: {'shard_size', 'shard_count', 'file_size'}
+            tuple[long, int]: shard size, number of shards.
         """
-        shard_parameters = {}
-        accumulator = 0
-        shard_size = None
 
-        while shard_size is None:
-            shard_size = self.determine_shard_size(accumulator)
-            accumulator += 1
-
-        self.__logger.debug('shard_size=%s file_size=%s', shard_size, self.filesize)
-
+        shard_size = self.determine_shard_size()
         if shard_size == 0:
             shard_size = self.filesize
 
-        self.__logger.debug('shard_size=%s file_size=%s', shard_size, self.filesize)
+        shard_count = int(math.ceil(float(self.filesize) / float(shard_size)))
 
-        shard_parameters['shard_size'] = shard_size
-        shard_parameters['shard_count'] = int(math.ceil(self.filesize / shard_size))
-        shard_parameters['file_size'] = self.filesize
+        self.__logger.debug(
+            'shard_size = %d, shard_count = %d, file_size = %d',
+            shard_size, shard_count, self.filesize)
 
-        return shard_parameters
+        return shard_size, shard_count
 
-    def determine_shard_size(self, accumulator):
+    def determine_shard_size(self, accumulator=0):
+        """
 
-        # Based on <https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c>
+        See https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c
 
-        hops = 0
+        Args:
+            accumulator (int):
+        """
+        self.__logger.debug('determine_shard_size(%d)', accumulator)
 
         if self.filesize <= 0:
-            return 0
-
-            # if accumulator != True:
-            # accumulator  = 0
-
-        self.__logger.debug('acumulator=%s', accumulator)
+            return self.filesize
 
         # Determine hops back by accumulator
 
@@ -776,36 +770,37 @@ class ShardManager(Object):
         else:
             hops = accumulator - ShardManager.SHARD_MULTIPLES_BACK
 
-        # accumulator = 10
-        # self.shard_size(1)
+        byte_multiple = ShardManager.SHARD_SIZE * pow(2, accumulator)
+        check = float(self.filesize) / float(byte_multiple)
 
-        byte_multiple = self.shard_size_const(accumulator)
-
-        check = self.filesize / byte_multiple
+        self.__logger.debug(
+            'hops=%d acumulator = %d check = %.2f file_size = %d byte_multiple = %d',
+            hops, accumulator, check, self.filesize, byte_multiple)
 
         if 0 < check <= 1:
-            while hops > 0 and self.shard_size_const(hops) > ShardManager.MAX_SHARD_SIZE:
+            while hops > 0 and ShardManager.SHARD_SIZE * pow(2, hops) > ShardManager.MAX_SHARD_SIZE:
                 if hops - 1 <= 0:
                     hops = 0
                 else:
-                    hops = hops - 1
-            return self.shard_size_const(hops)
+                    hops -= 1
 
-        # Maximum of 2 ^ 41 * 8 * 1024 * 1024
+            self.__logger.debug(
+                'hops=%d acumulator = %d check = %.2f file_size = %d byte_multiple = %d',
+                hops, accumulator, check, self.filesize, byte_multiple)
 
+            return ShardManager.SHARD_SIZE * pow(2, hops)
+
+        # maximum of 2 ^ 41 * 8 * 1024 * 1024 = 16 exabytes
         if accumulator > 41:
             return 0
 
-    def shard_size_const(self, hops):
-        return 8 * (1024 * 1024) * pow(2, hops)
+        accumulator += 1
+        return self.determine_shard_size(accumulator)
 
     def _make_shards(self):
         """Populates the shard manager with shards."""
 
-        optimal_shard_parameters = \
-            self.get_optimal_shard_parameters()
-
-        self.num_chunks = optimal_shard_parameters['shard_count']
+        self.shard_size, self.num_chunks = self.get_optimal_shard_parameters()
         self.__logger.debug('number of chunks %d', self.num_chunks)
 
         index = 0
@@ -822,9 +817,6 @@ class ShardManager(Object):
 
                     try:
                         data = f.read(chunk_size)
-                        bytes_read = len(data)
-
-                        self.shard_size = bytes_read
 
                         self.__logger.debug('writing file %s', chunk_fn)
                         with open(os.path.join(self.tmp_path, chunk_fn), 'wb') as chunkf:
@@ -833,7 +825,7 @@ class ShardManager(Object):
                         challenges = self._make_challenges(self.nchallenges)
 
                         self.shards.append(
-                            Shard(size=bytes_read, index=index,
+                            Shard(size=len(data), index=index,
                                   hash=ShardManager.hash(data),
                                   tree=self._make_tree(challenges, data),
                                   challenges=challenges))

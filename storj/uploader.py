@@ -402,4 +402,3 @@ staging frame')
         if encryption_enabled and file_path_ready:
             self.__logger.debug('Remove file %s', file_path_ready)
             os.remove('%s*' % file_path_ready)
-

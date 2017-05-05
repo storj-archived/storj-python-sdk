@@ -6,9 +6,9 @@ import base64
 import hashlib
 import hmac
 import logging
+from multiprocessing import Pool
 import json
 import requests
-import threading
 import time
 
 from file_crypto import FileCrypto
@@ -19,7 +19,13 @@ from exception import BridgeError, FarmerError, SuppliedTokenNotAcceptedError
 from http import Client
 
 
+def foo(args):
+    self, shard, shard_index, frame, file_name, tmp_path = args
+    self.upload_shard(shard, shard_index, frame, file_name, tmp_path)
+
+
 class Uploader:
+
     """
 
     Attributes:
@@ -42,7 +48,8 @@ class Uploader:
         self.max_retries_upload_same_farmer = max_retries_upload_same_farmer
 
     def _calculate_hmac(self, base_string, key):
-        """HMAC hash calculation and returning the results in dictionary collection.
+        """HMAC hash calculation and returning
+        the results in dictionary collection.
 
         Args:
             base_string (): .
@@ -86,53 +93,16 @@ class Uploader:
         current_hmac = ''
 
         for shard in shard_array:
-            base64_decoded = str(base64.decodestring(shard.hash)) + str(current_hmac)
+            base64_decoded = '%s%s' % (base64.decodestring(shard.hash),
+                                       current_hmac)
             current_hmac = self._calculate_hmac(base64_decoded, encryption_key)
 
-        self.__logger.debug('current_hmac=%s', current_hmac)
+        self.__logger.debug('current_hmac=%s' % current_hmac)
 
         return current_hmac
 
-    def createNewUploadThread(self, bucket_id, file_path, tmp_file_path):
-        """
-
-        Args:
-            bucket_id:
-            file_path:
-            tmp_file_path:
-        """
-
-        self.bid = bucket_id
-        self.file_path = file_path
-        self.tmp_path = tmp_file_path
-
-        upload_thread = threading.Thread(
-            target=self.file_upload,
-            args=())
-        upload_thread.start()
-
-    def createNewShardUploadThread(self, shard, chapters, frame, file_name):
-        """
-
-        Args:
-            shard ():
-            chapters ():
-            frame ():
-            file_name ():
-        """
-
-        # another worker thread for single shard uploading and
-        # it will retry if download fail
-        upload_thread = threading.Thread(
-            target=self.upload_shard(
-                shard=shard,
-                chapters=chapters,
-                frame=frame,
-                file_name_ready_to_shard_upload=file_name),
-            args=())
-        upload_thread.start()
-
-    def upload_shard(self, shard, chapters, frame, file_name_ready_to_shard_upload):
+    def upload_shard(self, shard, chapters, frame,
+                     file_name_ready_to_shard_upload, tmp_path):
         """
 
         Args:
@@ -140,16 +110,18 @@ class Uploader:
             chapters:
             frame:
             file_name_ready_to_shard_upload:
+            tmp_path:
         """
 
         contract_negotiation_tries = 0
         exchange_report = model.ExchangeReport()
 
-        while self.max_retries_contract_negotiation > contract_negotiation_tries:
+        while self.max_retries_contract_negotiation > \
+                contract_negotiation_tries:
             contract_negotiation_tries += 1
             self.__logger.debug('Negotiating contract')
-            self.__logger.debug(
-                'Trying to negotiate storage contract for shard at index %s...', str(chapters))
+            self.__logger.debug('Trying to negotiate storage contract for \
+shard at index %s...' % chapters)
 
             try:
                 frame_content = self.client.frame_add_shard(shard, frame.id)
@@ -186,19 +158,22 @@ class Uploader:
                             frame_content['farmer']['port'],
                             farmer_tries)
 
-                        mypath = os.path.join(self.tmp_path,
-                                              file_name_ready_to_shard_upload +
-                                              '-' + str(chapters + 1))
+                        mypath = os.path.join(
+                            tmp_path, '%s-%s' % (
+                                file_name_ready_to_shard_upload,
+                                chapters + 1))
 
                         with open(mypath, 'rb') as f:
                             response = requests.post(
                                 url,
-                                data=self._read_in_chunks(f, shard_index=chapters),
+                                data=self._read_in_chunks(
+                                    f, shard_index=chapters),
                                 timeout=1)
 
                         j = json.loads(str(response.content))
 
-                        if j.get('result') == 'The supplied token is not accepted':
+                        if j.get('result') == \
+                                'The supplied token is not accepted':
                             raise SuppliedTokenNotAcceptedError()
 
                     except FarmerError as e:
@@ -209,7 +184,8 @@ class Uploader:
                         self.__logger.error(e)
                         self.__logger.error(
                             'Shard upload error for to %s:%d',
-                            frame_content['farmer']['address'], frame_content['farmer']['port'])
+                            frame_content['farmer']['address'],
+                            frame_content['farmer']['port'])
                         continue
 
                     self.shards_already_uploaded += 1
@@ -223,7 +199,8 @@ class Uploader:
                         self.all_shards_count,
                         self.shards_already_uploaded)
 
-                    if int(self.all_shards_count) <= int(self.shards_already_uploaded):
+                    if int(self.all_shards_count) <= \
+                            int(self.shards_already_uploaded):
                         self.__logger.debug('finish upload')
 
                     break
@@ -238,24 +215,27 @@ class Uploader:
                 self.__logger.error(e)
 
                 # upload failed due to Storj Bridge failure
-                self.__logger.debug('Exception raised while trying to negotiate contract: ')
+                self.__logger.debug('Exception raised while trying to \
+negotiate contract: ')
                 continue
 
             except Exception as e:
                 # now send Exchange Report
                 # upload failed probably while sending data to farmer
                 self.__logger.error(e)
-                self.__logger.error(
-                    'Error occured while trying to upload shard or negotiate contract. Retrying... ')
-                self.__logger.error(
-                    'Unhandled exception occured while trying to upload shard or negotiate contract for'
-                    'shard at index %s . Retrying...', chapters)
+                self.__logger.error('Error occured while trying to upload \
+shard or negotiate contract. Retrying... ')
+                self.__logger.error('Unhandled exception occured while trying \
+to upload shard or negotiate contract for shard at index %s . Retrying...',
+                                    chapters)
 
                 current_timestamp = int(time.time())
                 exchange_report.exchangeEnd = str(current_timestamp)
                 exchange_report.exchangeResultCode = (exchange_report.FAILURE)
-                exchange_report.exchangeResultMessage = (exchange_report.STORJ_REPORT_UPLOAD_ERROR)
-                # self.client.send_exchange_report(exchange_report) # send exchange report
+                exchange_report.exchangeResultMessage = \
+                    (exchange_report.STORJ_REPORT_UPLOAD_ERROR)
+                # Send exchange report
+                # self.client.send_exchange_report(exchange_report)
                 continue
 
             # uploaded with success
@@ -263,13 +243,17 @@ class Uploader:
             # prepare second half of exchange heport
             exchange_report.exchangeEnd = str(current_timestamp)
             exchange_report.exchangeResultCode = exchange_report.SUCCESS
-            exchange_report.exchangeResultMessage = exchange_report.STORJ_REPORT_SHARD_UPLOADED
+            exchange_report.exchangeResultMessage = \
+                exchange_report.STORJ_REPORT_SHARD_UPLOADED
 
-            self.__logger.info('Shard %s successfully added and exchange report sent.', chapters + 1)
-            # self.client.send_exchange_report(exchange_report) # send exchange report
+            self.__logger.info('Shard %s successfully added and exchange \
+report sent.', chapters + 1)
+            # Send exchange report
+            # self.client.send_exchange_report(exchange_report)
             break
 
-    def _read_in_chunks(self, file_object, blocksize=4096, chunks=-1, shard_index=None):
+    def _read_in_chunks(self, file_object, blocksize=4096, chunks=-1,
+                        shard_index=None):
         """Lazy function (generator) to read a file piece by piece.
 
         Default chunk size: 1k.
@@ -291,15 +275,11 @@ class Uploader:
 
             chunks -= 1
 
-    def file_upload(self):
+    def file_upload(self, bucket_id, file_path, tmp_file_path):
         """"""
 
-        bucket_id = self.bid
-        file_path = self.file_path
-        tmpPath = self.tmp_path
-
         self.__logger.debug('Upload %s in bucket %d', file_path, bucket_id)
-        self.__logger.debug('Temp folder %s', tmpPath)
+        self.__logger.debug('Temp folder %s', tmp_file_path)
 
         encryption_enabled = True
 
@@ -311,19 +291,20 @@ class Uploader:
         self.__logger.debug('Encrypting file...')
 
         file_crypto_tools = FileCrypto()
+
+        # File name of encrypted file
+        file_name_ready_to_shard_upload = '%s.encrypted' % bname
         # Path where to save the encrypted file in temp dir
-        file_path_ready = os.path.join(tmpPath,
-                                       bname + ".encrypted")
+        file_path_ready = os.path.join(tmp_file_path,
+                                       file_name_ready_to_shard_upload)
         self.__logger.debug('file_path_ready: %s', file_path_ready)
 
-        # begin file encryption
+        # Begin file encryption
         file_crypto_tools.encrypt_file(
             'AES',
             file_path,
             file_path_ready,
             self.client.password)
-
-        file_name_ready_to_shard_upload = '%s.encrypted' % bname
 
         self.fileisdecrypted_str = ''
 
@@ -342,6 +323,7 @@ class Uploader:
 
         self.__logger.debug('PUSH Token ID %s', push_token.id)
 
+        # Get a frame
         self.__logger.debug('Frame')
         frame = None
 
@@ -349,34 +331,35 @@ class Uploader:
             frame = self.client.frame_create()
         except BridgeError as e:
             self.__logger.error(e)
-            self.__logger.debug('Unhandled exception while creating file staging frame')
+            self.__logger.debug('Unhandled exception while creating file \
+staging frame')
 
         self.__logger.debug('frame.id = %s', frame.id)
-
-        # Now encrypt file
 
         # Now generate shards
         self.__logger.debug('Sharding started...')
         shards_manager = model.ShardManager(filepath=file_path_ready,
-                                            tmp_path=self.tmp_path)
-        self.all_shards_count = len(shards_manager.num_shards)
+                                            tmp_path=tmp_file_path)
+        self.all_shards_count = shards_manager.index
+
         self.__logger.debug('Sharding ended...')
 
         self.__logger.debug('There are %d shards', self.all_shards_count)
 
         # create file hash
 
-        chapters = 0
-
-        for shard in shards_manager.shards:
-            self.createNewShardUploadThread(shard, chapters, frame, file_name_ready_to_shard_upload)
-            chapters += 1
+        mp = Pool()
+        mp.map(foo, [(self, shards_manager.shards[x], x, frame,
+                      file_name_ready_to_shard_upload, tmp_file_path)
+                     for x in range(len(shards_manager.shards))])
 
         # finish_upload
         self.__logger.debug('Generating HMAC...')
 
-        hash_sha512_hmac_b64 = self._prepare_bucket_entry_hmac(shards_manager.shards)
-        hash_sha512_hmac = hashlib.sha224(str(hash_sha512_hmac_b64['SHA-512'])).hexdigest()
+        hash_sha512_hmac_b64 = self._prepare_bucket_entry_hmac(
+            shards_manager.shards)
+        hash_sha512_hmac = hashlib.sha224(str(
+            hash_sha512_hmac_b64['SHA-512'])).hexdigest()
 
         self.__logger.debug('Now upload file')
         data = {
@@ -386,7 +369,7 @@ class Uploader:
             'mimetype': file_mime_type,
             'filename': str(bname) + str(self.fileisdecrypted_str),
             'hmac': {
-                'type': "sha512",
+                'type': 'sha512',
                 'value': hash_sha512_hmac
             },
         }
@@ -396,13 +379,10 @@ class Uploader:
 
         success = False
         try:
-            # TODO
-
-            # This is the actual upload_file method
+            # Post an upload_file request
             response = self.client._request(
                 method='POST',
                 path='/buckets/%s/files' % bucket_id,
-                # files={'file' : file},
                 headers={
                     'x-token': push_token.id,
                     'x-filesize': str(file_size),

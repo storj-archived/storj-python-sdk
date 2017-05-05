@@ -20,6 +20,7 @@ from http import Client
 
 
 class Uploader:
+
     """
 
     Attributes:
@@ -40,6 +41,7 @@ class Uploader:
         self.shards_already_uploaded = 0
         self.max_retries_contract_negotiation = max_retries_contract_negotiation
         self.max_retries_upload_same_farmer = max_retries_upload_same_farmer
+        print "Created"
 
     def _calculate_hmac(self, base_string, key):
         """HMAC hash calculation and returning the results in dictionary collection.
@@ -102,16 +104,14 @@ class Uploader:
             tmp_file_path:
         """
 
-        self.bid = bucket_id
-        self.file_path = file_path
-        self.tmp_path = tmp_file_path
-
+        print "create thread"
         upload_thread = threading.Thread(
             target=self.file_upload,
-            args=())
+            args=(bucket_id, file_path, tmp_file_path))
         upload_thread.start()
 
-    def createNewShardUploadThread(self, shard, chapters, frame, file_name):
+    def createNewShardUploadThread(self, shard, chapters, frame, file_name,
+                                   tmp_path):
         """
 
         Args:
@@ -128,11 +128,13 @@ class Uploader:
                 shard=shard,
                 chapters=chapters,
                 frame=frame,
-                file_name_ready_to_shard_upload=file_name),
+                file_name_ready_to_shard_upload=file_name,
+                tmp_path=tmp_path),
             args=())
         upload_thread.start()
 
-    def upload_shard(self, shard, chapters, frame, file_name_ready_to_shard_upload):
+    def upload_shard(self, shard, chapters, frame,
+                     file_name_ready_to_shard_upload, tmp_path):
         """
 
         Args:
@@ -186,7 +188,7 @@ class Uploader:
                             frame_content['farmer']['port'],
                             farmer_tries)
 
-                        mypath = os.path.join(self.tmp_path,
+                        mypath = os.path.join(tmp_path,
                                               file_name_ready_to_shard_upload +
                                               '-' + str(chapters + 1))
 
@@ -291,15 +293,12 @@ class Uploader:
 
             chunks -= 1
 
-    def file_upload(self):
+    def file_upload(self, bucket_id, file_path, tmp_file_path):
         """"""
 
-        bucket_id = self.bid
-        file_path = self.file_path
-        tmpPath = self.tmp_path
-
+        print "upload begin"
         self.__logger.debug('Upload %s in bucket %d', file_path, bucket_id)
-        self.__logger.debug('Temp folder %s', tmpPath)
+        self.__logger.debug('Temp folder %s', tmp_file_path)
 
         encryption_enabled = True
 
@@ -311,19 +310,20 @@ class Uploader:
         self.__logger.debug('Encrypting file...')
 
         file_crypto_tools = FileCrypto()
+
+        # File name of encrypted file
+        file_name_ready_to_shard_upload = '%s.encrypted' % bname
         # Path where to save the encrypted file in temp dir
-        file_path_ready = os.path.join(tmpPath,
-                                       bname + ".encrypted")
+        file_path_ready = os.path.join(tmp_file_path,
+                                       file_name_ready_to_shard_upload)
         self.__logger.debug('file_path_ready: %s', file_path_ready)
 
-        # begin file encryption
+        # Begin file encryption
         file_crypto_tools.encrypt_file(
             'AES',
             file_path,
             file_path_ready,
             self.client.password)
-
-        file_name_ready_to_shard_upload = '%s.encrypted' % bname
 
         self.fileisdecrypted_str = ''
 
@@ -342,6 +342,7 @@ class Uploader:
 
         self.__logger.debug('PUSH Token ID %s', push_token.id)
 
+        # Get a frame
         self.__logger.debug('Frame')
         frame = None
 
@@ -353,12 +354,10 @@ class Uploader:
 
         self.__logger.debug('frame.id = %s', frame.id)
 
-        # Now encrypt file
-
         # Now generate shards
         self.__logger.debug('Sharding started...')
         shards_manager = model.ShardManager(filepath=file_path_ready,
-                                            tmp_path=self.tmp_path)
+                                            tmp_path=tmp_file_path)
         self.all_shards_count = shards_manager.index
         self.__logger.debug('Sharding ended...')
 
@@ -369,7 +368,9 @@ class Uploader:
         chapters = 0
 
         for shard in shards_manager.shards:
-            self.createNewShardUploadThread(shard, chapters, frame, file_name_ready_to_shard_upload)
+            self.createNewShardUploadThread(shard, chapters, frame,
+                                            file_name_ready_to_shard_upload,
+                                            tmp_file_path)
             chapters += 1
 
         # finish_upload
@@ -386,7 +387,7 @@ class Uploader:
             'mimetype': file_mime_type,
             'filename': str(bname) + str(self.fileisdecrypted_str),
             'hmac': {
-                'type': "sha512",
+                'type': 'sha512',
                 'value': hash_sha512_hmac
             },
         }
@@ -396,13 +397,10 @@ class Uploader:
 
         success = False
         try:
-            # TODO
-
-            # This is the actual upload_file method
+            # Post an upload_file request
             response = self.client._request(
                 method='POST',
                 path='/buckets/%s/files' % bucket_id,
-                # files={'file' : file},
                 headers={
                     'x-token': push_token.id,
                     'x-filesize': str(file_size),

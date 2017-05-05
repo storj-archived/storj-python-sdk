@@ -496,7 +496,7 @@ class Client(object):
             path='/buckets/%s/files/%s' % (bucket_id, file_id))
 
     @handle_nonhttp_errors
-    def frame_add_shard(self, shard, frame_id):
+    def frame_add_shard(self, shard, frame_id, excludes=None):
         """Adds a shard item to the staging frame and negotiates a storage contract.
 
         See `API frames: PUT /frames/{frame_id}
@@ -514,6 +514,7 @@ class Client(object):
             'index': shard.index,
             'challenges': shard.challenges,
             'tree': shard.tree.leaves,
+            'exclude': excludes,
         }
 
         response = self._request(

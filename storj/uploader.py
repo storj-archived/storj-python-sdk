@@ -6,6 +6,7 @@ import base64
 import hashlib
 import hmac
 import logging
+from multiprocessing import Pool
 import json
 import requests
 import threading
@@ -17,6 +18,13 @@ import model
 
 from exception import BridgeError, FarmerError, SuppliedTokenNotAcceptedError
 from http import Client
+
+
+def foo(args):
+    print "inside foo"
+    print args
+    self, shard, shard_index, frame, file_name, tmp_path = args
+    self.upload_shard(shard, shard_index, frame, file_name, tmp_path)
 
 
 class Uploader:
@@ -95,44 +103,6 @@ class Uploader:
 
         return current_hmac
 
-    def createNewUploadThread(self, bucket_id, file_path, tmp_file_path):
-        """
-
-        Args:
-            bucket_id:
-            file_path:
-            tmp_file_path:
-        """
-
-        print "create thread"
-        upload_thread = threading.Thread(
-            target=self.file_upload,
-            args=(bucket_id, file_path, tmp_file_path))
-        upload_thread.start()
-
-    def createNewShardUploadThread(self, shard, chapters, frame, file_name,
-                                   tmp_path):
-        """
-
-        Args:
-            shard ():
-            chapters ():
-            frame ():
-            file_name ():
-        """
-
-        # another worker thread for single shard uploading and
-        # it will retry if download fail
-        upload_thread = threading.Thread(
-            target=self.upload_shard(
-                shard=shard,
-                chapters=chapters,
-                frame=frame,
-                file_name_ready_to_shard_upload=file_name,
-                tmp_path=tmp_path),
-            args=())
-        upload_thread.start()
-
     def upload_shard(self, shard, chapters, frame,
                      file_name_ready_to_shard_upload, tmp_path):
         """
@@ -144,6 +114,7 @@ class Uploader:
             file_name_ready_to_shard_upload:
         """
 
+        print "upload shard"
         contract_negotiation_tries = 0
         exchange_report = model.ExchangeReport()
 
@@ -365,13 +336,11 @@ class Uploader:
 
         # create file hash
 
-        chapters = 0
-
-        for shard in shards_manager.shards:
-            self.createNewShardUploadThread(shard, chapters, frame,
-                                            file_name_ready_to_shard_upload,
-                                            tmp_file_path)
-            chapters += 1
+        print "start the pool"
+        mp = Pool()
+        mp.map(foo, [(self, shards_manager.shards[x], x, frame,
+                      file_name_ready_to_shard_upload, tmp_file_path)
+                     for x in range(len(shards_manager.shards))])
 
         # finish_upload
         self.__logger.debug('Generating HMAC...')

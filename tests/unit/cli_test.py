@@ -88,6 +88,7 @@ class BucketTestCase(AbstractTestCase):
             '           created : %s' % self.bucket.created,
             '     encryptionKey : %s' % self.bucket.encryptionKey,
             '                id : %s' % self.bucket.id,
+            '             index : %s' % self.bucket.index,
             '              name : %s' % self.bucket.name,
             '           pubkeys : %s' % self.bucket.pubkeys,
             ' publicPermissions : %s' % self.bucket.publicPermissions,

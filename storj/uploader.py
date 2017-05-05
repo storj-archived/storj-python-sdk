@@ -339,8 +339,9 @@ staging frame')
         # Now generate shards
         self.__logger.debug('Sharding started...')
         shards_manager = model.ShardManager(filepath=file_path_ready,
-                                            tmp_path=tmp_file_path)
-        self.all_shards_count = shards_manager.index
+                                            tmp_path=self.tmp_path)
+        self.all_shards_count = len(shards_manager.num_shards)
+
         self.__logger.debug('Sharding ended...')
 
         self.__logger.debug('There are %d shards', self.all_shards_count)

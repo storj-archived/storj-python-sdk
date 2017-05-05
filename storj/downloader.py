@@ -105,7 +105,7 @@ class Downloader:
 
                     self.__logger.debug('Begin shards download process')
                     mp.map(foo, [(self, p, shard_pointers.index(p)) for p in
-                           shard_pointers])
+                                 shard_pointers])
                 except StorjBridgeApiError as e:
                     self.__logger.error(e)
                     self.__logger.error('Bridge error')

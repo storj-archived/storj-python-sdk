@@ -112,7 +112,6 @@ class Uploader:
             file_name_ready_to_shard_upload:
             tmp_path:
         """
-
         contract_negotiation_tries = 0
         exchange_report = model.ExchangeReport()
 
@@ -340,7 +339,7 @@ staging frame')
         self.__logger.debug('Sharding started...')
         shards_manager = model.ShardManager(filepath=file_path_ready,
                                             tmp_path=tmp_file_path)
-        self.all_shards_count = shards_manager.index
+        self.all_shards_count = len(shards_manager.shards)
 
         self.__logger.debug('Sharding ended...')
 
@@ -398,7 +397,15 @@ staging frame')
         if success:
             self.__logger.debug('File uploaded successfully!')
 
-        # delete encrypted file (if encrypted and duplicated)
-        if encryption_enabled and file_path_ready:
-            self.__logger.debug('Remove file %s', file_path_ready)
-            os.remove('%s*' % file_path_ready)
+        # Remove temp files
+        try:
+            # Remove shards
+            file_shards = map(lambda i: '%s-%s' % (file_path_ready, i),
+                              range(1, self.all_shards_count + 1))
+            self.__logger.debug('Remove shards %s' % file_shards)
+            map(os.remove, file_shards)
+            # Remove encrypted file
+            self.__logger.debug('Remove encrypted file %s' % file_path_ready)
+            os.remove(file_path_ready)
+        except OSError as e:
+            self.__logger.error(e)

@@ -252,7 +252,7 @@ class ClientTestCase(AbstractTestCase):
         test_limit = '10'
         test_skip = '0'
 
-        mock_token_create.return_value = model.Token(token='test_token')
+        mock_token_create.return_value = model.Token(id='test_token')
 
         response = self.client.file_pointers(
             test_bucket_id, test_file_id, test_skip, test_limit)
@@ -265,7 +265,7 @@ class ClientTestCase(AbstractTestCase):
             method='GET',
             path='/buckets/%s/files/%s/?skip=%s&limit=%s' % (
                 test_bucket_id, test_file_id, test_skip, test_limit),
-            headers={'x-token': None})
+            headers={'x-token': 'test_token'})
 
         mock_token_create.assert_called_once_with(
             test_bucket_id, operation='PULL')
@@ -326,6 +326,7 @@ class ClientTestCase(AbstractTestCase):
             tree=test_tree,
             size=3810)
         test_json = {
+            'exclude': None,
             'hash': '5775772',
             'index': 7,
             'challenges': ['0118', 999, 88199, 9119, 725, 3],
@@ -552,7 +553,7 @@ class ClientTestCase(AbstractTestCase):
 
         # https://storj.github.io/bridge/#!/buckets/post_buckets_id_tokens
         self.mock_request.return_value = dict(
-            token='string',
+            id='string',
             bucket='string',
             expires='2016-10-13T04:23:48.183Z',
             operation='string',

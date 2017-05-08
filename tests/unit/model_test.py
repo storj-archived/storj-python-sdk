@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Test cases for the storj.model module."""
 
+from sys import platform
+
 import mock
-import os
 import pytest
 import shutil
 import six
@@ -12,8 +13,6 @@ import tempfile
 from datetime import datetime
 
 from pycoin.key.Key import Key
-from pycoin.serialize import b2h
-from pycoin.key.BIP32Node import BIP32Node
 
 from storj.model import \
     Bucket, Contact, File, FilePointer, Frame, KeyPair, \
@@ -119,7 +118,7 @@ class FilePointerTestCase(AbstractTestCase):
         fp = FilePointer(**kwargs)
 
         assert fp.hash == kwargs['hash']
-        assert fp.token == Token(token=kwargs['token'])
+        assert fp.token == Token(id=kwargs['token'])
         assert fp.operation == kwargs['operation']
         assert fp.channel == kwargs['channel']
 
@@ -147,7 +146,6 @@ class KeyPairTestCase(AbstractTestCase):
     """Test case for the KeyPair class."""
 
     def _assert_wallet(self, wallet):
-
         assert isinstance(wallet.keypair, Key)
         assert wallet.private_key == self.private_key
         assert wallet.public_key == self.public_key
@@ -190,13 +188,11 @@ class IdecdsaCipherTestCase(AbstractTestCase):
         cipher = IdecdsaCipher()
 
         assert cipher.simpleDecrypt(
-            password, cipher.simpleEncrypt(password, data)) == \
-            data
+            password, cipher.simpleEncrypt(password, data)) == data
 
         bytes_data = 'testpassword'.encode('utf-8')
         assert cipher.simpleDecrypt(
-            password, cipher.simpleEncrypt(password, bytes_data)) == \
-            bytes_data
+            password, cipher.simpleEncrypt(password, bytes_data)) == bytes_data
 
     def test_pad_unpad(self):
         data = '0123456789abcdef'
@@ -253,6 +249,7 @@ class ShardTestCase(AbstractTestCase):
             assert kwargs['challenges']
         else:
             assert shard.challenges == []
+
         if 'exclude' in kwargs:
             assert kwargs['exclude']
         else:
@@ -272,7 +269,7 @@ class ShardTestCase(AbstractTestCase):
         kwargs = dict(
             hash='',
             id='510b23e9f63a77d939a72a77',
-            index='')
+            index=0)
         self._assert_init(kwargs)
 
         kwargs = dict(
@@ -280,7 +277,7 @@ class ShardTestCase(AbstractTestCase):
             exclude=['abc'],
             hash='',
             id='510b23e9f63a77d939a72a77',
-            index='',
+            index=1,
             tree=['abc'])
         self._assert_init(kwargs)
 
@@ -310,16 +307,70 @@ class ShardTestCase(AbstractTestCase):
 class ShardManagerTestCase(AbstractTestCase):
     """Test case for the ShardManager class."""
 
+    GB = 1024 * 1024 * 1024
+
+    def _assert_init(self, args, kwargs, file_size):
+
+        shard_manager = ShardManager(*args, **kwargs)
+
+        assert shard_manager.filepath == args[0]
+
+        if 'tmp_path' in kwargs:
+            assert shard_manager.tmp_path == kwargs['tmp_path']
+
+        elif platform == 'linux' or platform == 'linux2':
+            assert shard_manager.tmp_path == '/tmp'
+
+        elif platform == 'darwin':
+            assert shard_manager.tmp_path == '/tmp'
+
+        elif platform == 'win32':
+            assert shard_manager.tmp_path == 'C://Windows/temp'
+
+        if 'suffix' in kwargs:
+            assert shard_manager.suffix == kwargs['suffix']
+        else:
+            assert shard_manager.suffix == ''
+
+        assert shard_manager.filesize == file_size
+
+    @mock.patch('storj.model.ShardManager._make_shards')
+    @mock.patch('storj.model.os.stat')
+    @mock.patch('storj.model.os.path.exists')
+    @mock.patch('storj.model.os.path.isfile')
+    def test_init(self, mock_isfile, mock_exists, mock_stat, mock_shards):
+
+        mock_isfile.return_value = True
+        mock_exists.return_value = True
+        file_size = 10 * 1024 * 1024
+        mock_stat.return_value = mock.Mock(st_size=file_size)
+        mock_shards.return_value = None
+
+        for args, kwargs in [
+            (('/somewhere',), {}),
+            (('/somewhere',), {'tmp_path': '/dev/null', 'suffix': 'csj'}),
+        ]:
+            self._assert_init(args, kwargs, file_size)
+
+            assert mock_isfile.assert_called
+            mock_isfile.called_once_with(args[0])
+
+            assert mock_exists.assert_called
+            mock_exists.called_once_with(args[0])
+
+            assert mock_stat.assert_called
+            mock_stat.called_once_with(args[0])
+
     @mock.patch.object(ShardManager, '_make_challenges', return_value=[])
     @mock.patch.object(ShardManager, '_make_tree', return_value=[])
-    def test_property_filepath(self, mock_tree, mock_challenges):
+    def test_property_file_path(self, mock_tree, mock_challenges):
         """Test filepath property."""
 
-        # filepath is not a str
+        # file path is not a str
         with pytest.raises(ValueError):
             ShardManager(1, 1)
 
-        # filepath does not exist
+        # file path does not exist
         with pytest.raises(ValueError):
             ShardManager('/dev/nowhere', 1)
 
@@ -341,26 +392,17 @@ class ShardManagerTestCase(AbstractTestCase):
             content, 'w+b', mock_tree, mock_challenges)
 
     def _assert_shard_manager(self, content, mode, mock_tree, mock_challenges):
-        tmpfile = tempfile.NamedTemporaryFile(mode, delete=False)
-        try:
-            tmpfile.write(content)
-            tmpfile.flush()
+        with tempfile.NamedTemporaryFile(mode, delete=False) as tmp_file:
+            tmp_file.write(content)
+            tmp_file.flush()
 
-            size = 10
             nchallenges = 2
             sm = ShardManager(
-                tmpfile.name,
-                shard_size=size,
+                tmp_file.name,
                 nchallenges=nchallenges)
 
-            assert sm.filepath == tmpfile.name
-            assert sm.shard_size == size
+            assert sm.filepath == tmp_file.name
             assert len(sm.shards) > 0
-            assert len(sm.shards) == sm.index
-
-        finally:
-            tmpfile.close()
-            os.remove(tmpfile.name)
 
         mock_challenges.assert_called_once_with(nchallenges)
         if isinstance(content, six.binary_type):
@@ -372,6 +414,21 @@ class ShardManagerTestCase(AbstractTestCase):
 
         mock_tree.reset_mock()
         mock_challenges.reset_mock()
+
+    def test_get_optimal_shard_parameters(self):
+        """Test ShardManager.get_optimal_shard_parameters()."""
+        shard_manager = ShardManager(__file__)
+
+        for file_size, expected_shard_size, expected_shard_count in [
+            # (file size, shard size, shard count)
+            (43 * self.GB, 4 * self.GB, 11)
+        ]:
+            shard_manager._filesize = file_size
+            shard_size, shard_count = \
+                shard_manager.get_optimal_shard_parameters()
+
+            assert expected_shard_size == shard_size
+            assert expected_shard_count == shard_count
 
     @mock.patch.object(ShardManager, '_sha256')
     @mock.patch.object(ShardManager, '_ripemd160')
@@ -464,9 +521,9 @@ class TokenTestCase(AbstractTestCase):
         token = Token(**kwargs)
 
         if 'bucket' in kwargs:
-            assert token.bucket_id == kwargs['bucket']
+            assert token.bucket.id == kwargs['bucket']
         else:
-            assert token.bucket_id is None
+            assert token.bucket is None
 
         if 'expires' in kwargs:
             assert token.expires == datetime.fromtimestamp(
@@ -480,8 +537,8 @@ class TokenTestCase(AbstractTestCase):
         else:
             assert token.operation is None
 
-        if 'token' in kwargs:
-            assert token.id == kwargs['token']
+        if 'id' in kwargs:
+            assert token.id == kwargs['id']
         else:
             assert token.id is None
 
@@ -491,14 +548,14 @@ class TokenTestCase(AbstractTestCase):
             bucket='',
             expires='2016-10-13T04:23:48.183Z',
             operation='unknown',
-            token='510b23e9f63a77d939a72a77')
+            id='510b23e9f63a77d939a72a77')
         self._assert_init(kwargs)
 
         kwargs = dict(
             bucket='',
             expires='2016-10-13T04:23:48.183Z',
             operation='unknown',
-            token='510b23e9f63a77d939a72a77')
+            id='510b23e9f63a77d939a72a77')
         self._assert_init(kwargs)
 
 
@@ -534,9 +591,10 @@ class MerkleTreeTestCase(AbstractTestCase):
 
         # success
         for leaves, kwargs in (
-                (['a', 'b'], dict()),
-                (['a', 'b'], dict(prehashed=True)),
-                ((x for x in ['a', 'b']), dict())):
+            (['a', 'b'], dict()),
+            (['a', 'b'], dict(prehashed=True)),
+            ((x for x in ['a', 'b']), dict())
+        ):
             self._assert_init(leaves, mock_generate, kwargs)
 
         # failure
@@ -595,16 +653,22 @@ class MerkleTreeTestCase(AbstractTestCase):
 
     def test_node_output(self):
         """Test MerkleTree with output from the node client"""
+
         leaves = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
         depth = 3
-        rows = [['2adf050f14bf6324bfd41577d0dc08e2e49766fa'],
-                ['39c096fc1b11e77f4347cfdb45ba9b03c0ad95d9',
-                 '47121e7ec10e7653f1262b1d3abb6f9a71b3de8b'],
-                ['e4973182d0c331ce8b083ffa2b28c8b4fc0f1d93',
-                 'c91b9f3b2937035cc07d3fcd258d7d8a1f0c4d3c',
-                 '8182daac9a266aa39328b835726f80a34835027d',
-                 '222025114b2d1374b4a354d1b4452f648c9b481d'],
-                ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']]
+        rows = [[
+            '2adf050f14bf6324bfd41577d0dc08e2e49766fa'
+        ], [
+            '39c096fc1b11e77f4347cfdb45ba9b03c0ad95d9',
+            '47121e7ec10e7653f1262b1d3abb6f9a71b3de8b'
+        ], [
+            'e4973182d0c331ce8b083ffa2b28c8b4fc0f1d93',
+            'c91b9f3b2937035cc07d3fcd258d7d8a1f0c4d3c',
+            '8182daac9a266aa39328b835726f80a34835027d',
+            '222025114b2d1374b4a354d1b4452f648c9b481d'
+        ], [
+            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'
+        ]]
         count = 7
 
         tree = MerkleTree(leaves)
@@ -613,27 +677,3 @@ class MerkleTreeTestCase(AbstractTestCase):
         self.assertEqual(tree.depth, depth)
         self.assertEqual(tree._rows, rows)
         self.assertEqual(tree.count, count)
-
-
-class TokenTestCase(AbstractTestCase):
-    """Test case for the Token class."""
-
-    def test_init(self):
-        """Test Token.__init__()."""
-
-        kwargs = dict(
-            token=None,
-            bucket='bucket_id',
-            operation='operation',
-            expires='2016-10-13T04:23:48.183Z',
-            encryptionKey='key_id',
-        )
-
-        token = Token(**kwargs)
-
-        assert token.id == kwargs['token']
-        assert token.bucket == Bucket(id=kwargs['bucket'])
-        assert token.operation == kwargs['operation']
-        assert token.expires == datetime.fromtimestamp(
-            strict_rfc3339.rfc3339_to_timestamp(kwargs['expires']))
-        assert token.encryptionKey == kwargs['encryptionKey']

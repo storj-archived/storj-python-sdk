@@ -36,10 +36,8 @@ from sys import platform
 
 class Bucket(Object):
     """Storage bucket.
-
     A bucket is a logical grouping of files
     which the user can assign permissions and limits to.
-
     Attributes:
         id (str): unique identifier.
         name (str): name.
@@ -52,9 +50,10 @@ class Bucket(Object):
     """
 
     def __init__(
-            self, id=None, name=None, status=None, user=None,
-            created=None, storage=None, transfer=None, pubkeys=None,
-            publicPermissions=None, encryptionKey=None):
+        self, id=None, name=None, status=None, user=None,
+        created=None, storage=None, transfer=None, pubkeys=None,
+        publicPermissions=None, encryptionKey=None, index=None
+    ):
         self.id = id
         self.name = name
         self.status = status
@@ -64,6 +63,7 @@ class Bucket(Object):
         self.pubkeys = pubkeys
         self.publicPermissions = publicPermissions
         self.encryptionKey = encryptionKey
+        self.index = index
 
         # self.files = FileManager(bucket_id=self.id)
         # self.pubkeys = BucketKeyManager(
@@ -79,7 +79,6 @@ class Bucket(Object):
 
 class Contact(Object):
     """Contact.
-
     Attributes:
         address (str): hostname or IP address.
         port (str): .
@@ -90,8 +89,8 @@ class Contact(Object):
     """
 
     def __init__(
-            self, address=None, port=None, nodeID=None,
-            lastSeen=None, protocol=None, userAgent=None, responseTime=None, timeoutRate=None, lastTimeout=None
+        self, address=None, port=None, nodeID=None,
+        lastSeen=None, protocol=None, userAgent=None, responseTime=None, timeoutRate=None, lastTimeout=None
     ):
         self.address = address
         self.port = port
@@ -168,7 +167,7 @@ class FilePointer(Object):
 
     def __init__(self, hash=None, token=None, operation=None, channel=None):
         self.hash = hash
-        self.token = Token(token=token)
+        self.token = Token(id=token)
         self.operation = operation
         self.channel = channel
 
@@ -304,17 +303,14 @@ class IdecdsaCipher(Object):
 
     def decrypt(self, data, key, iv):
         """Decrypt data.
-
         The steps are:
         1. decrypt the data
         2. remove padding
         3. decode result from hexadecimal format
-
         Args:
             data (str/bytes): encrypted data.
             key (str):
             iv (str):
-
         Returns:
             (str): original data.
         """
@@ -323,17 +319,14 @@ class IdecdsaCipher(Object):
 
     def encrypt(self, data, key, iv):
         """Encrypt data.
-
         The steps are:
         1. encode data to hexadecimal format
         2. add padding
         3. encrypt the result
-
         Args:
             data (str/bytes): original data.
             key (str):
             iv (str):
-
         Returns:
             (str): encrypted data
         """
@@ -370,11 +363,9 @@ class IdecdsaCipher(Object):
 
     def simpleEncrypt(self, passphrase, data):
         """Encrypt data.
-
         Args:
             passphrase (str): passphrase to use for encryption.
             data (str/bytes): original data.
-
         Returns:
             (str): base58-encoded encrypted data.
         """
@@ -383,11 +374,9 @@ class IdecdsaCipher(Object):
 
     def simpleDecrypt(self, passphrase, base58_data):
         """Decrypt data.
-
         Args:
             passphrase (str): passphrase to use for decryption.
             base58_data (str/bytes): base58-encoded encrypted data.
-
         Returns:
             (str): original data.
         """
@@ -458,11 +447,9 @@ class MerkleTree(Object):
     """Simple merkle hash tree.
     Nodes are stored as strings in rows.
     Row 0 is the root node, row 1 is its children, row 2 is their children, etc
-
     Args:
         leaves (list[str]/types.generator[str]):
             leaves of the tree, as hex digests
-
     Attributes:
         leaves (list[str]): leaves of the tree, as hex digests
         depth (int): the number of levels in the tree
@@ -482,7 +469,6 @@ class MerkleTree(Object):
     @property
     def depth(self):
         """Calculates the depth of the tree.
-
         Returns:
             (int): tree depth.
         """
@@ -568,7 +554,6 @@ class MerkleTree(Object):
 
 class Mirror(Object):
     """Mirror or file replica settings.
-
     Attributes:
         hash (str):
         mirrors (int): number of file replicas.
@@ -583,7 +568,6 @@ class Mirror(Object):
 
 class FileMirrors(Object):
     """File mirrors
-
     Attributes:
         available (str): list of available mirrors
         established (str): list of established
@@ -596,21 +580,19 @@ class FileMirrors(Object):
 
 class Shard(Object):
     """Shard.
-
     Attributes:
         id (str): unique identifier.
         hash (str): hash of the data.
         size (long): size of the shard in bytes.
-        index (int): numberic index of the shard in the frame.
+        index (int): numeric index of the shard in the frame.
         challenges (list[str]): list of challenge numbers
-        tree (list[str]): audit merkle tree
+        tree (list[str]): audit merkle tree.
         exclude (list[str]): list of farmer nodeIDs to exclude
     """
 
     def __init__(self, id=None, hash=None, size=None, index=None,
                  challenges=None, tree=None, exclude=None):
         self.id = id
-        # self.path = None
         self.hash = hash
         self.size = size
         self.index = index
@@ -645,7 +627,6 @@ class Shard(Object):
 
     def add_challenge(self, challenge):
         """Append challenge.
-
         Args:
             challenge (str):.
         """
@@ -671,22 +652,32 @@ class ShardingException(Exception):
 
 
 class ShardManager(Object):
+    """
+    Attributes:
+        tmp_path (str): directory where the chunk files will reside.
+        nchallenges : number of challenges.
+        shard_size (): .
+        shards (list[]): shards.
+        filepath (str): path to the original file.
+        num_chunks (int): number of chunks used to split the file.
+        suffix (str): suffix to be used on chunk file names.
+    """
 
     __logger = logging.getLogger('%s.ShardManager' % __name__)
 
     MAX_SHARD_SIZE = 4294967296  # 4Gb
     SHARD_MULTIPLES_BACK = 4
+    SHARD_SIZE = 8 * (1024 * 1024)  # 8Mb
 
-    def __init__(
-            self,
-            filepath,
-            shard_size=None,
-            tmp_path=None,
-            nchallenges=2,
-    ):
-        self.tmp_path = tmp_path
+    def __init__(self, filepath, shard_size=None, tmp_path=None, nchallenges=2, suffix=''):
+        self.num_chunks = 0
         self.nchallenges = nchallenges
         self.shard_size = shard_size
+        self.shards = []
+        self.suffix = suffix
+        self.tmp_path = tmp_path
+
+        # IMPORTANT: set filepath last
         self.filepath = filepath
 
     @property
@@ -704,44 +695,73 @@ class ShardManager(Object):
             raise ValueError('%s must be a file' % value)
 
         self._filepath = value
-        self.index = 0
+        self._filesize = os.path.getsize(value)
         self._make_shards()
 
-    def get_optimal_shard_parametrs(self, file_size):
-        shard_parameters = {}
-        accumulator = 0
-        shard_size = None
+    @property
+    def filesize(self):
+        """(long): file size."""
+        return self._filesize
 
-        while shard_size is None:
-            shard_size = self.determine_shard_size(file_size, accumulator)
-            accumulator += 1
+    @property
+    def tmp_path(self):
+        """(str): path to the temporary directory."""
+        return self._tmp_path
 
-        self.__logger.debug('shard_size=%s file_size=%s', shard_size, file_size)
+    @tmp_path.setter
+    def tmp_path(self, value):
 
+        if value is not None:
+            self._tmp_path = value
+
+        elif platform == 'linux' or platform == 'linux2':
+            # linux
+            self._tmp_path = '/tmp'
+
+        elif platform == 'darwin':
+            # OS X
+            self._tmp_path = '/tmp'
+
+        elif platform == 'win32':
+            # Windows
+            self._tmp_path = 'C://Windows/temp'
+
+        self.__logger.debug('self.tmp_path=%s', self._tmp_path)
+
+    def get_optimal_shard_parameters(self):
+        """
+        Returns the optimal sharding parameters.
+
+        See https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c
+
+        Returns:
+            tuple[long, int]: shard size, number of shards.
+        """
+
+        shard_size = self.determine_shard_size()
         if shard_size == 0:
-            shard_size = file_size
+            shard_size = self.filesize
 
-        self.__logger.debug('shard_size=%s file_size=%s', shard_size, file_size)
+        shard_count = int(math.ceil(float(self.filesize) / float(shard_size)))
 
-        shard_parameters['shard_size'] = str(shard_size)
-        shard_parameters['shard_count'] = math.ceil(file_size / shard_size)
-        shard_parameters['file_size'] = file_size
+        self.__logger.debug(
+            'shard_size = %d, shard_count = %d, file_size = %d',
+            shard_size, shard_count, self.filesize)
 
-        return shard_parameters
+        return shard_size, shard_count
 
-    def determine_shard_size(self, file_size, accumulator):
+    def determine_shard_size(self, accumulator=0):
+        """
 
-        # Based on <https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c>
+        See https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c
 
-        hops = 0
+        Args:
+            accumulator (int):
+        """
+        self.__logger.debug('determine_shard_size(%d)', accumulator)
 
-        if file_size <= 0:
-            return 0
-
-            # if accumulator != True:
-            # accumulator  = 0
-
-        self.__logger.debug('acumulator=%s', accumulator)
+        if self.filesize <= 0:
+            return self.filesize
 
         # Determine hops back by accumulator
 
@@ -750,121 +770,81 @@ class ShardManager(Object):
         else:
             hops = accumulator - ShardManager.SHARD_MULTIPLES_BACK
 
-        # accumulator = 10
-        # self.shard_size(1)
+        byte_multiple = ShardManager.SHARD_SIZE * pow(2, accumulator)
+        check = float(self.filesize) / float(byte_multiple)
 
-        byte_multiple = self.shard_size_const(accumulator)
+        self.__logger.debug(
+            'hops=%d acumulator = %d check = %.2f file_size = %d byte_multiple = %d',
+            hops, accumulator, check, self.filesize, byte_multiple)
 
-        check = file_size / byte_multiple
-
-        if check > 0 and check <= 1:
-            while hops > 0 and self.shard_size_const(hops) \
-                    > ShardManager.MAX_SHARD_SIZE:
+        if 0 < check <= 1:
+            while hops > 0 and ShardManager.SHARD_SIZE * pow(2, hops) > ShardManager.MAX_SHARD_SIZE:
                 if hops - 1 <= 0:
                     hops = 0
                 else:
-                    hops = hops - 1
-            return self.shard_size_const(hops)
+                    hops -= 1
 
-        # Maximum of 2 ^ 41 * 8 * 1024 * 1024
+            self.__logger.debug(
+                'hops=%d acumulator = %d check = %.2f file_size = %d byte_multiple = %d',
+                hops, accumulator, check, self.filesize, byte_multiple)
 
+            return ShardManager.SHARD_SIZE * pow(2, hops)
+
+        # maximum of 2 ^ 41 * 8 * 1024 * 1024 = 16 exabytes
         if accumulator > 41:
             return 0
 
-    def shard_size_const(self, hops):
-        return 8 * (1024 * 1024) * pow(2, hops)
+        accumulator += 1
+        return self.determine_shard_size(accumulator)
 
     def _make_shards(self):
         """Populates the shard manager with shards."""
 
-        self.shards = []
-        self.__postfix = ''
+        self.shard_size, self.num_chunks = self.get_optimal_shard_parameters()
+        self.__logger.debug('number of chunks %d', self.num_chunks)
+
         index = 0
 
-        # Get the file size
-
-        fsize = os.path.getsize(self.filepath)
-
-        optimal_shard_parametrs = \
-            self.get_optimal_shard_parametrs(fsize)
-
-        self.__numchunks = int(optimal_shard_parametrs['shard_count'])
-        self.__logger.debug('Number of chunks %d', self.__numchunks)
-
         try:
-            f = open(self.filepath, 'rb')
+            with open(self.filepath, 'rb') as f:
+
+                bname = os.path.split(self.filepath)[1]
+                chunk_size = int(float(self.filesize) / float(self.num_chunks))
+                self.__logger.debug('chunk_size = %d', chunk_size)
+
+                for x in range(1, self.num_chunks + 1):
+                    chunk_fn = '%s-%s%s' % (bname, x, self.suffix)
+
+                    try:
+                        data = f.read(chunk_size)
+
+                        self.__logger.debug('writing file %s', chunk_fn)
+                        with open(os.path.join(self.tmp_path, chunk_fn), 'wb') as chunkf:
+                            chunkf.write(data)
+
+                        challenges = self._make_challenges(self.nchallenges)
+
+                        self.shards.append(
+                            Shard(size=len(data), index=index,
+                                  hash=ShardManager.hash(data),
+                                  tree=self._make_tree(challenges, data),
+                                  challenges=challenges))
+
+                        index += 1
+
+                    except (OSError, IOError) as e:
+                        self.__logger.error(e)
+                        continue
+
         except (OSError, IOError) as e:
+            self.__logger.error(e)
             raise ShardingException(str(e))
-
-        bname = os.path.split(self.filepath)[1]
-
-        # get chunk size
-        self.__chunksize = int(float(fsize) / float(self.__numchunks))
-
-        chunksz = self.__chunksize
-        total_bytes = 0
-        i = 0
-        for x in range(self.__numchunks):
-            chunkfilename = bname + '-' + str(x + 1) + self.__postfix
-
-            # if reading the last section,
-            # calculate correct chunk size.
-
-            if x == self.__numchunks - 1:
-                chunksz = fsize - total_bytes
-
-            self.shard_size = chunksz
-
-            if self.tmp_path is None:
-                if platform == 'linux' or platform == 'linux2':
-                    # linux
-                    self.tmp_path = '/tmp'
-                elif platform == 'darwin':
-                    # OS X
-                    self.tmp_path = '/tmp'
-                elif platform == 'win32':
-                    # Windows
-                    self.tmp_path = 'C://Windows/temp'
-            self.__logger.debug('self.tmp_path=%s', self.tmp_path)
-
-            try:
-                self.__logger.debug('Writing file %s', chunkfilename)
-                data = f.read(chunksz)
-                total_bytes += len(data)
-                inc = len(data)
-
-                with open(os.path.join(self.tmp_path, chunkfilename),
-                          'wb') as chunkf:
-                    chunkf.write(data)
-
-                challenges = self._make_challenges(self.nchallenges)
-
-                shard = Shard(size=self.shard_size, index=index,
-                              hash=ShardManager.hash(data),
-                              tree=self._make_tree(challenges, data[i:i + inc]),
-                              challenges=challenges)
-                # hash=ShardManager.hash(data[i:i + inc]),
-
-                self.shards.append(shard)
-
-                index += 1
-                i += 1
-            except (OSError, IOError) as e:
-                self.__logger.error(e)
-                continue
-            except EOFError as e:
-                self.__logger.error(e)
-                break
-
-        self.index = len(self.shards)
 
     @staticmethod
     def hash(data):
         """Returns ripemd160 of sha256 of a string as a string of hex.
-
         Args:
             data (str): content to be digested.
-
         Returns:
             (str): the ripemd160 of sha256 digest.
         """
@@ -877,10 +857,8 @@ class ShardManager(Object):
     @staticmethod
     def _ripemd160(b):
         """Returns the ripemd160 digest of bytes as bytes.
-
         Args:
             b (str): content to be ripemd160 digested.
-
         Returns:
             (str): the ripemd160 digest.
         """
@@ -890,10 +868,8 @@ class ShardManager(Object):
     @staticmethod
     def _sha256(b):
         """Returns the sha256 digest of bytes as bytes.
-
         Args:
             b (str): content to be sha256 digested.
-
         Returns:
             (str): the sha256 digest.
         """
@@ -902,10 +878,8 @@ class ShardManager(Object):
 
     def _make_challenges(self, challenges=12):
         """Generates the challenge strings.
-
         Args:
             challenges (int): number of challenges to be generated.
-
         Returns:
             (list[str]): list of challenges.
         """
@@ -929,7 +903,7 @@ class Token(Object):
     """Token.
 
     Args:
-        token (str): token unique identifier.
+        id (str): token unique identifier.
         bucket (str): bucket unique identifier.
         operation ():
         expires (str): expiration date, in the RFC3339 format.
@@ -944,10 +918,10 @@ class Token(Object):
     """
 
     def __init__(
-            self, token=None, bucket=None, operation=None, expires=None,
-            encryptionKey=None, id=None
+        self, token=None, bucket=None, operation=None, expires=None,
+        encryptionKey=None, id=None,
     ):
-        self.id = token
+        self.token = token
         self.bucket = Bucket(id=bucket)
         self.operation = operation
         self.id = id
@@ -963,8 +937,8 @@ class Token(Object):
 
 class ExchangeReport(Object):
     def __init__(
-            self, dataHash=None, reporterId=None, farmerId=None, clientId=None,
-            exchangeStart=None, exchangeEnd=None, exchangeResultCode=None, exchangeResultMessage=None
+        self, dataHash=None, reporterId=None, farmerId=None, clientId=None,
+        exchangeStart=None, exchangeEnd=None, exchangeResultCode=None, exchangeResultMessage=None
     ):
         self.dataHash = dataHash
         self.reporterId = reporterId
@@ -986,6 +960,6 @@ class ExchangeReport(Object):
 
 class StorjParametrs(Object):
     def __init__(
-            self, tmpPath=None
+        self, tmpPath=None
     ):
         self.tmpPath = tmpPath

@@ -326,6 +326,7 @@ class ClientTestCase(AbstractTestCase):
             tree=test_tree,
             size=3810)
         test_json = {
+            'exclude': None,
             'hash': '5775772',
             'index': 7,
             'challenges': ['0118', 999, 88199, 9119, 725, 3],

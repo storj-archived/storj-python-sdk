@@ -6,9 +6,10 @@ import logging
 
 import requests
 
-from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
+from tempfile import SpooledTemporaryFile
 
-from exception import StorjBridgeApiError, StorjFarmerError
+from exception import StorjBridgeApiError, StorjFarmerError, ClientError
 from file_crypto import FileCrypto
 from http import Client
 from sharder import ShardingTools
@@ -18,19 +19,13 @@ MAX_RETRIES_DOWNLOAD_FROM_SAME_FARMER = 3
 MAX_RETRIES_GET_FILE_POINTERS = 10
 
 
-def foo(args):
-    self, pointer, shard_index = args
-    return self.shard_download(pointer, shard_index)
-
-
 class Downloader:
 
     __logger = logging.getLogger('%s.ClassName' % __name__)
 
     def __init__(self, email, password):
         self.client = Client(email, password, )
-        # set config variables
-        self.combine_tmpdir_name_with_token = False
+        self.max_spooled = 10 * 1024 * 1024   # keep files up to 10MiB in memory
 
     def get_file_pointers_count(self, bucket_id, file_id):
         frame_data = self.client.frame_get(self.file_frame.id)
@@ -54,32 +49,18 @@ class Downloader:
             self.__logger.error(e)
             self.__logger.error('Unhandled error while resolving file metadata')
 
-    def get_paths(self):
-        # set default paths
-        temp_dir = ""
-        if platform == 'linux' or platform == 'linux2':
-            # linux
-            temp_dir = '/tmp'
-        elif platform == 'darwin':
-            # OS X
-            temp_dir = '/tmp'
-        elif platform == 'win32':
-            # Windows
-            temp_dir = 'C:/Windows/temp'
-        home = os.path.expanduser('~')
-        return temp_dir, home
-
     def download_begin(self, bucket_id, file_id):
         # Initialize environment
         self.set_file_metadata(bucket_id, file_id)
         # Get the number of shards
         self.all_shards_count = self.get_file_pointers_count(bucket_id, file_id)
         # Set the paths
-        self.tmp_path, self.destination_file_path = self.get_paths()
-        self.__logger.debug('temp path %s', self.tmp_path)
+        self.destination_file_path = os.path.expanduser('~')
         self.__logger.debug('destination path %s', self.destination_file_path)
 
-        mp = Pool()
+        mp = ThreadPool()
+        shards = None
+
         try:
             self.__logger.debug(
                 'Resolving file pointers to download file with ID: %s ...', file_id)
@@ -100,12 +81,15 @@ class Downloader:
                         file_id,
                         limit=str(self.all_shards_count),
                         skip='0')
+
                     self.__logger.debug(
                         'There are %s shard pointers: ', len(shard_pointers))
 
                     self.__logger.debug('Begin shards download process')
-                    mp.map(foo, [(self, p, shard_pointers.index(p)) for p in
-                                 shard_pointers])
+                    shards = mp.map(
+                            lambda x: self.shard_download(x[1], x[0]),
+                            enumerate(shard_pointers))
+
                 except StorjBridgeApiError as e:
                     self.__logger.error(e)
                     self.__logger.error('Bridge error')
@@ -124,60 +108,57 @@ class Downloader:
                 download file with ID: %s" % str(file_id))
 
         # All the shards have been downloaded
-        self.finish_download()
-        return
+        if shards is not None:
+            self.finish_download(shards)
 
-    def finish_download(self):
+    def finish_download(self, shards):
         self.__logger.debug('Finish download')
         fileisencrypted = '[DECRYPTED]' not in self.filename_from_bridge
 
         # Join shards
-        sharing_tools = ShardingTools()
+        sharding_tools = ShardingTools()
         self.__logger.debug('Joining shards...')
 
-        actual_path = os.path.join(self.tmp_path, self.filename_from_bridge)
         destination_path = os.path.join(self.destination_file_path, self.filename_from_bridge)
-        self.__logger.debug('Actual path %s', actual_path)
         self.__logger.debug('Destination path %s', destination_path)
 
-        if fileisencrypted:
-            sharing_tools.join_shards(
-                actual_path,
-                '-',
-                '%s.encrypted' % actual_path)
-
-        else:
-            sharing_tools.join_shards(actual_path, "-", destination_path)
-
-        if fileisencrypted:
-            # decrypt file
-            self.__logger.debug('Decrypting file...')
-            file_crypto_tools = FileCrypto()
-            # Begin file decryption
-            file_crypto_tools.decrypt_file(
-                'AES',
-                '%s.encrypted' % actual_path,
-                destination_path,
-                str(self.client.password))
-
-        self.__logger.debug('Finish decryption')
-        self.__logger.info('Download completed successfully!')
-
-        # Remove temp files
         try:
-            # Remove shards
-            file_shards = map(lambda i: '%s-%s' % (actual_path, i),
-                              range(self.all_shards_count))
-            map(os.remove, file_shards)
-            # Remove encrypted file
-            os.remove('%s.encrypted' % actual_path)
+            if not fileisencrypted:
+                with open(destination_path, 'wb') as destination_fp:
+                    sharding_tools.join_shards(shards, destination_fp)
 
-        except OSError as e:
+            else:
+                with SpooledTemporaryFile(self.max_spooled, 'wb') as encrypted:
+                    sharding_tools.join_shards(shards, encrypted)
+
+                    # move file read pointer at beginning
+                    encrypted.seek(0)
+
+                    # decrypt file
+                    self.__logger.debug('Decrypting file...')
+                    file_crypto_tools = FileCrypto()
+
+                    # Begin file decryption
+                    with open(destination_path, 'wb') as destination_fp:
+                        file_crypto_tools.decrypt_file_aes(
+                            encrypted,
+                            destination_fp,
+                            str(self.client.password))
+
+            self.__logger.debug('Finish decryption')
+            self.__logger.info('Download completed successfully!')
+
+        except (OSError, IOError, EOFError) as e:
             self.__logger.error(e)
+
+        finally:
+            # delete temporary shards
+            for shard in shards:
+                shard.close()
 
         return True
 
-    def create_download_connection(self, url, path_to_save, shard_index):
+    def retrieve_shard_file(self, url, shard_index):
         farmer_tries = 0
 
         self.__logger.debug(
@@ -193,30 +174,37 @@ class Downloader:
             farmer_tries += 1
 
             try:
-                r = requests.get(url)
-                # Write the file
-                with open(path_to_save, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=1024):
-                        if chunk:  # filter out keep-alive new chunks
-                            f.write(chunk)
+                # data is spooled in memory until the file size exceeds max_size
+                shard = SpooledTemporaryFile(self.max_spooled, 'wb')
+
+                # Request the shard
+                r = requests.get(url, stream=True)
                 if r.status_code != 200 and r.status_code != 304:
                     raise StorjFarmerError()
+
+                # Write the file
+                for chunk in r.iter_content(chunk_size=1024):
+                    if chunk:  # filter out keep-alive new chunks
+                        shard.write(chunk)
+
+                # Everything ok
+                # move file read pointer at beginning
+                shard.seek(0)
+                return shard
 
             except StorjFarmerError as e:
                 self.__logger.error(e)
                 self.__logger.error("First try failed. Retrying... (%s)" %
                                     str(farmer_tries))  # update shard download state
-                continue
 
             except Exception as e:
-                self.__logger.error("Unhandled error")
-                self.__logger.error("Error occured while downloading shard \
-                    at index %s. Retrying... (%s)" % (shard_index, farmer_tries)
-                                    )
                 self.__logger.error(e)
-                continue
-            else:
-                break
+                self.__logger.error("Unhandled error")
+                self.__logger.error("Error occured while downloading shard at "
+                    "index %s. Retrying... (%s)" % (shard_index, farmer_tries))
+
+        self.__logger.error("Shard download at index %s failed" % shard_index)
+        raise ClientError()
 
     def shard_download(self, pointer, shard_index):
         self.__logger.debug('Beginning download proccess...')
@@ -225,29 +213,17 @@ class Downloader:
             self.__logger.debug('Starting download threads...')
             self.__logger.debug('Downloading shard at index %s ...', shard_index)
 
-            url = 'http://%s:%s/shards/%s?token=%s' % (
-                pointer.get('farmer')['address'],
-                str(pointer.get('farmer')['port']),
-                pointer['hash'],
-                pointer['token'])
+            url = 'http://{address}:{port}/shards/{hash}?token={token}'.format(
+                address=pointer.get('farmer')['address'],
+                port=str(pointer.get('farmer')['port']),
+                hash=pointer['hash'],
+                token=pointer['token'])
             self.__logger.debug(url)
 
-            file_temp_path = "%s-%s" % (
-                os.path.join(self.tmp_path, self.filename_from_bridge),
-                str(shard_index))
-            if self.combine_tmpdir_name_with_token:
-                file_temp_path = '%s-%s' % (
-                    os.path.join(self.tmp_path,
-                                 pointer['token'],
-                                 self.filename_from_bridge),
-                    str(shard_index))
-            else:
-                self.__logger.debug('Do not combine tmpdir and token')
-            self.create_download_connection(url, file_temp_path, shard_index)
-
+            shard = self.retrieve_shard_file(url, shard_index)
             self.__logger.debug('Shard downloaded')
             self.__logger.debug('Shard at index %s downloaded successfully', shard_index)
-            self.__logger.debug('%s saved', file_temp_path)
+            return shard
 
         except IOError as e:
             self.__logger.error('Perm error %s', e)
@@ -257,6 +233,7 @@ class Downloader:
                 Probably this is caused by insufficient permisions.
                 Please check if you have permissions to write or
                 read from selected directories.""")
+
         except Exception as e:
             self.__logger.error(e)
             self.__logger.error('Unhandled')

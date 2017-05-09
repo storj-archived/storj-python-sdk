@@ -1,3 +1,4 @@
+import shutil
 import math
 import os
 
@@ -71,55 +72,14 @@ class ShardingTools():
             i2 = int(f2[index2:len(f2)])
             return i2 - i1
 
-    def join_shards(self, shards_filepath, pattern, destination_file_path):
-        # Based on <http://code.activestate.com/recipes/224800
-        # -simple-file-splittercombiner-module/>
-        import re
+    def join_shards(self, shards, destination_fp):
+        print 'Creating output file'
 
-        print 'Creating file ' + destination_file_path
+        for shard in shards:
+            shutil.copyfileobj(shard, destination_fp)
 
-        bname = os.path.split(destination_file_path)[1]
-        bname_input = os.path.split(shards_filepath)[1]
-        bname2_input = bname_input
-
-        input_directory = os.path.split(shards_filepath)[0]
-        output_directory = os.path.split(destination_file_path)[0]
-
-        # bugfix: if file contains characters like +,.,[]
-        # properly escape them, otherwise re will fail to match.
-        for a, b in zip(['+', '.', '[', ']', '$', '(', ')'],
-                        ['\+', '\.', '\[', '\]', '\$', '\(', '\)']):
-            bname2 = bname2_input.replace(a, b)
-
-        chunkre = re.compile(bname2_input + '-' + '[0-9]+')
-
-        chunkfiles = []
-        for f in os.listdir(str(input_directory)):
-            if chunkre.match(f):
-                chunkfiles.append(f)
-
-        print 'Number of chunks ', len(chunkfiles)
-        chunkfiles.sort(self.sort_index)
-        print chunkfiles
-        data = ''
-        for f in chunkfiles:
-            try:
-                print 'Appending chunk', os.path.join(input_directory, f)
-                data += open(
-                    os.path.join(input_directory, str(f)), 'rb').read()
-            except (OSError, IOError, EOFError) as e:
-                print e
-                continue
-
-        try:
-            print "Write joined file in " + output_directory
-            with open(os.path.join(output_directory, bname), 'wb') as f:
-                f.write(data)
-        except (OSError, IOError, EOFError) as e:
-            raise ShardingException(str(e))
-
-        print 'Wrote file', bname
-        return 1
+        print 'Wrote file'
+        return True
 
 
 class ShardingException(Exception):

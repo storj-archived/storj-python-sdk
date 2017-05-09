@@ -87,8 +87,8 @@ class Downloader:
 
                     self.__logger.debug('Begin shards download process')
                     shards = mp.map(
-                            lambda x: self.shard_download(x[1], x[0]),
-                            enumerate(shard_pointers))
+                        lambda x: self.shard_download(x[1], x[0]),
+                        enumerate(shard_pointers))
 
                 except StorjBridgeApiError as e:
                     self.__logger.error(e)
@@ -201,7 +201,7 @@ class Downloader:
                 self.__logger.error(e)
                 self.__logger.error("Unhandled error")
                 self.__logger.error("Error occured while downloading shard at "
-                    "index %s. Retrying... (%s)" % (shard_index, farmer_tries))
+                                    "index %s. Retrying... (%s)" % (shard_index, farmer_tries))
 
         self.__logger.error("Shard download at index %s failed" % shard_index)
         raise ClientError()

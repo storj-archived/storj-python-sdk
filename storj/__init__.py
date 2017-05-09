@@ -2,6 +2,7 @@
 """Storj package."""
 
 import io
+import logging
 
 
 from abc import ABCMeta
@@ -11,6 +12,9 @@ from .configuration import read_config
 from .http import Client
 from .metadata import __version__
 from .model import Bucket, File, Token
+
+
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 def get_client():

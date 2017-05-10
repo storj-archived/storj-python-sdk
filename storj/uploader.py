@@ -144,11 +144,11 @@ class Uploader:
                 timeout=1)
             return response
 
-    def _calculate_timeout(self, shard_size, mbps=1):
+    def _calculate_timeout(self, shard_size, mbps=0.5):
         """
         Args:
             shard_size: shard size in Byte
-            mbps: upload throughtput.
+            mbps: upload throughtput. Default 500 kbps
         """
         global TIMEOUT
         TIMEOUT = int(shard_size * 8.0 / (1024 ** 2 * mbps))

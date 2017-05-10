@@ -175,9 +175,6 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
 
             try:
                 frame_content = self.client.frame_add_shard(shard, frame.id)
-                print "*" * 10 + "frame for shard " + str(chapters) + "*" * 10
-                print frame_content
-                print "*" * 30
 
                 farmerNodeID = frame_content['farmer']['nodeID']
 
@@ -186,7 +183,9 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                     frame_content['farmer']['port'],
                     frame_content['hash'],
                     frame_content['token'])
-                self.__logger.debug('Done contract with url=%s', url)
+                self.__logger.debug('Done contract for shard %s with url=%s',
+                                    chapters,
+                                    url)
 
                 # begin recording exchange report
                 # exchange_report = model.ExchangeReport()
@@ -224,10 +223,10 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                                 timeout=1)
                         """
                         response = self.require_upload(mypath, url, chapters)
-                        self.logger('Shard %s Uploaded' % chapters)
+                        self.__logger.debug('>>> Shard %s Uploaded' % chapters)
 
                         j = json.loads(str(response.content))
-                        print ">>> " + str(j)
+                        self.__logger.info('>>>> %s' % str(j))
 
                         if j.get('result') == \
                                 'The supplied token is not accepted':
@@ -359,7 +358,7 @@ report sent.    ', chapters + 1)
     def file_upload(self, bucket_id, file_path, tmp_file_path):
         """"""
 
-        self.__logger.debug('Upload %s in bucket %d', file_path, bucket_id)
+        self.__logger.debug('Upload %s in bucket %s', file_path, bucket_id)
         self.__logger.debug('Temp folder %s', tmp_file_path)
 
         encryption_enabled = True
@@ -430,8 +429,6 @@ staging frame')
         # Calculate timeout
         self._calculate_timeout(shard_size=shards_manager.shards[0].size,
                                 mbps=1)
-
-        self.__logger.debug('There are %d shards' % self.all_shards_count)
 
         print '-' * 30
         for s in shards_manager.shards:

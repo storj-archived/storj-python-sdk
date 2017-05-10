@@ -18,11 +18,9 @@ import model
 from exception import BridgeError, FarmerError, SuppliedTokenNotAcceptedError
 from http import Client
 
-# ----------
 import sys
 import threading
 import thread
-# ----------
 
 TIMEOUT = 60    # default = 1 minute
 
@@ -246,9 +244,9 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                         self.__logger.error()
                         self.__logger.error(
                             'Upload shard %s to %s too slow.' % (
-                            chapters, url))
+                                chapters, url))
                         self.__logger.error(
-                            'Upload timed out. Redo upload of shard %s' % \
+                            'Upload timed out. Redo upload of shard %s' %
                             chapters)
                         continue
 

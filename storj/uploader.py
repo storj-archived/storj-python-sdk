@@ -18,7 +18,6 @@ import model
 from exception import BridgeError, FarmerError, SuppliedTokenNotAcceptedError
 from http import Client
 
-import sys
 import threading
 import thread
 
@@ -31,8 +30,7 @@ def foo(args):
 
 
 def quit_function(fn_name):
-    self.__logger.debug('{0} took too long'.format(fn_name))
-    # sys.stderr.flush() # Python 3 stderr is likely buffered.
+    # self.__logger.debug('{0} took too long'.format(fn_name))
     thread.interrupt_main()  # raises KeyboardInterrupt
 
 
@@ -238,7 +236,7 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                         self.__logger.error(e)
                         continue
 
-                    except KeyboardInterrupt as ki:
+                    except KeyboardInterrupt:
                         self.__logger.error()
                         self.__logger.error()
                         self.__logger.error(
@@ -276,16 +274,6 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                             self.__logger.debug('finish upload')
 
                         break
-
-                # TODO: delete this?
-                """
-                self.__logger.debug('response.content=%s', response.content)
-
-                j = json.loads(str(response.content))
-                if j.get('result') == 'The supplied token is not accepted':
-                    raise SuppliedTokenNotAcceptedError()
-                print 'TEST:::::::: ' + str(j)
-                """
 
             # Exceptions raised negotiating contracts
             except BridgeError as e:
@@ -361,8 +349,6 @@ report sent.    ', chapters + 1)
         self.__logger.debug('Upload %s in bucket %s', file_path, bucket_id)
         self.__logger.debug('Temp folder %s', tmp_file_path)
 
-        encryption_enabled = True
-
         bname = os.path.split(file_path)[1]  # File name
 
         file_mime_type = 'text/plain'
@@ -424,19 +410,13 @@ staging frame')
 
         self.__logger.debug('Sharding ended...')
 
-        self.__logger.debug('There are %d shards', self.all_shards_count)
+        self.__logger.debug('There are %s shards', self.all_shards_count)
 
         # Calculate timeout
         self._calculate_timeout(shard_size=shards_manager.shards[0].size,
                                 mbps=1)
 
-        print '-' * 30
-        for s in shards_manager.shards:
-            print s
-            print '-' * 30
-
-        # create file hash
-
+        # Upload shards
         mp = Pool()
         res = mp.map(foo, [(self, shards_manager.shards[x], x, frame,
                            file_name_ready_to_shard_upload, tmp_file_path)
@@ -447,6 +427,7 @@ staging frame')
         # finish_upload
         self.__logger.debug('Generating HMAC...')
 
+        # create file hash
         hash_sha512_hmac_b64 = self._prepare_bucket_entry_hmac(
             shards_manager.shards)
         hash_sha512_hmac = hashlib.sha224(str(

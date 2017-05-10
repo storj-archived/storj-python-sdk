@@ -18,10 +18,45 @@ import model
 from exception import BridgeError, FarmerError, SuppliedTokenNotAcceptedError
 from http import Client
 
+# ----------
+import sys
+import threading
+import thread
+# ----------
+
+TIMEOUT = 60    # default = 1 minute
+
 
 def foo(args):
     self, shard, shard_index, frame, file_name, tmp_path = args
-    self.upload_shard(shard, shard_index, frame, file_name, tmp_path)
+    return self.upload_shard(shard, shard_index, frame, file_name, tmp_path)
+
+
+def quit_function(fn_name):
+    # print to stderr, unbuffered in Python 2.
+    # print '{0} took too long'.format(fn_name)
+    self.__logger.debug('{0} took too long'.format(fn_name))
+    # sys.stderr.flush() # Python 3 stderr is likely buffered.
+    thread.interrupt_main()  # raises KeyboardInterrupt
+
+
+def exit_after(s):
+    '''
+    use as decorator to exit process if
+    function takes longer than s seconds
+    '''
+    def outer(fn):
+        def inner(*args, **kwargs):
+            timer = threading.Timer(s, quit_function, args=[fn.__name__])
+            timer.start()
+            try:
+                result = fn(*args, **kwargs)
+            finally:
+                timer.cancel()
+            return result
+        return inner
+
+    return outer
 
 
 class Uploader:
@@ -101,6 +136,27 @@ class Uploader:
 
         return current_hmac
 
+    @exit_after(TIMEOUT)
+    def require_upload(self, shard_path, url, index):
+        with open(shard_path, 'rb') as f:
+            response = requests.post(
+                url,
+                data=self._read_in_chunks(
+                    f, shard_index=index),
+                timeout=1)
+            return response
+
+    def _calculate_timeout(self, shard_size, mbps=1):
+        """
+        Args:
+            shard_size: shard size in Byte
+            mbps: upload throughtput
+        """
+        global TIMEOUT
+        TIMEOUT = int(shard_size * 8.0 / (1024 ** 2 * mbps))
+        # print 'Set timeout to %s seconds' % TIMEOUT
+        self.__logger.debug('Set timeout to %s seconds' % TIMEOUT)
+
     def upload_shard(self, shard, chapters, frame,
                      file_name_ready_to_shard_upload, tmp_path):
         """
@@ -115,15 +171,20 @@ class Uploader:
         contract_negotiation_tries = 0
         exchange_report = model.ExchangeReport()
 
+        # print "negotiate contract for shard %s" % chapters
         while self.max_retries_contract_negotiation > \
                 contract_negotiation_tries:
+            # print "contract for shard %s attempt %s" % (chapters, contract_negotiation_tries)
             contract_negotiation_tries += 1
             self.__logger.debug('Negotiating contract')
             self.__logger.debug('Trying to negotiate storage contract for \
-shard at index %s...' % chapters)
+shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
 
             try:
                 frame_content = self.client.frame_add_shard(shard, frame.id)
+                print "*" * 10 + "frame for shard " + str(chapters) + "*" * 10
+                print frame_content
+                print "*" * 30
 
                 farmerNodeID = frame_content['farmer']['nodeID']
 
@@ -132,10 +193,12 @@ shard at index %s...' % chapters)
                     frame_content['farmer']['port'],
                     frame_content['hash'],
                     frame_content['token'])
-                self.__logger.debug('upload_shard url=%s', url)
+                self.__logger.debug('Done contract with url=%s', url)
 
                 # begin recording exchange report
                 # exchange_report = model.ExchangeReport()
+
+                # print "found url %s" % url
 
                 current_timestamp = int(time.time())
 
@@ -147,14 +210,15 @@ shard at index %s...' % chapters)
                 response = None
 
                 while self.max_retries_upload_same_farmer > farmer_tries:
+                    print "farmer for shard %s try %s" % (chapters,
+                                                          farmer_tries)
                     farmer_tries += 1
 
                     try:
                         self.__logger.debug(
-                            'Upload shard at index %s to %s:%d attempt #%d',
+                            'Upload shard at index %s to %s attempt #%d',
                             shard.index,
                             frame_content['farmer']['address'],
-                            frame_content['farmer']['port'],
                             farmer_tries)
 
                         mypath = os.path.join(
@@ -162,24 +226,42 @@ shard at index %s...' % chapters)
                                 file_name_ready_to_shard_upload,
                                 chapters + 1))
 
+                        """
                         with open(mypath, 'rb') as f:
                             response = requests.post(
                                 url,
                                 data=self._read_in_chunks(
                                     f, shard_index=chapters),
                                 timeout=1)
+                        """
+                        response = self.require_upload(mypath, url, chapters)
+                        print "Shard %s Uploaded" % chapters
 
                         j = json.loads(str(response.content))
+                        print ">>> " + str(j)
 
+                        print j
                         if j.get('result') == \
                                 'The supplied token is not accepted':
                             raise SuppliedTokenNotAcceptedError()
 
+                    # Exceptions raised when uploading shards
                     except FarmerError as e:
+                        print 'farmer error'
+                        print e
                         self.__logger.error(e)
                         continue
 
+                    except KeyboardInterrupt as ki:
+                        print 'Upload shard %s to %s too slow.' % (
+                            chapters, url)
+                        print 'Upload timed out. Redo upload of shard %s' % \
+                            chapters
+                        continue
+
                     except Exception as e:
+                        print "ERROR"
+                        print e
                         self.__logger.error(e)
                         self.__logger.error(
                             'Shard upload error for to %s:%d',
@@ -187,30 +269,42 @@ shard at index %s...' % chapters)
                             frame_content['farmer']['port'])
                         continue
 
-                    self.shards_already_uploaded += 1
-                    self.__logger.info(
-                        'Shard uploaded successfully to %s:%d',
-                        frame_content['farmer']['address'],
-                        frame_content['farmer']['port'])
+                    else:
+                        self.shards_already_uploaded += 1
+                        self.__logger.info(
+                            'Shard uploaded successfully to %s:%d',
+                            frame_content['farmer']['address'],
+                            frame_content['farmer']['port'])
 
-                    self.__logger.debug(
-                        '%s shards, %s sent',
-                        self.all_shards_count,
-                        self.shards_already_uploaded)
+                        print 'Shard %s uploaded successfully to %s' % (
+                            chapters,
+                            frame_content['farmer']['address'])
 
-                    if int(self.all_shards_count) <= \
-                            int(self.shards_already_uploaded):
-                        self.__logger.debug('finish upload')
+                        self.__logger.debug(
+                            '%s shards, %s sent',
+                            self.all_shards_count,
+                            self.shards_already_uploaded)
 
-                    break
+                        if int(self.all_shards_count) <= \
+                                int(self.shards_already_uploaded):
+                            self.__logger.debug('finish upload')
 
+                        break
+
+                # TODO: delete this?
+                """
                 self.__logger.debug('response.content=%s', response.content)
 
                 j = json.loads(str(response.content))
                 if j.get('result') == 'The supplied token is not accepted':
                     raise SuppliedTokenNotAcceptedError()
+                print 'TEST:::::::: ' + str(j)
+                """
 
+            # Exceptions raised negotiating contracts
             except BridgeError as e:
+                print "bridge error"
+                print e
                 self.__logger.error(e)
 
                 # upload failed due to Storj Bridge failure
@@ -219,6 +313,8 @@ negotiate contract: ')
                 continue
 
             except Exception as e:
+                print "Exception contracting"
+                print e
                 # now send Exchange Report
                 # upload failed probably while sending data to farmer
                 self.__logger.error(e)
@@ -236,20 +332,22 @@ to upload shard or negotiate contract for shard at index %s . Retrying...',
                 # Send exchange report
                 # self.client.send_exchange_report(exchange_report)
                 continue
+            else:
+                # uploaded with success
+                current_timestamp = int(time.time())
+                # prepare second half of exchange heport
+                exchange_report.exchangeEnd = str(current_timestamp)
+                exchange_report.exchangeResultCode = exchange_report.SUCCESS
+                exchange_report.exchangeResultMessage = \
+                    exchange_report.STORJ_REPORT_SHARD_UPLOADED
 
-            # uploaded with success
-            current_timestamp = int(time.time())
-            # prepare second half of exchange heport
-            exchange_report.exchangeEnd = str(current_timestamp)
-            exchange_report.exchangeResultCode = exchange_report.SUCCESS
-            exchange_report.exchangeResultMessage = \
-                exchange_report.STORJ_REPORT_SHARD_UPLOADED
-
-            self.__logger.info('Shard %s successfully added and exchange \
-report sent.', chapters + 1)
-            # Send exchange report
-            # self.client.send_exchange_report(exchange_report)
-            break
+                self.__logger.info('Shard %s successfully added and exchange \
+report sent.    ', chapters + 1)
+                # Send exchange report
+                # self.client.send_exchange_report(exchange_report)
+                # break
+                return True
+            return False
 
     def _read_in_chunks(self, file_object, blocksize=4096, chunks=-1,
                         shard_index=None):
@@ -345,13 +443,27 @@ staging frame')
 
         self.__logger.debug('There are %d shards', self.all_shards_count)
 
+        # Calculate timeout
+        self._calculate_timeout(shard_size=shards_manager.shards[0].size,
+                                mbps=1)
+
+        print 'There are %d shards' % self.all_shards_count
+
+        print '-' * 30
+        for s in shards_manager.shards:
+            print s
+            print '-' * 30
+
         # create file hash
 
+        print 'begin pool'
         mp = Pool()
-        mp.map(foo, [(self, shards_manager.shards[x], x, frame,
-                      file_name_ready_to_shard_upload, tmp_file_path)
-                     for x in range(len(shards_manager.shards))])
+        res = mp.map(foo, [(self, shards_manager.shards[x], x, frame,
+                           file_name_ready_to_shard_upload, tmp_file_path)
+                           for x in range(len(shards_manager.shards))])
 
+        print "===== RESULTS ====="
+        print res
         # finish_upload
         self.__logger.debug('Generating HMAC...')
 

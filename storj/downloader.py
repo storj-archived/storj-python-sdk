@@ -73,7 +73,8 @@ class Downloader:
 
         try:
             self.__logger.debug(
-                'Resolving file pointers to download file with ID: %s ...', file_id)
+                'Resolving file pointers to download file with ID: %s ...',
+                file_id)
 
             tries_get_file_pointers = 0
 
@@ -108,9 +109,8 @@ class Downloader:
                 except StorjBridgeApiError as e:
                     self.__logger.error(e)
                     self.__logger.error('Bridge error')
-                    self.__logger.error(
-                        'Error while resolving file pointers to download file with ID: %s ...',
-                        file_id)
+                    self.__logger.error('Error while resolving file pointers \
+to download file with ID: %s ...', file_id)
                     self.__logger.error(e)
                     continue
                 else:
@@ -120,7 +120,7 @@ class Downloader:
             self.__logger.error(e)
             self.__logger.error("Outern Bridge error")
             self.__logger.error("Error while resolving file pointers to \
-                download file with ID: %s" % str(file_id))
+download file with ID: %s" % str(file_id))
 
         # All the shards have been downloaded
         self.__logger.debug(shards)
@@ -135,7 +135,8 @@ class Downloader:
         sharding_tools = ShardingTools()
         self.__logger.debug('Joining shards...')
 
-        destination_path = os.path.join(self.destination_file_path, self.filename_from_bridge)
+        destination_path = os.path.join(self.destination_file_path,
+                                        self.filename_from_bridge)
         self.__logger.debug('Destination path %s', destination_path)
 
         try:
@@ -210,14 +211,17 @@ class Downloader:
 
             except StorjFarmerError as e:
                 self.__logger.error(e)
+                # Update shard download state
                 self.__logger.error("First try failed. Retrying... (%s)" %
-                                    str(farmer_tries))  # update shard download state
+                                    str(farmer_tries))
 
             except Exception as e:
                 self.__logger.error(e)
                 self.__logger.error("Unhandled error")
                 self.__logger.error("Error occured while downloading shard at "
-                                    "index %s. Retrying... (%s)" % (shard_index, farmer_tries))
+                                    "index %s. Retrying... (%s)" %
+                                    (shard_index,
+                                     farmer_tries))
 
         self.__logger.error("Shard download at index %s failed" % shard_index)
         raise ClientError()
@@ -227,7 +231,8 @@ class Downloader:
 
         try:
             self.__logger.debug('Starting download threads...')
-            self.__logger.debug('Downloading shard at index %s ...', shard_index)
+            self.__logger.debug('Downloading shard at index %s ...',
+                                shard_index)
 
             url = 'http://{address}:{port}/shards/{hash}?token={token}'.format(
                 address=pointer.get('farmer')['address'],
@@ -244,7 +249,8 @@ class Downloader:
 
             # shard = self.retrieve_shard_file(url, shard_index)
             self.__logger.debug('Shard downloaded')
-            self.__logger.debug('Shard at index %s downloaded successfully', shard_index)
+            self.__logger.debug('Shard at index %s downloaded successfully',
+                                shard_index)
             return shard
 
         except IOError as e:

@@ -251,20 +251,22 @@ class ClientTestCase(AbstractTestCase):
         test_file_id = '5678'
         test_limit = '10'
         test_skip = '0'
+        test_exclude = ['1234567890', '2345678901']
 
         mock_token_create.return_value = model.Token(id='test_token')
 
         response = self.client.file_pointers(
-            test_bucket_id, test_file_id, test_skip, test_limit)
+            test_bucket_id, test_file_id, test_skip, test_limit, test_exclude)
 
         assert response is not None
         for pointer in response:
             assert isinstance(pointer, model.FilePointer)
 
+        exclude = ','.join(test_exclude)
         self.mock_request.assert_called_once_with(
             method='GET',
-            path='/buckets/%s/files/%s/?skip=%s&limit=%s' % (
-                test_bucket_id, test_file_id, test_skip, test_limit),
+            path='/buckets/%s/files/%s/?skip=%s&limit=%s&exclude=%s' % (
+                test_bucket_id, test_file_id, test_skip, test_limit, exclude),
             headers={'x-token': 'test_token'})
 
         mock_token_create.assert_called_once_with(

@@ -398,10 +398,11 @@ class Client(object):
             raise ValueError('number of tokens to resolve is None')
 
         pull_token = self.token_create(bucket_id, operation='PULL')
+        exclude = ','.join(exclude or [])
 
         return self._request(
             method='GET',
-            path='/buckets/%s/files/%s/?skip=%s&limit=%s' % (bucket_id, file_id, skip, limit),
+            path='/buckets/%s/files/%s/?skip=%s&limit=%s&exclude=%s' % (bucket_id, file_id, skip, limit, exclude),
             headers={'x-token': pull_token.id})
 
     @handle_nonhttp_errors

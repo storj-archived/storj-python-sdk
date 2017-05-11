@@ -96,7 +96,7 @@ class Downloader:
                         'There are %s shard pointers: ', len(shard_pointers))
 
                     # Calculate timeout
-                    self._calculate_timeout(shard_pointers[0]['size'], mbps=20)
+                    self._calculate_timeout(shard_pointers[0]['size'], mbps=1)
 
                     # Upload shards thread pool
                     self.__logger.debug('Begin shards download process')

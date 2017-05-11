@@ -7,6 +7,7 @@ import logging
 import requests
 
 from multiprocessing.pool import ThreadPool
+import multiprocessing
 from tempfile import SpooledTemporaryFile
 
 from exception import StorjBridgeApiError, StorjFarmerError, ClientError
@@ -14,9 +15,37 @@ from file_crypto import FileCrypto
 from http import Client
 from sharder import ShardingTools
 
+import threading
+import thread
+
+TIMEOUT = 60    # default = 1 minute
 
 MAX_RETRIES_DOWNLOAD_FROM_SAME_FARMER = 3
 MAX_RETRIES_GET_FILE_POINTERS = 10
+
+
+def quit_function(fn_name):
+    # self.__logger.debug('{0} took too long'.format(fn_name))
+    thread.interrupt_main()  # raises KeyboardInterrupt
+
+
+def exit_after(s):
+    '''
+    use as decorator to exit process if
+    function takes longer than s seconds
+    '''
+    def outer(fn):
+        def inner(*args, **kwargs):
+            timer = threading.Timer(s, quit_function, args=[fn.__name__])
+            timer.start()
+            try:
+                result = fn(*args, **kwargs)
+            finally:
+                timer.cancel()
+            return result
+        return inner
+
+    return outer
 
 
 class Downloader:
@@ -26,6 +55,16 @@ class Downloader:
     def __init__(self, email, password):
         self.client = Client(email, password, )
         self.max_spooled = 10 * 1024 * 1024   # keep files up to 10MiB in memory
+
+    def _calculate_timeout(self, shard_size, mbps=0.5):
+        """
+        Args:
+            shard_size: shard size in Byte
+            mbps: upload throughtput. Default 500 kbps
+        """
+        global TIMEOUT
+        TIMEOUT = int(shard_size * 8.0 / (1024 ** 2 * mbps))
+        self.__logger.info('Set timeout to %s seconds' % TIMEOUT)
 
     def get_file_pointers_count(self, bucket_id, file_id):
         frame_data = self.client.frame_get(self.file_frame.id)
@@ -85,6 +124,10 @@ class Downloader:
                     self.__logger.debug(
                         'There are %s shard pointers: ', len(shard_pointers))
 
+                    # Calculate timeout
+                    self._calculate_timeout(shard_pointers[0]['size'], mbps=20)
+
+                    # Upload shards thread pool
                     self.__logger.debug('Begin shards download process')
                     shards = mp.map(
                         lambda x: self.shard_download(x[1], x[0]),
@@ -108,6 +151,8 @@ class Downloader:
                 download file with ID: %s" % str(file_id))
 
         # All the shards have been downloaded
+        print "-----------FINE----------"
+        print shards
         if shards is not None:
             self.finish_download(shards)
 
@@ -158,6 +203,7 @@ class Downloader:
 
         return True
 
+    # @exit_after(TIMEOUT)
     def retrieve_shard_file(self, url, shard_index):
         farmer_tries = 0
 
@@ -220,7 +266,13 @@ class Downloader:
                 token=pointer['token'])
             self.__logger.debug(url)
 
-            shard = self.retrieve_shard_file(url, shard_index)
+            tp = ThreadPool(processes=1)
+            async_result = tp.apply_async(
+                    self.retrieve_shard_file,
+                    (url, shard_index))  # tuple of args for foo
+            shard = async_result.get(TIMEOUT)  # get the return value
+
+            # shard = self.retrieve_shard_file(url, shard_index)
             self.__logger.debug('Shard downloaded')
             self.__logger.debug('Shard at index %s downloaded successfully', shard_index)
             return shard
@@ -233,6 +285,18 @@ class Downloader:
                 Probably this is caused by insufficient permisions.
                 Please check if you have permissions to write or
                 read from selected directories.""")
+
+        except KeyboardInterrupt:
+            print "**********INTERRUPT********"
+            self.__logger.warning('Shard %s download timeout' % shard_index)
+            self.__logger.warning('Retry with new pointer')
+            exit(0)
+
+        except multiprocessing.TimeoutError:
+            print("Aborting due to timeout")
+            tp.terminate()
+            raise
+            # TODO: new file pointer
 
         except Exception as e:
             self.__logger.error(e)

@@ -1,5 +1,3 @@
-
-from sys import platform
 import os
 
 import logging
@@ -7,16 +5,13 @@ import logging
 import requests
 
 from multiprocessing.pool import ThreadPool
-import multiprocessing
+from multiprocessing import TimeoutError
 from tempfile import SpooledTemporaryFile
 
 from exception import StorjBridgeApiError, StorjFarmerError, ClientError
 from file_crypto import FileCrypto
 from http import Client
 from sharder import ShardingTools
-
-import threading
-import thread
 
 TIMEOUT = 60    # default = 1 minute
 
@@ -106,7 +101,8 @@ class Downloader:
                     # Upload shards thread pool
                     self.__logger.debug('Begin shards download process')
                     shards = mp.map(
-                        lambda x: self.shard_download(x[1], x[0]),
+                        lambda x: self.shard_download(x[1], x[0], bucket_id,
+                                                      file_id),
                         enumerate(shard_pointers))
 
                 except StorjBridgeApiError as e:
@@ -127,8 +123,7 @@ class Downloader:
                 download file with ID: %s" % str(file_id))
 
         # All the shards have been downloaded
-        print "-----------FINE----------"
-        print shards
+        self.__logger.debug(shards)
         if shards is not None:
             self.finish_download(shards)
 
@@ -227,7 +222,7 @@ class Downloader:
         self.__logger.error("Shard download at index %s failed" % shard_index)
         raise ClientError()
 
-    def shard_download(self, pointer, shard_index):
+    def shard_download(self, pointer, shard_index, bucket_id, file_id):
         self.__logger.debug('Beginning download proccess...')
 
         try:
@@ -243,8 +238,8 @@ class Downloader:
 
             tp = ThreadPool(processes=1)
             async_result = tp.apply_async(
-                    self.retrieve_shard_file,
-                    (url, shard_index))  # tuple of args for foo
+                self.retrieve_shard_file,
+                (url, shard_index))  # tuple of args for foo
             shard = async_result.get(TIMEOUT)  # get the return value
 
             # shard = self.retrieve_shard_file(url, shard_index)
@@ -261,17 +256,20 @@ class Downloader:
                 Please check if you have permissions to write or
                 read from selected directories.""")
 
-        except KeyboardInterrupt:
-            print "**********INTERRUPT********"
-            self.__logger.warning('Shard %s download timeout' % shard_index)
-            self.__logger.warning('Retry with new pointer')
-            exit(0)
-
-        except multiprocessing.TimeoutError:
-            print("Aborting due to timeout")
+        except TimeoutError:
+            self.__logger.warning('Aborting shard %s download due to timeout' %
+                                  shard_index)
             tp.terminate()
-            raise
-            # TODO: new file pointer
+            self.__logger.warning('Try with a new pointer')
+            new_pointer = self.client.file_pointers(
+                bucket_id=bucket_id,
+                file_id=file_id,
+                limit='1',
+                skip=str(shard_index),
+                exclude=str([pointer['farmer']['nodeID']]))
+            self.__logger.debug('Found new pointer')
+            return self.shard_download(new_pointer[0], shard_index,
+                                       bucket_id, file_id)
 
         except Exception as e:
             self.__logger.error(e)

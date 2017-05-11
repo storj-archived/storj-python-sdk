@@ -24,30 +24,6 @@ MAX_RETRIES_DOWNLOAD_FROM_SAME_FARMER = 3
 MAX_RETRIES_GET_FILE_POINTERS = 10
 
 
-def quit_function(fn_name):
-    # self.__logger.debug('{0} took too long'.format(fn_name))
-    thread.interrupt_main()  # raises KeyboardInterrupt
-
-
-def exit_after(s):
-    '''
-    use as decorator to exit process if
-    function takes longer than s seconds
-    '''
-    def outer(fn):
-        def inner(*args, **kwargs):
-            timer = threading.Timer(s, quit_function, args=[fn.__name__])
-            timer.start()
-            try:
-                result = fn(*args, **kwargs)
-            finally:
-                timer.cancel()
-            return result
-        return inner
-
-    return outer
-
-
 class Downloader:
 
     __logger = logging.getLogger('%s.ClassName' % __name__)
@@ -203,7 +179,6 @@ class Downloader:
 
         return True
 
-    # @exit_after(TIMEOUT)
     def retrieve_shard_file(self, url, shard_index):
         farmer_tries = 0
 

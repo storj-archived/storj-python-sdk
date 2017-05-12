@@ -678,10 +678,10 @@ class ShardManager(Object):
         self.tmp_path = tmp_path
 
         # MAX_SHARD_SIZE = 4294967296  # 4Gb
-        self.MAX_SHARD_SIZE = max_shard_size  # 512Kb
+        self.MAX_SHARD_SIZE = max_shard_size
 
         # SHARD_SIZE = 8 * (1024 * 1024)  # 8Mb
-        self.SHARD_SIZE = 1 * max_shard_size  # 1Mb
+        self.SHARD_SIZE = 1 * max_shard_size
 
 
         # IMPORTANT: set filepath last

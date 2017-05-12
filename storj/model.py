@@ -666,17 +666,23 @@ class ShardManager(Object):
 
     __logger = logging.getLogger('%s.ShardManager' % __name__)
 
-    MAX_SHARD_SIZE = 4294967296  # 4Gb
-    SHARD_MULTIPLES_BACK = 4
-    SHARD_SIZE = 8 * (1024 * 1024)  # 8Mb
+    SHARD_MULTIPLES_BACK = 8
 
-    def __init__(self, filepath, shard_size=None, tmp_path=None, nchallenges=2, suffix=''):
+
+    def __init__(self, filepath, shard_size=None, tmp_path=None, nchallenges=2, max_shard_size=1024*2048, suffix=''):
         self.num_chunks = 0
         self.nchallenges = nchallenges
         self.shard_size = shard_size
         self.shards = []
         self.suffix = suffix
         self.tmp_path = tmp_path
+
+        # MAX_SHARD_SIZE = 4294967296  # 4Gb
+        self.MAX_SHARD_SIZE = max_shard_size  # 512Kb
+
+        # SHARD_SIZE = 8 * (1024 * 1024)  # 8Mb
+        self.SHARD_SIZE = 1 * max_shard_size  # 1Mb
+
 
         # IMPORTANT: set filepath last
         self.filepath = filepath
@@ -771,7 +777,7 @@ class ShardManager(Object):
         else:
             hops = accumulator - ShardManager.SHARD_MULTIPLES_BACK
 
-        byte_multiple = ShardManager.SHARD_SIZE * pow(2, accumulator)
+        byte_multiple = self.SHARD_SIZE * pow(2, accumulator)
         check = float(self.filesize) / float(byte_multiple)
 
         self.__logger.debug(
@@ -779,7 +785,7 @@ class ShardManager(Object):
             hops, accumulator, check, self.filesize, byte_multiple)
 
         if 0 < check <= 1:
-            while hops > 0 and ShardManager.SHARD_SIZE * pow(2, hops) > ShardManager.MAX_SHARD_SIZE:
+            while hops > 0 and self.SHARD_SIZE * pow(2, hops) > self.MAX_SHARD_SIZE:
                 if hops - 1 <= 0:
                     hops = 0
                 else:
@@ -789,7 +795,7 @@ class ShardManager(Object):
                 'hops=%d acumulator = %d check = %.2f file_size = %d byte_multiple = %d',
                 hops, accumulator, check, self.filesize, byte_multiple)
 
-            return ShardManager.SHARD_SIZE * pow(2, hops)
+            return self.SHARD_SIZE * pow(2, hops)
 
         # maximum of 2 ^ 41 * 8 * 1024 * 1024 = 16 exabytes
         if accumulator > 41:
@@ -801,45 +807,84 @@ class ShardManager(Object):
     def _make_shards(self):
         """Populates the shard manager with shards."""
 
-        self.shard_size, self.num_chunks = self.get_optimal_shard_parameters()
-        self.__logger.debug('number of chunks %d', self.num_chunks)
-
+        self.shards = []
+        self.__postfix = ''
         index = 0
 
+        # Get the file size
+
+        fsize = os.path.getsize(self.filepath)
+
+        self.shard_size, self.__numchunks = self.get_optimal_shard_parameters()
+        #self.__logger.debug('number of chunks %d', self.num_chunks)
+
         try:
-            with open(self.filepath, 'rb') as f:
-
-                bname = os.path.split(self.filepath)[1]
-                chunk_size = int(float(self.filesize) / float(self.num_chunks))
-                self.__logger.debug('chunk_size = %d', chunk_size)
-
-                for x in range(1, self.num_chunks + 1):
-                    chunk_fn = '%s-%s%s' % (bname, x, self.suffix)
-
-                    try:
-                        data = f.read(chunk_size)
-
-                        self.__logger.debug('writing file %s', chunk_fn)
-                        with open(os.path.join(self.tmp_path, chunk_fn), 'wb') as chunkf:
-                            chunkf.write(data)
-
-                        challenges = self._make_challenges(self.nchallenges)
-
-                        self.shards.append(
-                            Shard(size=len(data), index=index,
-                                  hash=ShardManager.hash(data),
-                                  tree=self._make_tree(challenges, data),
-                                  challenges=challenges))
-
-                        index += 1
-
-                    except (OSError, IOError) as e:
-                        self.__logger.error(e)
-                        continue
-
+            f = open(self.filepath, 'rb')
         except (OSError, IOError) as e:
-            self.__logger.error(e)
             raise ShardingException(str(e))
+
+        bname = os.path.split(self.filepath)[1]
+
+        # get chunk size
+        self.__chunksize = int(float(fsize) / float(self.__numchunks))
+
+        chunksz = self.__chunksize
+        total_bytes = 0
+        i = 0
+        for x in range(self.__numchunks):
+            chunkfilename = bname + '-' + str(x + 1) + self.__postfix
+
+            # if reading the last section,
+            # calculate correct chunk size.
+
+            if x == self.__numchunks - 1:
+                chunksz = fsize - total_bytes
+
+            self.shard_size = chunksz
+
+            if self.tmp_path is None:
+                if platform == 'linux' or platform == 'linux2':
+                    # linux
+                    self.tmp_path = '/tmp'
+                elif platform == 'darwin':
+                    # OS X
+                    self.tmp_path = '/tmp'
+                elif platform == 'win32':
+                    # Windows
+                    self.tmp_path = 'C://Windows/temp'
+            self.__logger.debug('self.tmp_path=%s', self.tmp_path)
+
+            try:
+                self.__logger.debug('Writing file %s', chunkfilename)
+                data = f.read(chunksz)
+                total_bytes += len(data)
+                inc = len(data)
+
+                with open(os.path.join(self.tmp_path, chunkfilename),
+                          'wb') as chunkf:
+                    chunkf.write(data)
+
+                challenges = self._make_challenges(self.nchallenges)
+
+                shard = Shard(size=self.shard_size, index=index,
+                              hash=ShardManager.hash(data),
+                              tree=self._make_tree(challenges, data[i:i + inc]),
+                              challenges=challenges)
+                # hash=ShardManager.hash(data[i:i + inc]),
+
+                self.shards.append(shard)
+
+                index += 1
+                i += 1
+            except (OSError, IOError) as e:
+                self.__logger.error(e)
+                continue
+            except EOFError as e:
+                self.__logger.error(e)
+                break
+
+        self.index = len(self.shards)
+
 
     @staticmethod
     def hash(data):

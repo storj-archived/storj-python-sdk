@@ -147,7 +147,7 @@ download file with ID: %s" % str(file_id))
                     sharding_tools.join_shards(shards, destination_fp)
 
             else:
-                with SpooledTemporaryFile(self.max_spooled, 'wb') as encrypted:
+                with SpooledTemporaryFile(self.max_spooled, 'r+') as encrypted:
                     sharding_tools.join_shards(shards, encrypted)
 
                     # move file read pointer at beginning

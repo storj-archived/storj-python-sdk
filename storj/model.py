@@ -799,7 +799,7 @@ class ShardManager(Object):
     def _make_shards(self):
         """Populates the shard manager with shards."""
 
-        if self.num_chunks == 0
+        if self.num_chunks == 0:
             self.num_chunks = self.get_optimal_shard_number()
         self.__logger.debug('number of chunks %d', self.num_chunks)
 

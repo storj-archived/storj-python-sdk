@@ -670,10 +670,10 @@ class ShardManager(Object):
     SHARD_MULTIPLES_BACK = 4
     SHARD_SIZE = 8 * (1024 * 1024)  # 8Mb
 
-    def __init__(self, filepath, shard_size=None, tmp_path=None, nchallenges=2, suffix=''):
-        self.num_chunks = 0
+    def __init__(self, filepath, num_chunks=0, tmp_path=None, nchallenges=2, suffix=''):
+        self.num_chunks = num_chunks
         self.nchallenges = nchallenges
-        self.shard_size = shard_size
+        self.shard_size = 0
         self.shards = []
         self.suffix = suffix
         self.tmp_path = tmp_path
@@ -739,11 +739,16 @@ class ShardManager(Object):
             tuple[long, int]: shard size, number of shards.
         """
 
-        shard_size = self.determine_shard_size()
-        if shard_size == 0:
-            shard_size = self.filesize
+        if self.num_chunks != 0:
+            self.__logger.debug('Number of shards already set')
+            shard_count = self.num_chunks
+            shard_size = int(math.ceil(float(self.filesize) / float(shard_count)))
+        else:
+            shard_size = self.determine_shard_size()
+            if shard_size == 0:
+                shard_size = self.filesize
 
-        shard_count = int(math.ceil(float(self.filesize) / float(shard_size)))
+            shard_count = int(math.ceil(float(self.filesize) / float(shard_size)))
 
         self.__logger.debug(
             'shard_size = %d, shard_count = %d, file_size = %d',

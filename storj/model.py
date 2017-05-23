@@ -729,12 +729,12 @@ class ShardManager(Object):
 
     def get_optimal_shard_number(self):
         """
-        Returns the optimal sharding parameters.
+        Returns the optimal number of shards.
 
         See https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c
 
         Returns:
-            tuple[long, int]: shard size, number of shards.
+            [int]: number of shards.
         """
 
         shard_size = self.determine_shard_size()
@@ -751,6 +751,7 @@ class ShardManager(Object):
 
     def determine_shard_size(self, accumulator=0):
         """
+        Determine the optimal shard size.
 
         See https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c
 

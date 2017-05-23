@@ -13,7 +13,6 @@ from file_crypto import FileCrypto
 from http import Client
 from sharder import ShardingTools
 
-TIMEOUT = 60    # default = 1 minute
 
 MAX_RETRIES_DOWNLOAD_FROM_SAME_FARMER = 3
 MAX_RETRIES_GET_FILE_POINTERS = 10
@@ -23,19 +22,22 @@ class Downloader:
 
     __logger = logging.getLogger('%s.ClassName' % __name__)
 
-    def __init__(self, email, password):
-        self.client = Client(email, password, )
+    def __init__(self, email, password, timeout=None):
+        self.client = Client(email, password, timeout=timeout)
         self.max_spooled = 10 * 1024 * 1024   # keep files up to 10MiB in memory
 
     def _calculate_timeout(self, shard_size, mbps=0.5):
         """
+        Calculate the timeout with respect to the minimum bandwidth accepted
+        by the user (default: 5 Mbps).
+
         Args:
             shard_size: shard size in Byte
             mbps: upload throughtput. Default 500 kbps
         """
-        global TIMEOUT
-        TIMEOUT = int(shard_size * 8.0 / (1024 ** 2 * mbps))
-        self.__logger.info('Set timeout to %s seconds' % TIMEOUT)
+        if not self.client.timeout:
+            self.client.timeout = int(shard_size * 8.0 / (1024 ** 2 * mbps))
+        self.__logger.info('Set timeout to %s seconds' % self.client.timeout)
 
     def get_file_pointers_count(self, bucket_id, file_id):
         frame_data = self.client.frame_get(self.file_frame.id)
@@ -131,13 +133,13 @@ download file with ID: %s" % str(file_id))
         self.__logger.debug('Finish download')
         fileisencrypted = '[DECRYPTED]' not in self.filename_from_bridge
 
-        # Join shards
-        sharding_tools = ShardingTools()
-        self.__logger.debug('Joining shards...')
-
         destination_path = os.path.join(self.destination_file_path,
                                         self.filename_from_bridge)
         self.__logger.debug('Destination path %s', destination_path)
+
+        # Join shards
+        sharding_tools = ShardingTools()
+        self.__logger.debug('Joining shards...')
 
         try:
             if not fileisencrypted:
@@ -145,7 +147,7 @@ download file with ID: %s" % str(file_id))
                     sharding_tools.join_shards(shards, destination_fp)
 
             else:
-                with SpooledTemporaryFile(self.max_spooled, 'wb') as encrypted:
+                with SpooledTemporaryFile(self.max_spooled, 'r+') as encrypted:
                     sharding_tools.join_shards(shards, encrypted)
 
                     # move file read pointer at beginning
@@ -195,7 +197,7 @@ download file with ID: %s" % str(file_id))
                 shard = SpooledTemporaryFile(self.max_spooled, 'wb')
 
                 # Request the shard
-                r = requests.get(url, stream=True)
+                r = requests.get(url, stream=True, timeout=self.client.timeout)
                 if r.status_code != 200 and r.status_code != 304:
                     raise StorjFarmerError()
 
@@ -214,6 +216,11 @@ download file with ID: %s" % str(file_id))
                 # Update shard download state
                 self.__logger.error("First try failed. Retrying... (%s)" %
                                     str(farmer_tries))
+
+            except requests.exceptions.Timeout as ret:
+                self.__logger.error('Request number %s for shard %s timed out.\
+Took too much.' % (farmer_tries, shard_index))
+                self.__logger.error(ret)
 
             except Exception as e:
                 self.__logger.error(e)
@@ -245,7 +252,7 @@ download file with ID: %s" % str(file_id))
             async_result = tp.apply_async(
                 self.retrieve_shard_file,
                 (url, shard_index))  # tuple of args for foo
-            shard = async_result.get(TIMEOUT)  # get the return value
+            shard = async_result.get(self.client.timeout)  # get the return value
 
             # shard = self.retrieve_shard_file(url, shard_index)
             self.__logger.debug('Shard downloaded')

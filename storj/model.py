@@ -135,8 +135,8 @@ class File(Object):
         self.mimetype = mimetype
         self.filename = filename
         self.size = size
-        self.erasure = index
-        self.index = erasure
+        self.erasure = erasure
+        self.index = index
         self.shard_manager = None
         self.id = id
         self.frame = Frame(id=frame)

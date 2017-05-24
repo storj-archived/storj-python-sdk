@@ -120,9 +120,9 @@ to download file with ID: %s ...', file_id)
 
         except StorjBridgeApiError as e:
             self.__logger.error(e)
-            self.__logger.error("Outern Bridge error")
-            self.__logger.error("Error while resolving file pointers to \
-download file with ID: %s" % str(file_id))
+            self.__logger.error('Outern Bridge error')
+            self.__logger.error('Error while resolving file pointers to \
+download file with ID: %s' % str(file_id))
 
         # All the shards have been downloaded
         self.__logger.debug(shards)
@@ -214,7 +214,7 @@ download file with ID: %s" % str(file_id))
             except StorjFarmerError as e:
                 self.__logger.error(e)
                 # Update shard download state
-                self.__logger.error("First try failed. Retrying... (%s)" %
+                self.__logger.error('First try failed. Retrying... (%s)' %
                                     str(farmer_tries))
 
             except requests.exceptions.Timeout as ret:
@@ -224,13 +224,13 @@ Took too much.' % (farmer_tries, shard_index))
 
             except Exception as e:
                 self.__logger.error(e)
-                self.__logger.error("Unhandled error")
-                self.__logger.error("Error occured while downloading shard at "
-                                    "index %s. Retrying... (%s)" %
+                self.__logger.error('Unhandled error')
+                self.__logger.error('Error occured while downloading shard at '
+                                    'index %s. Retrying... (%s)' %
                                     (shard_index,
                                      farmer_tries))
 
-        self.__logger.error("Shard download at index %s failed" % shard_index)
+        self.__logger.error('Shard download at index %s failed' % shard_index)
         raise ClientError()
 
     def shard_download(self, pointer, shard_index, bucket_id, file_id):

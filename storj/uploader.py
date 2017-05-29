@@ -6,7 +6,8 @@ import base64
 import hashlib
 import hmac
 import logging
-from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
+from multiprocessing import TimeoutError
 import json
 import requests
 import time
@@ -21,45 +22,16 @@ from http import Client
 import threading
 import thread
 
-TIMEOUT = 60    # default = 1 minute
-
-
-def foo(args):
-    self, shard, shard_index, frame, file_name, tmp_path = args
-    return self.upload_shard(shard, shard_index, frame, file_name, tmp_path)
-
-
-def quit_function(fn_name):
-    # self.__logger.debug('{0} took too long'.format(fn_name))
-    thread.interrupt_main()  # raises KeyboardInterrupt
-
-
-def exit_after(s):
-    '''
-    use as decorator to exit process if
-    function takes longer than s seconds
-    '''
-    def outer(fn):
-        def inner(*args, **kwargs):
-            timer = threading.Timer(s, quit_function, args=[fn.__name__])
-            timer.start()
-            try:
-                result = fn(*args, **kwargs)
-            finally:
-                timer.cancel()
-            return result
-        return inner
-
-    return outer
-
 
 class Uploader:
 
     """
 
     Attributes:
-        client (:py:class:`storj.http.Client`): the Storj HTTP client.
-        shared_already_uploaded (int): number of shards already uploaded.
+        email:
+        password:
+        timeout:
+        shared_already_uploaded (int): number of shards already uploaded (0 at begin).
         max_retries_contract_negotiation (int): maximum number of contract negotiation retries (default=10).
         max_retries_upload_same_farmer (int): maximum number of uploads retries to the same farmer (default=3).
     """
@@ -67,11 +39,11 @@ class Uploader:
     __logger = logging.getLogger('%s.Uploader' % __name__)
 
     def __init__(
-            self, email, password,
+            self, email, password, timeout=None,
             max_retries_contract_negotiation=10,
             max_retries_upload_same_farmer=3):
 
-        self.client = Client(email, password)
+        self.client = Client(email, password, timeout=timeout)
         self.shards_already_uploaded = 0
         self.max_retries_contract_negotiation = max_retries_contract_negotiation
         self.max_retries_upload_same_farmer = max_retries_upload_same_farmer
@@ -130,14 +102,13 @@ class Uploader:
 
         return current_hmac
 
-    @exit_after(TIMEOUT)
     def require_upload(self, shard_path, url, index):
         with open(shard_path, 'rb') as f:
             response = requests.post(
                 url,
                 data=self._read_in_chunks(
                     f, shard_index=index),
-                timeout=1)
+                timeout=self.client.timeout)
             return response
 
     def _calculate_timeout(self, shard_size, mbps=0.5):
@@ -146,9 +117,9 @@ class Uploader:
             shard_size: shard size in Byte
             mbps: upload throughtput. Default 500 kbps
         """
-        global TIMEOUT
-        TIMEOUT = int(shard_size * 8.0 / (1024 ** 2 * mbps))
-        self.__logger.debug('Set timeout to %s seconds' % TIMEOUT)
+        if not self.client.timeout:
+            self.client.timeout = int(shard_size * 8.0 / (1024 ** 2 * mbps))
+        self.__logger.debug('Set timeout to %s seconds' % self.client.timeout)
 
     def upload_shard(self, shard, chapters, frame,
                      file_name_ready_to_shard_upload, tmp_path):
@@ -220,7 +191,13 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                                     f, shard_index=chapters),
                                 timeout=1)
                         """
-                        response = self.require_upload(mypath, url, chapters)
+                        tp_content = ThreadPool(processes=1)
+                        async_result = tp_content.apply_async(
+                            self.require_upload,
+                            (mypath, url, chapters))
+                        response = async_result.get(self.client.timeout)
+
+                        # response = self.require_upload(mypath, url, chapters)
                         self.__logger.debug('>>> Shard %s Uploaded' % chapters)
 
                         j = json.loads(str(response.content))
@@ -236,26 +213,14 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                         self.__logger.error(e)
                         continue
 
-                    except KeyboardInterrupt:
-                        self.__logger.error()
-                        self.__logger.error()
+                    except TimeoutError:
                         self.__logger.error(
                             'Upload shard %s to %s too slow.' % (
                                 chapters, url))
                         self.__logger.error(
                             'Upload timed out. Redo upload of shard %s' %
                             chapters)
-                        continue
-
-                    except Exception as e:
-                        self.__logger.error('Exception')
-                        self.__logger.error(e)
-                        self.__logger.error(
-                            'Shard upload error for %s to %s:%d',
-                            chapters,
-                            frame_content['farmer']['address'],
-                            frame_content['farmer']['port'])
-                        continue
+                        raise BridgeError('Farmer too slow. Try another one.')
 
                     else:
                         self.shards_already_uploaded += 1
@@ -269,8 +234,8 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                             self.all_shards_count,
                             self.shards_already_uploaded)
 
-                        if int(self.all_shards_count) <= \
-                                int(self.shards_already_uploaded):
+                        if self.all_shards_count <= \
+                                self.shards_already_uploaded:
                             self.__logger.debug('finish upload')
 
                         break
@@ -331,9 +296,7 @@ report sent.    ', chapters + 1)
             blocksize (): .
             chunks (): .
         """
-
         i = 0
-
         while chunks:
             data = file_object.read(blocksize)
             if not data:
@@ -344,7 +307,13 @@ report sent.    ', chapters + 1)
             chunks -= 1
 
     def file_upload(self, bucket_id, file_path, tmp_file_path):
-        """"""
+        """
+        Upload a new file
+        Args:
+            bucket_id: ID of the bucket
+            file_path: path of the file to upload
+            tmp_file_path: folder where to store the temporary shards
+        """
 
         self.__logger.debug('Upload %s in bucket %s', file_path, bucket_id)
         self.__logger.debug('Temp folder %s', tmp_file_path)
@@ -375,7 +344,7 @@ report sent.    ', chapters + 1)
         self.fileisdecrypted_str = ''
 
         file_size = os.stat(file_path).st_size
-        self.__logger.debug('File encrypted')
+        self.__logger.info('File encrypted')
 
         # Get the PUSH token from Storj Bridge
         self.__logger.debug('Get PUSH Token')
@@ -386,8 +355,10 @@ report sent.    ', chapters + 1)
         except BridgeError as e:
             self.__logger.error(e)
             self.__logger.debug('PUSH token create exception')
+            self.__logger.error('File not uploaded')
+            return
 
-        self.__logger.debug('PUSH Token ID %s', push_token.id)
+        self.__logger.info('PUSH Token ID %s', push_token.id)
 
         # Get a frame
         self.__logger.debug('Frame')
@@ -399,8 +370,10 @@ report sent.    ', chapters + 1)
             self.__logger.error(e)
             self.__logger.debug('Unhandled exception while creating file \
 staging frame')
+            self.__logger.error('File not uploaded')
+            return
 
-        self.__logger.debug('frame.id = %s', frame.id)
+        self.__logger.info('frame.id = %s', frame.id)
 
         # Now generate shards
         self.__logger.debug('Sharding started...')
@@ -410,21 +383,21 @@ staging frame')
 
         self.__logger.debug('Sharding ended...')
 
-        self.__logger.debug('There are %s shards', self.all_shards_count)
+        self.__logger.info('There are %s shards', self.all_shards_count)
 
         # Calculate timeout
         self._calculate_timeout(shard_size=shards_manager.shards[0].size,
                                 mbps=1)
 
         # Upload shards
-        mp = Pool()
-        res = mp.map(foo, [(self, shards_manager.shards[x], x, frame,
-                            file_name_ready_to_shard_upload, tmp_file_path)
-                           for x in range(len(shards_manager.shards))])
+        mp = ThreadPool()
+        res = mp.map(lambda (n, s): self.upload_shard(
+            s, n, frame, file_name_ready_to_shard_upload, tmp_file_path),
+            enumerate(shards_manager.shards))
 
         self.__logger.debug('===== RESULTS =====')
         self.__logger.debug(res)
-        if False in res:
+        if False in res or None in res:
             self.__logger.error('File not uploaded: shard %s not uploaded' %
                                 res.index(False))
             self.__logger.error('Exiting with errors')
@@ -473,7 +446,7 @@ staging frame')
             self.__logger.debug('Unhandled bridge exception')
 
         if success:
-            self.__logger.debug('File uploaded successfully!')
+            self.__logger.info('File uploaded successfully!')
 
         # Remove temp files
         try:

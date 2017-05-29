@@ -7,6 +7,7 @@ import hashlib
 import hmac
 import logging
 from multiprocessing.pool import ThreadPool
+from multiprocessing import TimeoutError
 import json
 import requests
 import time
@@ -430,10 +431,9 @@ staging frame')
         # res = mp.map(foo, [(self, shards_manager.shards[x], x, frame,
         #                    file_name_ready_to_shard_upload, tmp_file_path)
         #                    for x in range(len(shards_manager.shards))])
-        res = mp.map(self.upload_shard,
-                     [(s, n, frame, file_name_ready_to_shard_upload,
-                       tmp_file_path)
-                      for (n, s) in enumerate(shards_manager.shards)])
+        res = mp.map(lambda (n, s): self.upload_shard(
+            s, n, frame, file_name_ready_to_shard_upload, tmp_file_path),
+            enumerate(shards_manager.shards))
 
         self.__logger.debug('===== RESULTS =====')
         self.__logger.debug(res)

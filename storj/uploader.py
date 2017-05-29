@@ -22,37 +22,6 @@ from http import Client
 import threading
 import thread
 
-TIMEOUT = 60    # default = 1 minute
-
-
-def foo(args):
-    self, shard, shard_index, frame, file_name, tmp_path = args
-    return self.upload_shard(shard, shard_index, frame, file_name, tmp_path)
-
-
-def quit_function(fn_name):
-    # self.__logger.debug('{0} took too long'.format(fn_name))
-    thread.interrupt_main()  # raises KeyboardInterrupt
-
-
-def exit_after(s):
-    '''
-    use as decorator to exit process if
-    function takes longer than s seconds
-    '''
-    def outer(fn):
-        def inner(*args, **kwargs):
-            timer = threading.Timer(s, quit_function, args=[fn.__name__])
-            timer.start()
-            try:
-                result = fn(*args, **kwargs)
-            finally:
-                timer.cancel()
-            return result
-        return inner
-
-    return outer
-
 
 class Uploader:
 
@@ -131,7 +100,6 @@ class Uploader:
 
         return current_hmac
 
-    # @exit_after(TIMEOUT)
     def require_upload(self, shard_path, url, index):
         with open(shard_path, 'rb') as f:
             response = requests.post(

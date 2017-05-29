@@ -28,8 +28,10 @@ class Uploader:
     """
 
     Attributes:
-        client (:py:class:`storj.http.Client`): the Storj HTTP client.
-        shared_already_uploaded (int): number of shards already uploaded.
+        email:
+        password:
+        timeout:
+        shared_already_uploaded (int): number of shards already uploaded (0 at begin).
         max_retries_contract_negotiation (int): maximum number of contract negotiation retries (default=10).
         max_retries_upload_same_farmer (int): maximum number of uploads retries to the same farmer (default=3).
     """
@@ -294,9 +296,7 @@ report sent.    ', chapters + 1)
             blocksize (): .
             chunks (): .
         """
-
         i = 0
-
         while chunks:
             data = file_object.read(blocksize)
             if not data:
@@ -307,7 +307,13 @@ report sent.    ', chapters + 1)
             chunks -= 1
 
     def file_upload(self, bucket_id, file_path, tmp_file_path):
-        """"""
+        """
+        Upload a new file
+        Args:
+            bucket_id: ID of the bucket
+            file_path: path of the file to upload
+            tmp_file_path: folder where to store the temporary shards
+        """
 
         self.__logger.debug('Upload %s in bucket %s', file_path, bucket_id)
         self.__logger.debug('Temp folder %s', tmp_file_path)
@@ -338,7 +344,7 @@ report sent.    ', chapters + 1)
         self.fileisdecrypted_str = ''
 
         file_size = os.stat(file_path).st_size
-        self.__logger.debug('File encrypted')
+        self.__logger.info('File encrypted')
 
         # Get the PUSH token from Storj Bridge
         self.__logger.debug('Get PUSH Token')
@@ -352,7 +358,7 @@ report sent.    ', chapters + 1)
             self.__logger.error('File not uploaded')
             return
 
-        self.__logger.debug('PUSH Token ID %s', push_token.id)
+        self.__logger.info('PUSH Token ID %s', push_token.id)
 
         # Get a frame
         self.__logger.debug('Frame')
@@ -367,7 +373,7 @@ staging frame')
             self.__logger.error('File not uploaded')
             return
 
-        self.__logger.debug('frame.id = %s', frame.id)
+        self.__logger.info('frame.id = %s', frame.id)
 
         # Now generate shards
         self.__logger.debug('Sharding started...')
@@ -377,7 +383,7 @@ staging frame')
 
         self.__logger.debug('Sharding ended...')
 
-        self.__logger.debug('There are %s shards', self.all_shards_count)
+        self.__logger.info('There are %s shards', self.all_shards_count)
 
         # Calculate timeout
         self._calculate_timeout(shard_size=shards_manager.shards[0].size,
@@ -440,7 +446,7 @@ staging frame')
             self.__logger.debug('Unhandled bridge exception')
 
         if success:
-            self.__logger.debug('File uploaded successfully!')
+            self.__logger.info('File uploaded successfully!')
 
         # Remove temp files
         try:

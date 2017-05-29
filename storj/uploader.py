@@ -6,7 +6,7 @@ import base64
 import hashlib
 import hmac
 import logging
-from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 import json
 import requests
 import time
@@ -130,14 +130,14 @@ class Uploader:
 
         return current_hmac
 
-    @exit_after(TIMEOUT)
+    # @exit_after(TIMEOUT)
     def require_upload(self, shard_path, url, index):
         with open(shard_path, 'rb') as f:
             response = requests.post(
                 url,
                 data=self._read_in_chunks(
                     f, shard_index=index),
-                timeout=1)
+                timeout=self.client.timeout)
             return response
 
     def _calculate_timeout(self, shard_size, mbps=0.5):
@@ -220,7 +220,14 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                                     f, shard_index=chapters),
                                 timeout=1)
                         """
-                        response = self.require_upload(mypath, url, chapters)
+                        # TODO marco
+                        tp_content = ThreadPool(processes=1)
+                        async_result = tp_content.apply_async(
+                            self.require_upload,
+                            (mypath, url, chapters))
+                        response = async_result.get(self.client.timeout)
+
+                        # response = self.require_upload(mypath, url, chapters)
                         self.__logger.debug('>>> Shard %s Uploaded' % chapters)
 
                         j = json.loads(str(response.content))
@@ -236,9 +243,7 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                         self.__logger.error(e)
                         continue
 
-                    except KeyboardInterrupt:
-                        self.__logger.error()
-                        self.__logger.error()
+                    except TimeoutError:
                         self.__logger.error(
                             'Upload shard %s to %s too slow.' % (
                                 chapters, url))
@@ -421,10 +426,14 @@ staging frame')
                                 mbps=1)
 
         # Upload shards
-        mp = Pool()
-        res = mp.map(foo, [(self, shards_manager.shards[x], x, frame,
-                           file_name_ready_to_shard_upload, tmp_file_path)
-                           for x in range(len(shards_manager.shards))])
+        mp = ThreadPool()
+        # res = mp.map(foo, [(self, shards_manager.shards[x], x, frame,
+        #                    file_name_ready_to_shard_upload, tmp_file_path)
+        #                    for x in range(len(shards_manager.shards))])
+        res = mp.map(self.upload_shard,
+                     [(s, n, frame, file_name_ready_to_shard_upload,
+                       tmp_file_path)
+                      for (n, s) in enumerate(shards_manager.shards)])
 
         self.__logger.debug('===== RESULTS =====')
         self.__logger.debug(res)

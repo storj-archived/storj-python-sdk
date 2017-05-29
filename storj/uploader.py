@@ -67,11 +67,11 @@ class Uploader:
     __logger = logging.getLogger('%s.Uploader' % __name__)
 
     def __init__(
-            self, email, password,
+            self, email, password, timeout=None,
             max_retries_contract_negotiation=10,
             max_retries_upload_same_farmer=3):
 
-        self.client = Client(email, password)
+        self.client = Client(email, password, timeout=timeout)
         self.shards_already_uploaded = 0
         self.max_retries_contract_negotiation = max_retries_contract_negotiation
         self.max_retries_upload_same_farmer = max_retries_upload_same_farmer
@@ -146,9 +146,9 @@ class Uploader:
             shard_size: shard size in Byte
             mbps: upload throughtput. Default 500 kbps
         """
-        global TIMEOUT
-        TIMEOUT = int(shard_size * 8.0 / (1024 ** 2 * mbps))
-        self.__logger.debug('Set timeout to %s seconds' % TIMEOUT)
+        if not self.client.timeout:
+            self.client.timeout = int(shard_size * 8.0 / (1024 ** 2 * mbps))
+        self.__logger.debug('Set timeout to %s seconds' % self.client.timeout)
 
     def upload_shard(self, shard, chapters, frame,
                      file_name_ready_to_shard_upload, tmp_path):
@@ -386,6 +386,8 @@ report sent.    ', chapters + 1)
         except BridgeError as e:
             self.__logger.error(e)
             self.__logger.debug('PUSH token create exception')
+            self.__logger.error('File not uploaded')
+            return
 
         self.__logger.debug('PUSH Token ID %s', push_token.id)
 
@@ -399,6 +401,8 @@ report sent.    ', chapters + 1)
             self.__logger.error(e)
             self.__logger.debug('Unhandled exception while creating file \
 staging frame')
+            self.__logger.error('File not uploaded')
+            return
 
         self.__logger.debug('frame.id = %s', frame.id)
 

@@ -415,8 +415,8 @@ class ShardManagerTestCase(AbstractTestCase):
         mock_tree.reset_mock()
         mock_challenges.reset_mock()
 
-    def test_get_optimal_shard_parameters(self):
-        """Test ShardManager.get_optimal_shard_parameters()."""
+    def test_get_optimal_shard_number(self):
+        """Test ShardManager.get_optimal_shard_number()."""
         shard_manager = ShardManager(__file__)
 
         for file_size, expected_shard_size, expected_shard_count in [
@@ -424,10 +424,9 @@ class ShardManagerTestCase(AbstractTestCase):
             (43 * self.GB, 4 * self.GB, 11)
         ]:
             shard_manager._filesize = file_size
-            shard_size, shard_count = \
-                shard_manager.get_optimal_shard_parameters()
+            shard_count = \
+                shard_manager.get_optimal_shard_number()
 
-            assert expected_shard_size == shard_size
             assert expected_shard_count == shard_count
 
     @mock.patch.object(ShardManager, '_sha256')

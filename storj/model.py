@@ -657,7 +657,6 @@ class ShardManager(Object):
     Attributes:
         tmp_path (str): directory where the chunk files will reside.
         nchallenges : number of challenges.
-        shard_size (): .
         shards (list[]): shards.
         filepath (str): path to the original file.
         num_chunks (int): number of chunks used to split the file.
@@ -670,10 +669,9 @@ class ShardManager(Object):
     SHARD_MULTIPLES_BACK = 4
     SHARD_SIZE = 8 * (1024 * 1024)  # 8Mb
 
-    def __init__(self, filepath, shard_size=None, tmp_path=None, nchallenges=2, suffix=''):
-        self.num_chunks = 0
+    def __init__(self, filepath, num_chunks=0, tmp_path=None, nchallenges=2, suffix=''):
+        self.num_chunks = num_chunks
         self.nchallenges = nchallenges
-        self.shard_size = shard_size
         self.shards = []
         self.suffix = suffix
         self.tmp_path = tmp_path
@@ -729,14 +727,14 @@ class ShardManager(Object):
 
         self.__logger.debug('self.tmp_path=%s', self._tmp_path)
 
-    def get_optimal_shard_parameters(self):
+    def get_optimal_shard_number(self):
         """
-        Returns the optimal sharding parameters.
+        Returns the optimal number of shards.
 
         See https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c
 
         Returns:
-            tuple[long, int]: shard size, number of shards.
+            [int]: number of shards.
         """
 
         shard_size = self.determine_shard_size()
@@ -749,10 +747,11 @@ class ShardManager(Object):
             'shard_size = %d, shard_count = %d, file_size = %d',
             shard_size, shard_count, self.filesize)
 
-        return shard_size, shard_count
+        return shard_count
 
     def determine_shard_size(self, accumulator=0):
         """
+        Determine the optimal shard size.
 
         See https://github.com/aleitner/shard-size-calculator/blob/master/src/shard_size.c
 
@@ -801,7 +800,8 @@ class ShardManager(Object):
     def _make_shards(self):
         """Populates the shard manager with shards."""
 
-        self.shard_size, self.num_chunks = self.get_optimal_shard_parameters()
+        if self.num_chunks == 0:
+            self.num_chunks = self.get_optimal_shard_number()
         self.__logger.debug('number of chunks %d', self.num_chunks)
 
         index = 0

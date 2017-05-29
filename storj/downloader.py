@@ -1,5 +1,3 @@
-
-from sys import platform
 import os
 
 import logging
@@ -7,6 +5,7 @@ import logging
 import requests
 
 from multiprocessing.pool import ThreadPool
+from multiprocessing import TimeoutError
 from tempfile import SpooledTemporaryFile
 
 from exception import StorjBridgeApiError, StorjFarmerError, ClientError
@@ -23,9 +22,22 @@ class Downloader:
 
     __logger = logging.getLogger('%s.ClassName' % __name__)
 
-    def __init__(self, email, password):
-        self.client = Client(email, password, )
+    def __init__(self, email, password, timeout=None):
+        self.client = Client(email, password, timeout=timeout)
         self.max_spooled = 10 * 1024 * 1024   # keep files up to 10MiB in memory
+
+    def _calculate_timeout(self, shard_size, mbps=0.5):
+        """
+        Calculate the timeout with respect to the minimum bandwidth accepted
+        by the user (default: 5 Mbps).
+
+        Args:
+            shard_size: shard size in Byte
+            mbps: upload throughtput. Default 500 kbps
+        """
+        if not self.client.timeout:
+            self.client.timeout = int(shard_size * 8.0 / (1024 ** 2 * mbps))
+        self.__logger.info('Set timeout to %s seconds' % self.client.timeout)
 
     def get_file_pointers_count(self, bucket_id, file_id):
         frame_data = self.client.frame_get(self.file_frame.id)
@@ -63,7 +75,8 @@ class Downloader:
 
         try:
             self.__logger.debug(
-                'Resolving file pointers to download file with ID: %s ...', file_id)
+                'Resolving file pointers to download file with ID: %s ...',
+                file_id)
 
             tries_get_file_pointers = 0
 
@@ -85,17 +98,21 @@ class Downloader:
                     self.__logger.debug(
                         'There are %s shard pointers: ', len(shard_pointers))
 
+                    # Calculate timeout
+                    self._calculate_timeout(shard_pointers[0]['size'], mbps=1)
+
+                    # Upload shards thread pool
                     self.__logger.debug('Begin shards download process')
                     shards = mp.map(
-                        lambda x: self.shard_download(x[1], x[0]),
+                        lambda x: self.shard_download(x[1], x[0], bucket_id,
+                                                      file_id),
                         enumerate(shard_pointers))
 
                 except StorjBridgeApiError as e:
                     self.__logger.error(e)
                     self.__logger.error('Bridge error')
-                    self.__logger.error(
-                        'Error while resolving file pointers to download file with ID: %s ...',
-                        file_id)
+                    self.__logger.error('Error while resolving file pointers \
+to download file with ID: %s ...', file_id)
                     self.__logger.error(e)
                     continue
                 else:
@@ -103,11 +120,12 @@ class Downloader:
 
         except StorjBridgeApiError as e:
             self.__logger.error(e)
-            self.__logger.error("Outern Bridge error")
-            self.__logger.error("Error while resolving file pointers to \
-                download file with ID: %s" % str(file_id))
+            self.__logger.error('Outern Bridge error')
+            self.__logger.error('Error while resolving file pointers to \
+download file with ID: %s' % str(file_id))
 
         # All the shards have been downloaded
+        self.__logger.debug(shards)
         if shards is not None:
             self.finish_download(shards)
 
@@ -115,12 +133,13 @@ class Downloader:
         self.__logger.debug('Finish download')
         fileisencrypted = '[DECRYPTED]' not in self.filename_from_bridge
 
+        destination_path = os.path.join(self.destination_file_path,
+                                        self.filename_from_bridge)
+        self.__logger.debug('Destination path %s', destination_path)
+
         # Join shards
         sharding_tools = ShardingTools()
         self.__logger.debug('Joining shards...')
-
-        destination_path = os.path.join(self.destination_file_path, self.filename_from_bridge)
-        self.__logger.debug('Destination path %s', destination_path)
 
         try:
             if not fileisencrypted:
@@ -128,7 +147,7 @@ class Downloader:
                     sharding_tools.join_shards(shards, destination_fp)
 
             else:
-                with SpooledTemporaryFile(self.max_spooled, 'wb') as encrypted:
+                with SpooledTemporaryFile(self.max_spooled, 'r+') as encrypted:
                     sharding_tools.join_shards(shards, encrypted)
 
                     # move file read pointer at beginning
@@ -178,7 +197,7 @@ class Downloader:
                 shard = SpooledTemporaryFile(self.max_spooled, 'wb')
 
                 # Request the shard
-                r = requests.get(url, stream=True)
+                r = requests.get(url, stream=True, timeout=self.client.timeout)
                 if r.status_code != 200 and r.status_code != 304:
                     raise StorjFarmerError()
 
@@ -194,24 +213,33 @@ class Downloader:
 
             except StorjFarmerError as e:
                 self.__logger.error(e)
-                self.__logger.error("First try failed. Retrying... (%s)" %
-                                    str(farmer_tries))  # update shard download state
+                # Update shard download state
+                self.__logger.error('First try failed. Retrying... (%s)' %
+                                    str(farmer_tries))
+
+            except requests.exceptions.Timeout as ret:
+                self.__logger.error('Request number %s for shard %s timed out.\
+Took too much.' % (farmer_tries, shard_index))
+                self.__logger.error(ret)
 
             except Exception as e:
                 self.__logger.error(e)
-                self.__logger.error("Unhandled error")
-                self.__logger.error("Error occured while downloading shard at "
-                                    "index %s. Retrying... (%s)" % (shard_index, farmer_tries))
+                self.__logger.error('Unhandled error')
+                self.__logger.error('Error occured while downloading shard at '
+                                    'index %s. Retrying... (%s)' %
+                                    (shard_index,
+                                     farmer_tries))
 
-        self.__logger.error("Shard download at index %s failed" % shard_index)
+        self.__logger.error('Shard download at index %s failed' % shard_index)
         raise ClientError()
 
-    def shard_download(self, pointer, shard_index):
+    def shard_download(self, pointer, shard_index, bucket_id, file_id):
         self.__logger.debug('Beginning download proccess...')
 
         try:
             self.__logger.debug('Starting download threads...')
-            self.__logger.debug('Downloading shard at index %s ...', shard_index)
+            self.__logger.debug('Downloading shard at index %s ...',
+                                shard_index)
 
             url = 'http://{address}:{port}/shards/{hash}?token={token}'.format(
                 address=pointer.get('farmer')['address'],
@@ -220,9 +248,16 @@ class Downloader:
                 token=pointer['token'])
             self.__logger.debug(url)
 
-            shard = self.retrieve_shard_file(url, shard_index)
+            tp = ThreadPool(processes=1)
+            async_result = tp.apply_async(
+                self.retrieve_shard_file,
+                (url, shard_index))  # tuple of args for foo
+            shard = async_result.get(self.client.timeout)  # get the return value
+
+            # shard = self.retrieve_shard_file(url, shard_index)
             self.__logger.debug('Shard downloaded')
-            self.__logger.debug('Shard at index %s downloaded successfully', shard_index)
+            self.__logger.debug('Shard at index %s downloaded successfully',
+                                shard_index)
             return shard
 
         except IOError as e:
@@ -233,6 +268,21 @@ class Downloader:
                 Probably this is caused by insufficient permisions.
                 Please check if you have permissions to write or
                 read from selected directories.""")
+
+        except TimeoutError:
+            self.__logger.warning('Aborting shard %s download due to timeout' %
+                                  shard_index)
+            tp.terminate()
+            self.__logger.warning('Try with a new pointer')
+            new_pointer = self.client.file_pointers(
+                bucket_id=bucket_id,
+                file_id=file_id,
+                limit='1',
+                skip=str(shard_index),
+                exclude=str([pointer['farmer']['nodeID']]))
+            self.__logger.debug('Found new pointer')
+            return self.shard_download(new_pointer[0], shard_index,
+                                       bucket_id, file_id)
 
         except Exception as e:
             self.__logger.error(e)

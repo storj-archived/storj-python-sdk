@@ -419,7 +419,7 @@ staging frame')
         # Upload shards
         mp = Pool()
         res = mp.map(foo, [(self, shards_manager.shards[x], x, frame,
-                           file_name_ready_to_shard_upload, tmp_file_path)
+                            file_name_ready_to_shard_upload, tmp_file_path)
                            for x in range(len(shards_manager.shards))])
 
         self.__logger.debug('===== RESULTS =====')

@@ -391,7 +391,7 @@ staging frame')
 
         self.__logger.debug('===== RESULTS =====')
         self.__logger.debug(res)
-        if False in res:
+        if False in res or None in res:
             self.__logger.error('File not uploaded: shard %s not uploaded' %
                                 res.index(False))
             self.__logger.error('Exiting with errors')

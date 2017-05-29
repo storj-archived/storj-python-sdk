@@ -129,13 +129,14 @@ class File(Object):
     """
 
     def __init__(self, bucket=None, hash=None, mimetype=None,
-                 filename=None, size=None, id=None, frame=None, created=None, hmac=None, erasure=None):
+                 filename=None, size=None, id=None, frame=None, created=None, hmac=None, erasure=None, index=None):
         self.bucket = Bucket(id=bucket)
         self.hash = hash
         self.mimetype = mimetype
         self.filename = filename
         self.size = size
         self.erasure = erasure
+        self.index = index
         self.shard_manager = None
         self.id = id
         self.frame = Frame(id=frame)

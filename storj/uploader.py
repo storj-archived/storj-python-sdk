@@ -189,7 +189,6 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                                     f, shard_index=chapters),
                                 timeout=1)
                         """
-                        # TODO marco
                         tp_content = ThreadPool(processes=1)
                         async_result = tp_content.apply_async(
                             self.require_upload,
@@ -219,17 +218,7 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                         self.__logger.error(
                             'Upload timed out. Redo upload of shard %s' %
                             chapters)
-                        continue
-
-                    except Exception as e:
-                        self.__logger.error('Exception')
-                        self.__logger.error(e)
-                        self.__logger.error(
-                            'Shard upload error for %s to %s:%d',
-                            chapters,
-                            frame_content['farmer']['address'],
-                            frame_content['farmer']['port'])
-                        continue
+                        raise BridgeError('Farmer too slow. Try another one.')
 
                     else:
                         self.shards_already_uploaded += 1
@@ -243,8 +232,8 @@ shard at index %s. Attempt %s' % (chapters, contract_negotiation_tries))
                             self.all_shards_count,
                             self.shards_already_uploaded)
 
-                        if int(self.all_shards_count) <= \
-                                int(self.shards_already_uploaded):
+                        if self.all_shards_count <= \
+                                self.shards_already_uploaded:
                             self.__logger.debug('finish upload')
 
                         break
@@ -396,9 +385,6 @@ staging frame')
 
         # Upload shards
         mp = ThreadPool()
-        # res = mp.map(foo, [(self, shards_manager.shards[x], x, frame,
-        #                    file_name_ready_to_shard_upload, tmp_file_path)
-        #                    for x in range(len(shards_manager.shards))])
         res = mp.map(lambda (n, s): self.upload_shard(
             s, n, frame, file_name_ready_to_shard_upload, tmp_file_path),
             enumerate(shards_manager.shards))

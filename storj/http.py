@@ -534,7 +534,6 @@ class Client(object):
         Returns:
             (generator[:py:class:`storj.model.FileMirrors`]): list of mirrors of give file.
         """
-        # print "test"
         self.logger.info('file_mirrors(%s, %s)', bucket_id, file_id)
 
         pull_token = self.token_create(bucket_id, operation='PULL')
@@ -667,7 +666,7 @@ class Client(object):
 
         self.logger.info('key_generate()')
 
-        print("This will replace your public and private keys in 3 seconds...")
+        self.logger.debug('This will replace your public and private keys in 3 seconds...')
         time.sleep(3)
 
         self.private_key = SigningKey.generate(curve=SECP256k1, hashfunc=sha256)
@@ -748,7 +747,7 @@ class Client(object):
                 exchange_report_data (ExchangeReport): exchange report datails.
             Returns:
                 (dict): ...
-               """
+        """
         self.logger.info('send_exchenge_report()')
 
         data = {

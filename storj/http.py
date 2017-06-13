@@ -48,12 +48,12 @@ class Client(object):
     """
     Attributes:
         api_url (str): the Storj API endpoint.
-        session ():
         email (str): user email address.
         password (str): user password.
         private_key ():
         public_key ():
         public_key_hex ():
+        session ():
         timeout (float or tuple): (optional) how long to wait for the server to
             send data before giving up, as a float, or
             a (connect timeout, read timeout) tuple.
@@ -61,7 +61,7 @@ class Client(object):
 
     logger = logging.getLogger('%s.Client' % __name__)
 
-    def __init__(self, email, password, storj_bridge="https://api.storj.io/", do_hashing=True, timeout=None):
+    def __init__(self, email, password, storj_bridge='https://api.storj.io/', do_hashing=True, timeout=None):
         self.api_url = storj_bridge
         self.session = requests.Session()
         self.email = email

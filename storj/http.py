@@ -61,8 +61,8 @@ class Client(object):
 
     logger = logging.getLogger('%s.Client' % __name__)
 
-    def __init__(self, email, password, do_hashing=True, timeout=None):
-        self.api_url = 'https://api.storj.io/'
+    def __init__(self, email, password, storj_bridge="https://api.storj.io/", do_hashing=True, timeout=None):
+        self.api_url = storj_bridge
         self.session = requests.Session()
         self.email = email
         self.do_hashing = do_hashing

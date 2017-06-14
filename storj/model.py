@@ -958,10 +958,3 @@ class ExchangeReport(Object):
         self.STORJ_REPORT_SHARD_UPLOADED = "SHARD_UPLOADED"
         self.STORJ_REPORT_DOWNLOAD_ERROR = "DOWNLOAD_ERROR"
         self.STORJ_REPORT_SHARD_DOWNLOADED = "SHARD_DOWNLOADED"
-
-
-class StorjParametrs(Object):
-    def __init__(
-        self, tmpPath=None
-    ):
-        self.tmpPath = tmpPath

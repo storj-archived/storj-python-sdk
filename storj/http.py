@@ -23,8 +23,8 @@ except ImportError:
     # Python 2
     JSONDecodeError = ValueError
 
-from api import ecdsa_to_hex
-from exception import BridgeError, ClientError
+from .api import ecdsa_to_hex
+from .exception import BridgeError, ClientError
 
 from . import web_socket
 from . import model

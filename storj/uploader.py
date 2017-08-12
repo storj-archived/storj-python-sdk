@@ -391,8 +391,8 @@ staging frame')
 
         # Upload shards
         mp = ThreadPool()
-        res = mp.map(lambda (n, s): self.upload_shard(
-            s, n, frame, file_name_ready_to_shard_upload, tmp_file_path),
+        res = mp.map(lambda n_s: self.upload_shard(
+            n_s[1], n_s[0], frame, file_name_ready_to_shard_upload, tmp_file_path),
             enumerate(shards_manager.shards))
 
         self.__logger.debug('===== RESULTS =====')
